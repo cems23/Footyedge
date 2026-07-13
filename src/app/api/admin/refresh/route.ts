@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const LEAGUES = [2,13,3,39,40,41,42,140,141,135,136,78,79,61,62,88,94,203,144,128,71,253,262,113,103,169,307]
+const LEAGUES = [2,13,3,39,40,41,42,140,141,135,136,78,79,61,62,88,94,203,144,128,71,253,262,113,103,169,307,164]
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization')

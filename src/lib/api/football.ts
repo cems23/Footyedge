@@ -44,6 +44,7 @@ export const ACTIVE_LEAGUES = [
   { id: 253, sportKey: 'soccer_usa_mls',                    name: 'MLS',            season: 2025, hasOdds: true  },
   { id: 262, sportKey: 'soccer_mexico_liga_mx',             name: 'Liga MX',        season: 2025, hasOdds: true  },
   { id: 113, sportKey: 'soccer_sweden_allsvenskan',         name: 'Allsvenskan',    season: 2025, hasOdds: true  },
+  { id: 164, sportKey: 'soccer_iceland_urvalsdeild',        name: 'Úrvalsdeild',    season: 2025, hasOdds: true  },
   { id: 103, sportKey: 'soccer_norway_eliteserien',         name: 'Eliteserien',    season: 2025, hasOdds: true  },
   { id: 106, sportKey: 'soccer_poland_ekstraklasa',         name: 'Ekstraklasa',    season: 2025, hasOdds: true  },
   { id: 207, sportKey: 'soccer_switzerland_super_league',   name: 'Swiss SL',       season: 2025, hasOdds: true  },
