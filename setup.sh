@@ -38,10 +38,10 @@ fi
 echo -e "${GREEN}✓${NC} .env.local encontrado"
 
 # 4. Verify keys are set
-if grep -q "API_FOOTBALL_KEY=5e40693" .env.local; then
+if grep -q "^API_FOOTBALL_KEY=." .env.local; then
   echo -e "${GREEN}✓${NC} API Football key configurada"
 fi
-if grep -q "ODDS_API_KEY=51c1bd" .env.local; then
+if grep -q "^ODDS_API_KEY=." .env.local; then
   echo -e "${GREEN}✓${NC} Odds API key configurada"
 fi
 if grep -q "supabase.co" .env.local; then
@@ -64,5 +64,5 @@ echo ""
 echo -e "  Dashboard en: ${CYAN}http://localhost:3000/dashboard${NC}"
 echo ""
 echo -e "  Para ejecutar el análisis manual:"
-echo -e "  ${GREEN}curl -H 'Authorization: Bearer footyedge-cron-2024-secret-key' http://localhost:3000/api/matches/analyze${NC}"
+echo -e "  ${GREEN}curl -H 'Authorization: Bearer \$CRON_SECRET' http://localhost:3000/api/matches/analyze${NC}"
 echo -e "${CYAN}════════════════════════════════════════════════${NC}"
