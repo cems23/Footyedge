@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /es/
+Allow: /en/
+Disallow: /dashboard/
+Disallow: /match/
+Disallow: /api/
+
+Sitemap: https://footyedge.xyz/sitemap.xml
