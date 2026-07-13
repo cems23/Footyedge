@@ -652,6 +652,9 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
                   ⚡ Early Lines
                 </button>
               )}
+              <button onClick={() => router.push('/rankings')} style={{ background: 'rgba(206,147,216,0.08)', border: '1px solid rgba(206,147,216,0.3)', color: '#ce93d8', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                🏆 Rankings
+              </button>
 
               {/* Bankroll editable */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.25)', borderRadius: 6, padding: '4px 8px' }}>
