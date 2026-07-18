@@ -37,8 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     payment_method_types: ['card'],
     line_items: [{
       price_data: {
-        currency: 'eur',
-        unit_amount: 139, // 1.39€
+        currency: 'usd',
+        unit_amount: 139, // $1.39
         product_data: {
           name: `Análisis IA: ${match.home_team_name} vs ${match.away_team_name}`,
           description: `${match.league_name} — análisis profundo con contexto e IA`,
