@@ -16,9 +16,13 @@ export default function MatchPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'analysis'|'compare'|'h2h'|'injuries'|'standings'|'form'|'lineups'|'stats'>('analysis')
+  const [tab, setTab] = useState<'analysis'|'compare'|'h2h'|'injuries'|'standings'|'form'|'lineups'|'stats'|'ai'>('analysis')
   const [userPlan, setUserPlan] = useState<string>('free')
   const isElite = userPlan === 'elite'
+  const [aiContent, setAiContent] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [aiNeedsPayment, setAiNeedsPayment] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -63,6 +67,58 @@ export default function MatchPage() {
   const lT = (pred?.expected_goals_home ?? 0) + (pred?.expected_goals_away ?? 0)
   const prob_over15 = pred ? 1 - Math.exp(-lT) * (1 + lT) : null
 
+  const startAiCheckout = async () => {
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const res = await fetch(`/api/match/${id}/ai-analysis/checkout`, { method: 'POST' })
+      const d = await res.json()
+      if (d.alreadyPaid) {
+        loadAiAnalysis()
+        return
+      }
+      if (d.url) {
+        window.location.href = d.url
+      } else {
+        setAiError(d.error ?? 'Error iniciando el pago')
+        setAiLoading(false)
+      }
+    } catch (e: any) {
+      setAiError(e.message)
+      setAiLoading(false)
+    }
+  }
+
+  const loadAiAnalysis = async () => {
+    setAiLoading(true)
+    setAiError(null)
+    setAiNeedsPayment(false)
+    try {
+      const res = await fetch(`/api/match/${id}/ai-analysis`)
+      if (res.status === 402) {
+        setAiNeedsPayment(true)
+        setAiLoading(false)
+        return
+      }
+      const d = await res.json()
+      if (d.error) {
+        setAiError(d.error)
+      } else {
+        setAiContent(d.content)
+      }
+    } catch (e: any) {
+      setAiError(e.message)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 'ai' && !aiContent && !aiLoading) {
+      loadAiAnalysis()
+    }
+  }, [tab])
+
   const tabs = [
     { id: 'analysis', label: '📊 Análisis' },
     { id: 'compare',  label: '⚖️ Comparar' },
@@ -72,6 +128,7 @@ export default function MatchPage() {
     ...(isElite ? [{ id: 'stats', label: '📊 Estadísticas' }] : []),
     { id: 'standings',label: '📋 Tabla' },
     { id: 'form',     label: '📈 Forma' },
+    { id: 'ai',       label: '🤖 Análisis IA' },
   ]
 
   return (
@@ -632,6 +689,54 @@ export default function MatchPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* ── ANÁLISIS IA ── */}
+          {tab === 'ai' && (
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 24 }}>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 10, color: G, letterSpacing: 4, textTransform: 'uppercase', marginBottom: 8 }}>◆ Powered by Claude AI</div>
+                <h3 style={{ fontSize: 20, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, margin: 0 }}>
+                  ANÁLISIS <span style={{ color: G }}>PROFUNDO</span>
+                </h3>
+                <p style={{ color: '#4a6785', fontSize: 12, marginTop: 8 }}>
+                  Contexto cualitativo con búsqueda web en tiempo real: lesiones, forma, motivación — más allá de lo que ve el modelo estadístico
+                </p>
+              </div>
+
+              {aiLoading && (
+                <div style={{ textAlign: 'center', padding: 40, color: '#4a6785' }}>
+                  Analizando partido con IA (puede tardar 15-30s)...
+                </div>
+              )}
+
+              {!aiLoading && aiNeedsPayment && (
+                <div style={{ textAlign: 'center', padding: 20 }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>🤖</div>
+                  <p style={{ color: '#8fa3bf', fontSize: 13, marginBottom: 20, maxWidth: 420, margin: '0 auto 20px' }}>
+                    Desbloquea un análisis narrativo generado por IA para este partido específico, con noticias y contexto actualizado.
+                  </p>
+                  <button
+                    onClick={startAiCheckout}
+                    style={{ background: G, border: 'none', color: '#0a1628', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Desbloquear por $1.39
+                  </button>
+                </div>
+              )}
+
+              {!aiLoading && aiError && (
+                <div style={{ textAlign: 'center', padding: 20, color: '#ff4d4d', fontSize: 13 }}>
+                  {aiError}
+                </div>
+              )}
+
+              {!aiLoading && aiContent && (
+                <div style={{ color: '#c5d3e8', fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                  {aiContent}
+                </div>
+              )}
             </div>
           )}
 
