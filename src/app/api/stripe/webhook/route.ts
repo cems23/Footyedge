@@ -21,7 +21,15 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as any
     const userId  = session.metadata?.userId
     const plan    = session.metadata?.plan
-    if (userId && plan) {
+    const type    = session.metadata?.type
+    const matchId = session.metadata?.matchId
+
+    if (type === 'ai_analysis' && userId && matchId) {
+      await supabase.from('ai_analyses').update({
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+      }).eq('match_id', matchId).eq('user_id', userId)
+    } else if (userId && plan) {
       await supabase.from('users').upsert({
         id: userId, plan,
         subscription_status: 'active',
