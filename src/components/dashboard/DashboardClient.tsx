@@ -795,6 +795,21 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 </div>
                 {valueBetsOpen && (
                   <div style={{ padding: 18 }}>
+                    {rankings.length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '40px 20px', color: '#4a6785' }}>
+                        <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+                        <div style={{ fontSize: 14, color: '#8ba2c0', marginBottom: 6 }}>
+                          {lang === 'en'
+                            ? 'No value bets found for today'
+                            : 'No se encontraron apuestas de valor para hoy'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#4a6785', maxWidth: 420, margin: '0 auto' }}>
+                          {lang === 'en'
+                            ? 'The model analyzed today\'s matches and none met our quality thresholds. This is normal — we\'d rather show zero bets than a bad one.'
+                            : 'El modelo analizó los partidos de hoy y ninguno superó nuestros umbrales de calidad. Es normal — preferimos mostrar cero apuestas antes que una mala.'}
+                        </div>
+                      </div>
+                    )}
                     {visibleRankings.length > 0 && (() => {
                       const r = visibleRankings[0]
                       const locked = r.is_pro_only && !isPro
