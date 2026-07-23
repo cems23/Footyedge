@@ -19,7 +19,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.xyz
         run: |
-          LEAGUES="2 13 3 848 39 40 41 42 140 141 135 136 78 79 61 62 88 94 203 144 128 71 253 262 113 103 169 307 164"
+          LEAGUES="2 13 11 3 848 39 40 41 42 140 141 135 136 78 79 61 62 88 94 203 144 128 71 253 262 113 103 169 307 164"
           for league in $LEAGUES; do
             echo "Analizando liga $league..."
             code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \

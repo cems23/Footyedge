@@ -29,6 +29,7 @@ export const ACTIVE_LEAGUES = [
   { id: 3,   sportKey: 'soccer_uefa_europa_league',          name: 'Europa League',    season: 2026, hasOdds: true  },
   { id: 848, sportKey: 'soccer_uefa_europa_conference_league', name: 'Conference League', season: 2026, hasOdds: true  },
   { id: 13,  sportKey: 'soccer_conmebol_libertadores',         name: 'Libertadores',   season: 2026, hasOdds: true  },
+  { id: 11,  sportKey: 'soccer_conmebol_sudamericana',        name: 'Sudamericana',   season: 2026, hasOdds: true  },
   { id: 39,  sportKey: 'soccer_epl',                        name: 'Premier League', season: 2026, hasOdds: true  },
   { id: 140, sportKey: 'soccer_spain_la_liga',              name: 'La Liga',        season: 2026, hasOdds: true  },
   { id: 78,  sportKey: 'soccer_germany_bundesliga',         name: 'Bundesliga',     season: 2026, hasOdds: true  },
