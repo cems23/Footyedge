@@ -76,6 +76,7 @@ export default function MatchPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiNeedsPayment, setAiNeedsPayment] = useState(false)
+  const [aiSlowWarning, setAiSlowWarning] = useState(false)
   const t: Record<string, any> = lang === 'en' ? {
     loading: 'Loading full analysis...', notFound: 'Match not found',
     home: 'Home', away: 'Away', expectedGoals: 'Expected Goals (λ)',
@@ -211,6 +212,8 @@ export default function MatchPage() {
     setAiLoading(true)
     setAiError(null)
     setAiNeedsPayment(false)
+    setAiSlowWarning(false)
+    const slowTimer = setTimeout(() => setAiSlowWarning(true), 18000)
     try {
       const res = await fetch(`/api/match/${id}/ai-analysis?lang=${lang}`)
       if (res.status === 402) {
@@ -227,7 +230,9 @@ export default function MatchPage() {
     } catch (e: any) {
       setAiError(e.message)
     } finally {
+      clearTimeout(slowTimer)
       setAiLoading(false)
+      setAiSlowWarning(false)
     }
   }
 
@@ -856,8 +861,34 @@ export default function MatchPage() {
               </div>
 
               {aiLoading && (
-                <div style={{ textAlign: 'center', padding: 40, color: '#4a6785' }}>
-                  {lang === 'en' ? 'Analyzing match with AI (may take 15-30s)...' : 'Analizando partido con IA (puede tardar 15-30s)...'}
+                <div style={{ textAlign: 'center', padding: 40 }}>
+                  <style>{`
+                    @keyframes ai-ball-bounce { 0%, 100% { transform: translateY(0) rotate(0deg) } 50% { transform: translateY(-22px) rotate(180deg) } }
+                    @keyframes ai-ball-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.35 } 50% { transform: scaleX(0.55); opacity: 0.12 } }
+                    @keyframes ai-pulse-dot { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.8) } 40% { opacity: 1; transform: scale(1) } }
+                  `}</style>
+                  <div style={{ height: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: 34, animation: 'ai-ball-bounce 0.9s ease-in-out infinite' }}>⚽</div>
+                    <div style={{ width: 30, height: 6, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', marginTop: 4, animation: 'ai-ball-shadow 0.9s ease-in-out infinite' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginBottom: 12 }}>
+                    {[0, 1, 2].map(i => (
+                      <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: G, animation: `ai-pulse-dot 1.2s ease-in-out ${i * 0.15}s infinite` }} />
+                    ))}
+                  </div>
+                  <div style={{ color: '#8fa3bf', fontSize: 13 }}>
+                    {lang === 'en' ? 'Analyzing match with AI...' : 'Analizando partido con IA...'}
+                  </div>
+                  <div style={{ color: '#4a6785', fontSize: 11, marginTop: 6 }}>
+                    {lang === 'en' ? 'Usually takes 15-30 seconds' : 'Normalmente tarda 15-30 segundos'}
+                  </div>
+                  {aiSlowWarning && (
+                    <div style={{ marginTop: 20, padding: '10px 16px', background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.3)', borderRadius: 8, color: '#ffb400', fontSize: 12, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto' }}>
+                      {lang === 'en'
+                        ? "This is taking longer than usual. If nothing appears in a few more seconds, try refreshing the page."
+                        : 'Esto está tardando más de lo normal. Si no aparece en unos segundos más, intenta recargar la página.'}
+                    </div>
+                  )}
                 </div>
               )}
 
