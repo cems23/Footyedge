@@ -284,6 +284,7 @@ export default function MatchPage() {
   const proTabs = ['h2h', 'injuries', 'form', 'compare', 'stats']
   const tabs = [
     { id: 'analysis', label: t.analysis },
+    { id: 'ai',       label: lang === 'en' ? '🤖 AI Analysis' : '🤖 Análisis IA' },
     { id: 'compare',  label: t.compare },
     { id: 'h2h',      label: t.h2h },
     { id: 'injuries', label: t.injuries },
@@ -291,7 +292,6 @@ export default function MatchPage() {
     ...(isElite ? [{ id: 'stats', label: t.stats }] : []),
     { id: 'standings',label: t.standings },
     { id: 'form',     label: t.form },
-    { id: 'ai',       label: lang === 'en' ? '🤖 AI Analysis' : '🤖 Análisis IA' },
   ]
 
   return (
@@ -368,7 +368,9 @@ export default function MatchPage() {
                 if (locked) { router.push(`/${lang}/pricing?reason=pro`); return }
                 setTab(t.id as any)
               }}
-                style={{ background: 'none', border: 'none', color: tab === t.id ? G : locked ? '#2a3a4a' : '#4a6785', cursor: locked ? 'not-allowed' : 'pointer', padding: '12px 16px', fontSize: 12, borderBottom: tab === t.id ? `2px solid ${G}` : '2px solid transparent', whiteSpace: 'nowrap' }}>
+                style={t.id === 'ai'
+                  ? { background: tab === 'ai' ? 'rgba(255,180,0,0.12)' : 'rgba(255,180,0,0.06)', border: 'none', color: tab === 'ai' ? '#ffb400' : '#e0a94a', cursor: 'pointer', padding: '12px 16px', fontSize: 12, fontWeight: 700, borderBottom: tab === 'ai' ? '2px solid #ffb400' : '2px solid transparent', whiteSpace: 'nowrap', borderRadius: '6px 6px 0 0' }
+                  : { background: 'none', border: 'none', color: tab === t.id ? G : locked ? '#2a3a4a' : '#4a6785', cursor: locked ? 'not-allowed' : 'pointer', padding: '12px 16px', fontSize: 12, borderBottom: tab === t.id ? `2px solid ${G}` : '2px solid transparent', whiteSpace: 'nowrap' }}>
                 {locked ? '🔒 ' : ''}{t.label}
               </button>
             )
@@ -381,6 +383,27 @@ export default function MatchPage() {
           {/* ── ANÁLISIS ── */}
           {tab === 'analysis' && pred && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Banner promocional: Análisis IA */}
+              <div onClick={() => setTab('ai' as any)}
+                style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden', background: 'linear-gradient(120deg, rgba(255,180,0,0.10), rgba(13,30,53,0.7) 60%)', border: '1px solid rgba(255,180,0,0.35)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ fontSize: 28 }}>🤖</div>
+                  <div>
+                    <div style={{ color: '#ffb400', fontWeight: 700, fontSize: 14 }}>
+                      {lang === 'en' ? 'Get the AI Deep Analysis' : 'Consigue el Análisis Profundo con IA'}
+                    </div>
+                    <div style={{ color: '#8fa3bf', fontSize: 12, marginTop: 2 }}>
+                      {lang === 'en'
+                        ? 'Injuries, form and context beyond the numbers — powered by Claude'
+                        : 'Lesiones, forma y contexto más allá de los números — con Claude'}
+                    </div>
+                  </div>
+                </div>
+                <span style={{ background: '#ffb400', color: '#0a1628', fontWeight: 700, fontSize: 13, padding: '9px 18px', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                  {lang === 'en' ? 'View →' : 'Ver →'}
+                </span>
+              </div>
+
               {/* Goles esperados */}
               <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ fontSize: 11, color: '#4a6785', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 1 }}>{t.expectedGoals}</div>
