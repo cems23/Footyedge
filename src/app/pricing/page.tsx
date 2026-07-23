@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 
-export default function PricingPage() {
-  redirect('/es/pricing')
+export default function PricingRedirect() {
+  const acceptLang = headers().get('accept-language') ?? ''
+  const lang = acceptLang.toLowerCase().startsWith('en') ? 'en' : 'es'
+  redirect(`/${lang}/pricing`)
 }
