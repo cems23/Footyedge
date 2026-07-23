@@ -29,14 +29,19 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const visible = isPro ? rankings : rankings?.filter((r: { is_pro_only: boolean }) => !r.is_pro_only)
+  // No mostrar en las tarjetas de picks (Value Bets, BTTS) partidos ya finalizados —
+  // el resultado se sigue mostrando en la lista de partidos, pero no tiene sentido
+  // ofrecer una "apuesta de valor" sobre algo que ya terminó.
+  const notFinished = (rankings ?? []).filter((r: any) => r.matches?.status !== 'FT')
+
+  const visible = isPro ? notFinished : notFinished.filter((r: { is_pro_only: boolean }) => !r.is_pro_only)
 
   return NextResponse.json({
     date:        today,
     rankings:    visible ?? [],
-    total:       rankings?.length ?? 0,
+    total:       notFinished.length,
     visible:     visible?.length ?? 0,
     isPro,
-    lockedCount: (rankings?.length ?? 0) - (visible?.length ?? 0),
+    lockedCount: notFinished.length - (visible?.length ?? 0),
   })
 }

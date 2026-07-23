@@ -823,8 +823,10 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                           <span aria-hidden style={{ position: 'absolute', right: -6, bottom: -26, fontFamily: '"Bebas Neue", sans-serif', fontSize: 150, lineHeight: 1, color: 'transparent', WebkitTextStroke: '2px rgba(0,200,120,0.14)', pointerEvents: 'none', transform: 'skewX(-8deg)' }}>#1</span>
                           <div style={{ minWidth: 220 }}>
                             <div style={{ fontSize: 10, color: '#00c878', letterSpacing: '0.2em', marginBottom: 8 }}>★ {lang === 'en' ? 'BET OF THE DAY' : 'APUESTA DEL DÍA'}</div>
-                            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 34, lineHeight: 0.95, color: '#f2f6ff', transform: 'skewX(-6deg)', transformOrigin: 'left' }}>
+                            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 34, lineHeight: 0.95, color: '#f2f6ff', transform: 'skewX(-6deg)', transformOrigin: 'left', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                              {r.matches?.home_team_logo && <img src={r.matches.home_team_logo} width={28} height={28} alt="" style={{ flexShrink: 0 }} />}
                               {r.matches?.home_team_name} <span style={{ color: '#00c878' }}>vs</span> {r.matches?.away_team_name}
+                              {r.matches?.away_team_logo && <img src={r.matches.away_team_logo} width={28} height={28} alt="" style={{ flexShrink: 0 }} />}
                             </div>
                             <div style={{ fontSize: 11, color: '#8ba2c0', marginTop: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name}</div>
                           </div>
@@ -854,7 +856,11 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
                             <span aria-hidden style={{ position: 'absolute', right: 2, top: -14, fontFamily: '"Bebas Neue", sans-serif', fontSize: 74, lineHeight: 1, color: 'transparent', WebkitTextStroke: '1.5px rgba(0,200,120,0.16)', pointerEvents: 'none', transform: 'skewX(-8deg)' }}>#{r.rank}</span>
                             <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name}</div>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff', marginBottom: 12 }}>{r.matches?.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {r.matches?.away_team_name}</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {r.matches?.home_team_logo && <img src={r.matches.home_team_logo} width={18} height={18} alt="" style={{ flexShrink: 0 }} />}
+                              {r.matches?.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {r.matches?.away_team_name}
+                              {r.matches?.away_team_logo && <img src={r.matches.away_team_logo} width={18} height={18} alt="" style={{ flexShrink: 0 }} />}
+                            </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                               <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 12, letterSpacing: '0.08em', padding: '3px 12px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
                               <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 19, color: '#f2f6ff' }}>{r.odds?.toFixed(2)}</span>
