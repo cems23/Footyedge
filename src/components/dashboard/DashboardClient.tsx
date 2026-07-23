@@ -602,7 +602,17 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
         {notif && <Notif msg={notif.msg} type={notif.type} />}
 
-        <style dangerouslySetInnerHTML={{ __html: "@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');" }} />
+        <style dangerouslySetInnerHTML={{ __html: `
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+button { transition: all .18s cubic-bezier(.2,.8,.2,1); font-family: inherit; }
+button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.18); }
+button:active:not(:disabled) { transform: translateY(0) scale(.97); }
+::selection { background: rgba(0,200,120,0.35); }
+::-webkit-scrollbar { width: 10px; height: 8px; }
+::-webkit-scrollbar-track { background: #0a1626; }
+::-webkit-scrollbar-thumb { background: #1a2e4a; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,200,120,0.5); }
+` }} />
 
         {/* ── HEADER ── */}
         <div style={{ background: 'rgba(7,13,26,0.88)', borderBottom: '1px solid #1a2e4a', padding: '0 16px', backdropFilter: 'blur(14px)', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -641,20 +651,20 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
             {/* Right */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <button onClick={() => setActiveTab('matches')} style={{ background: activeTab === 'matches' ? 'rgba(0,200,120,0.15)' : 'rgba(0,200,120,0.05)', border: '1px solid rgba(0,200,120,0.3)', color: '#00c878', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>Dashboard</button>
-              <button onClick={() => setActiveTab('analytics')} style={{ background: activeTab === 'analytics' ? 'rgba(100,150,255,0.15)' : 'rgba(100,150,255,0.05)', border: '1px solid rgba(100,150,255,0.3)', color: '#6496ff', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>📊 {lang === 'en' ? 'Performance' : 'Rendimiento'}</button>
+              <button onClick={() => setActiveTab('matches')} style={{ background: activeTab === 'matches' ? 'rgba(0,200,120,0.16)' : 'transparent', border: activeTab === 'matches' ? '1px solid #00c878' : '1px solid #1a2e4a', color: activeTab === 'matches' ? '#00c878' : '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: activeTab === 'matches' ? '0 0 18px rgba(0,200,120,0.28)' : 'none' }}>Dashboard</button>
+              <button onClick={() => setActiveTab('analytics')} style={{ background: activeTab === 'analytics' ? 'rgba(0,200,120,0.16)' : 'transparent', border: activeTab === 'analytics' ? '1px solid #00c878' : '1px solid #1a2e4a', color: activeTab === 'analytics' ? '#00c878' : '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: activeTab === 'analytics' ? '0 0 18px rgba(0,200,120,0.28)' : 'none' }}>📊 {lang === 'en' ? 'Performance' : 'Rendimiento'}</button>
 
               {isElite && (
-                <button onClick={() => { setActiveTab('radar'); if (!radarData.length) fetch('/api/value-radar').then(r => r.json()).then(d => setRadarData(d.leagues ?? [])) }} style={{ background: activeTab === 'radar' ? 'rgba(0,200,120,0.15)' : 'rgba(0,200,120,0.05)', border: '1px solid rgba(0,200,120,0.3)', color: '#00c878', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                <button onClick={() => { setActiveTab('radar'); if (!radarData.length) fetch('/api/value-radar').then(r => r.json()).then(d => setRadarData(d.leagues ?? [])) }} style={{ background: activeTab === 'radar' ? 'rgba(0,200,120,0.16)' : 'transparent', border: activeTab === 'radar' ? '1px solid #00c878' : '1px solid #1a2e4a', color: activeTab === 'radar' ? '#00c878' : '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: activeTab === 'radar' ? '0 0 18px rgba(0,200,120,0.28)' : 'none' }}>
                   🎯 Value Radar
                 </button>
               )}
               {isElite && (
-                <button onClick={() => { setActiveTab('early'); if (!earlyLoaded) { fetch('/api/early-lines').then(r => r.json()).then(d => { setEarlyLines(d.bets ?? []); setEarlyLoaded(true) }) } }} style={{ background: activeTab === 'early' ? 'rgba(255,180,0,0.15)' : 'rgba(255,180,0,0.05)', border: '1px solid rgba(255,180,0,0.3)', color: '#ffb400', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                <button onClick={() => { setActiveTab('early'); if (!earlyLoaded) { fetch('/api/early-lines').then(r => r.json()).then(d => { setEarlyLines(d.bets ?? []); setEarlyLoaded(true) }) } }} style={{ background: activeTab === 'early' ? 'rgba(246,185,59,0.14)' : 'transparent', border: activeTab === 'early' ? '1px solid #f6b93b' : '1px solid #1a2e4a', color: activeTab === 'early' ? '#f6b93b' : '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: activeTab === 'early' ? '0 0 18px rgba(246,185,59,0.25)' : 'none' }}>
                   ⚡ Early Lines
                 </button>
               )}
-              <button onClick={() => router.push('/rankings')} style={{ background: 'rgba(206,147,216,0.08)', border: '1px solid rgba(206,147,216,0.3)', color: '#ce93d8', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+              <button onClick={() => router.push('/rankings')} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#ce93d8', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
                 🏆 Rankings
               </button>
 
@@ -671,40 +681,40 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
                     style={{ width: 60, background: 'transparent', border: 'none', color: '#ffb400', fontSize: 11, fontFamily: 'inherit', outline: 'none', textAlign: 'right' }}
                   />
                 ) : (
-                  <span onClick={() => setEditingBankroll(true)} style={{ fontSize: 11, color: '#ffb400', cursor: 'pointer', minWidth: 40, textAlign: 'right' }} title={lang === 'en' ? 'Click to edit bankroll' : 'Click para editar bankroll'}>{bankroll.toLocaleString()}</span>
+                  <span onClick={() => setEditingBankroll(true)} style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, letterSpacing: '0.03em', color: '#ffb400', cursor: 'pointer', minWidth: 40, textAlign: 'right' }} title={lang === 'en' ? 'Click to edit bankroll' : 'Click para editar bankroll'}>{bankroll.toLocaleString()}</span>
                 )}
               </div>
 
               {isPro && (
-                <button onClick={openPortal} style={{ background: 'rgba(100,181,246,0.08)', border: '1px solid rgba(100,181,246,0.3)', color: '#64b5f6', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                <button onClick={openPortal} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
                   ⚙️ {lang === 'en' ? 'Manage Plan' : 'Gestionar Plan'}
                 </button>
               )}
 
               {/* Language switcher */}
               <button onClick={() => router.push(lang === 'en' ? '/es/dashboard' : '/en/dashboard')}
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#6b7fa3', padding: '5px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>
+                style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#8ba2c0', padding: '6px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}>
                 {lang === 'en' ? '🇪🇸 ES' : '🇬🇧 EN'}
               </button>
 
               {user.email === 'admin@footyedge.com' && (
                 <>
-                  <button onClick={runAnalysis} disabled={loading} style={{ background: 'rgba(0,200,120,0.08)', border: '1px solid rgba(0,200,120,0.3)', color: '#00c878', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                  <button onClick={runAnalysis} disabled={loading} style={{ background: 'rgba(0,200,120,0.1)', border: '1px solid rgba(0,200,120,0.45)', color: '#00c878', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: '0 0 14px rgba(0,200,120,0.18)' }}>
                     {loading ? '⟳' : '↻'} Actualizar
                   </button>
-                  <button onClick={runSettle} disabled={loading} style={{ background: 'rgba(100,150,255,0.08)', border: '1px solid rgba(100,150,255,0.3)', color: '#6496ff', padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                  <button onClick={runSettle} disabled={loading} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#6496ff', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
                     ✓ Liquidar
                   </button>
                 </>
               )}
-              <span style={{ fontSize: 10, padding: '4px 10px', borderRadius: 20, background: isPro ? 'rgba(0,200,120,0.1)' : 'rgba(255,180,0,0.1)', color: isPro ? '#00c878' : '#ffb400', border: `1px solid ${isPro ? 'rgba(0,200,120,0.25)' : 'rgba(255,180,0,0.25)'}` }}>
+              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 15, letterSpacing: '0.08em', padding: '4px 14px', borderRadius: 999, background: isElite ? 'linear-gradient(90deg, rgba(246,185,59,0.18), rgba(255,214,107,0.08))' : isPro ? 'rgba(0,200,120,0.12)' : 'rgba(255,180,0,0.1)', color: isElite ? '#f6b93b' : isPro ? '#00c878' : '#ffb400', border: isElite ? '1px solid rgba(246,185,59,0.55)' : isPro ? '1px solid rgba(0,200,120,0.4)' : '1px solid rgba(255,180,0,0.25)', boxShadow: isElite ? '0 0 18px rgba(246,185,59,0.25)' : 'none' }}>
                 {user.plan.toUpperCase()}
               </span>
               <button onClick={async () => {
                 const { createClient } = await import('@/lib/supabase/client')
                 await (await Promise.resolve(createClient())).auth.signOut()
                 window.location.href = '/auth/login'
-              }} style={{ background: 'none', border: '1px solid #1a2e4a', color: '#4a6785', padding: '5px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>{T.logout}</button>
+              }} style={{ background: 'none', border: '1px solid #1a2e4a', color: '#8ba2c0', padding: '6px 12px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>{T.logout}</button>
 
             </div>
           </div>
@@ -731,10 +741,10 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
               )}
 
               {/* VALUE BETS SECTION */}
-              <div style={{ background: 'rgba(13,30,53,0.8)', border: '1px solid #1a2e4a', borderRadius: 12, marginBottom: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                 <div onClick={() => setValueBetsOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', cursor: 'pointer', borderBottom: valueBetsOpen ? '1px solid #1a2e4a' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 11, color: '#00c878', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>◆ Value Bets</span>
+                    <span style={{ fontFamily: '\"Bebas Neue\", sans-serif', fontSize: 20, color: '#00c878', textTransform: 'uppercase', letterSpacing: '0.06em', transform: 'skewX(-6deg)', display: 'inline-block' }}>◆ Value Bets</span>
                     <span style={{ fontSize: 11, color: '#4a6785' }}>{rankings.length} {T.found} · EV {'>'} 0</span>
                   </div>
                   <span style={{ color: '#4a6785', fontSize: 12 }}>{valueBetsOpen ? '▲' : '▼'}</span>
@@ -806,10 +816,10 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
               </div>
 
               {/* BTTS SECTION */}
-              <div style={{ background: 'rgba(13,30,53,0.8)', border: '1px solid #1a2e4a', borderRadius: 12, marginBottom: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                 <div onClick={() => setBttsOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', cursor: 'pointer', borderBottom: bttsOpen ? '1px solid #1a2e4a' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 11, color: '#64b5f6', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>◆ {T.bttsTitle}</span>
+                    <span style={{ fontFamily: '\"Bebas Neue\", sans-serif', fontSize: 20, color: '#64b5f6', textTransform: 'uppercase', letterSpacing: '0.06em', transform: 'skewX(-6deg)', display: 'inline-block' }}>◆ {T.bttsTitle}</span>
                     <span style={{ fontSize: 11, color: '#4a6785' }}>{btts.filter(m => m.prob_btts >= 0.60).length} partidos · ≥60%</span>
                   </div>
                   <span style={{ color: '#4a6785', fontSize: 12 }}>{bttsOpen ? '▲' : '▼'}</span>
@@ -869,10 +879,10 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
               {/* CORNERS SECTION */}
               {corners && corners.length > 0 && (
-                <div style={{ background: 'rgba(13,30,53,0.8)', border: '1px solid #1a2e4a', borderRadius: 12, marginBottom: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                   <div onClick={() => setCornersOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', cursor: 'pointer', borderBottom: cornersOpen ? '1px solid #1a2e4a' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 11, color: '#ff9944', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>🏁 {lang === 'en' ? 'Best Corners' : 'Mejores Corners'}</span>
+                      <span style={{ fontFamily: '\"Bebas Neue\", sans-serif', fontSize: 20, color: '#ff9944', textTransform: 'uppercase', letterSpacing: '0.06em', transform: 'skewX(-6deg)', display: 'inline-block' }}>🏁 {lang === 'en' ? 'Best Corners' : 'Mejores Corners'}</span>
                       <span style={{ fontSize: 11, color: '#4a6785' }}>{corners.length} {lang === 'en' ? 'matches' : 'partidos'}</span>
                     </div>
                     <span style={{ color: '#4a6785', fontSize: 12 }}>{cornersOpen ? '▲' : '▼'}</span>
@@ -909,10 +919,10 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
               {/* FIRST HALF SECTION */}
               {firsthalf && firsthalf.length > 0 && (
-                <div style={{ background: 'rgba(13,30,53,0.8)', border: '1px solid #1a2e4a', borderRadius: 12, marginBottom: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                   <div onClick={() => setFirstHalfOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', cursor: 'pointer', borderBottom: firstHalfOpen ? '1px solid #1a2e4a' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 11, color: '#00bcd4', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>⏱ {lang === 'en' ? 'First Half' : 'Primer Tiempo'}</span>
+                      <span style={{ fontFamily: '\"Bebas Neue\", sans-serif', fontSize: 20, color: '#00bcd4', textTransform: 'uppercase', letterSpacing: '0.06em', transform: 'skewX(-6deg)', display: 'inline-block' }}>⏱ {lang === 'en' ? 'First Half' : 'Primer Tiempo'}</span>
                       <span style={{ fontSize: 11, color: '#4a6785' }}>{firsthalf.length} {lang === 'en' ? 'matches' : 'partidos'}</span>
                     </div>
                     <span style={{ color: '#4a6785', fontSize: 12 }}>{firstHalfOpen ? '▲' : '▼'}</span>
@@ -949,10 +959,10 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
               {/* DOUBLE CHANCE SECTION */}
               {doublechance && doublechance.length > 0 && (
-                <div style={{ background: 'rgba(13,30,53,0.8)', border: '1px solid #1a2e4a', borderRadius: 12, marginBottom: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                   <div onClick={() => setDcOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', cursor: 'pointer', borderBottom: dcOpen ? '1px solid #1a2e4a' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 11, color: '#ce93d8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>🎯 {lang === 'en' ? 'Double Chance' : 'Doble Oportunidad'}</span>
+                      <span style={{ fontFamily: '\"Bebas Neue\", sans-serif', fontSize: 20, color: '#ce93d8', textTransform: 'uppercase', letterSpacing: '0.06em', transform: 'skewX(-6deg)', display: 'inline-block' }}>🎯 {lang === 'en' ? 'Double Chance' : 'Doble Oportunidad'}</span>
                       <span style={{ fontSize: 11, color: '#4a6785' }}>{doublechance.length} {lang === 'en' ? 'matches' : 'partidos'}</span>
                     </div>
                     <span style={{ color: '#4a6785', fontSize: 12 }}>{dcOpen ? '▲' : '▼'}</span>
@@ -984,7 +994,7 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
               )}
 
               {/* FILTERS BAR */}
-              <div style={{ background: 'rgba(13,30,53,0.8)', border: '1px solid #1a2e4a', borderRadius: 12, padding: '10px 16px', marginBottom: 8 }}>
+              <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', padding: '10px 16px', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 10, color: '#4a6785', textTransform: 'uppercase' }}>{T.sort}</span>
                   {[
@@ -1000,13 +1010,13 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
                   ))}
                   <span style={{ fontSize: 10, color: '#4a6785', textTransform: 'uppercase', marginLeft: 8 }}>BTTS</span>
                   {[0, 0.5, 0.6, 0.7].map(v => (
-                    <button key={v} onClick={() => setFilterBtts(v)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer', background: filterBtts === v ? 'rgba(100,181,246,0.15)' : 'transparent', border: `1px solid ${filterBtts === v ? '#64b5f6' : '#1a2e4a'}`, color: filterBtts === v ? '#64b5f6' : '#6b7fa3' }}>
+                    <button key={v} onClick={() => setFilterBtts(v)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer', background: filterBtts === v ? 'rgba(0,200,120,0.15)' : 'transparent', border: `1px solid ${filterBtts === v ? '#00c878' : '#1a2e4a'}`, color: filterBtts === v ? '#00c878' : '#6b7fa3' }}>
                       {v === 0 ? lang === 'en' ? 'All' : 'Todos' : `≥${v * 100}%`}
                     </button>
                   ))}
                   <span style={{ fontSize: 10, color: '#4a6785', textTransform: 'uppercase', marginLeft: 8 }}>Ov2.5</span>
                   {[0, 0.5, 0.6, 0.7].map(v => (
-                    <button key={v} onClick={() => setFilterOv25(v)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer', background: filterOv25 === v ? 'rgba(76,175,80,0.15)' : 'transparent', border: `1px solid ${filterOv25 === v ? '#4caf50' : '#1a2e4a'}`, color: filterOv25 === v ? '#4caf50' : '#6b7fa3' }}>
+                    <button key={v} onClick={() => setFilterOv25(v)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer', background: filterOv25 === v ? 'rgba(0,200,120,0.15)' : 'transparent', border: `1px solid ${filterOv25 === v ? '#00c878' : '#1a2e4a'}`, color: filterOv25 === v ? '#00c878' : '#6b7fa3' }}>
                       {v === 0 ? lang === 'en' ? 'All' : 'Todos' : `≥${v * 100}%`}
                     </button>
                   ))}
@@ -1042,9 +1052,9 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
               )}
 
               {/* MAIN MATCHES TABLE */}
-              <div style={{ background: 'rgba(13,30,53,0.8)', border: '1px solid #1a2e4a', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
                 {filteredMatches.length === 0 && (
-                  <div style={{ padding: 32, textAlign: 'center', color: '#4a6785', fontSize: 12 }}>
+                  <div style={{ padding: 48, textAlign: 'center', color: '#8ba2c0', fontSize: 13, letterSpacing: '0.04em' }}>
                     {T.noMatches}
                   </div>
                 )}
