@@ -184,10 +184,13 @@ export function calcLambdas(input: MatchInput) {
   const hMatchesPlayed = Math.max(1, home.matchesPlayed)
   const aMatchesPlayed = Math.max(1, away.matchesPlayed)
 
-  const hGoalsAvgRaw = home.goalsScored / hMatchesPlayed
-  const hConAvgRaw   = home.goalsConceded / hMatchesPlayed
-  const aGoalsAvgRaw = away.goalsScored / aMatchesPlayed
-  const aConAvgRaw   = away.goalsConceded / aMatchesPlayed
+  // Sin partidos jugados esta temporada (ej. clasificatorias tempranas) —
+  // usar el promedio de la liga en vez de dejar que el cálculo colapse a ~0,
+  // que producía lambdas absurdamente bajas y EVs irreales.
+  const hGoalsAvgRaw = home.matchesPlayed > 0 ? home.goalsScored / hMatchesPlayed : league.avgHomeGoals
+  const hConAvgRaw   = home.matchesPlayed > 0 ? home.goalsConceded / hMatchesPlayed : league.avgAwayGoals
+  const aGoalsAvgRaw = away.matchesPlayed > 0 ? away.goalsScored / aMatchesPlayed : league.avgAwayGoals
+  const aConAvgRaw   = away.matchesPlayed > 0 ? away.goalsConceded / aMatchesPlayed : league.avgHomeGoals
 
   const hXgAvg    = home.xgScored   ? home.xgScored   / hMatchesPlayed : undefined
   const aXgAvg    = away.xgScored   ? away.xgScored   / aMatchesPlayed : undefined
@@ -334,6 +337,9 @@ export function analyzeMatch(input: MatchInput): MatchAnalysis {
       }
     })
     .filter(b => b.edge > (MARKET_MIN_EDGE[b.market] ?? MIN_EDGE) && b.ev > (MARKET_MIN_EV[b.market] ?? MIN_EV))
+    // Bloquear apuestas con muy poco historial real — datos insuficientes para confiar,
+    // sin importar qué tan alto se vea el EV (previene EVs absurdos por lambdas basados en 0 partidos)
+    .filter(() => Math.min(input.home.matchesPlayed, input.away.matchesPlayed) >= 3)
     .sort((a, b) => b.ev * b.confidence - a.ev * a.confidence)
 
   return {
