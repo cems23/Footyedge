@@ -360,7 +360,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           <span className="fe-chip fe-chip-c" style={{ ...mono }}>29 LEAGUES</span>
         </div>
 
-        <p className="fe-up" style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 18, animationDelay: '0.05s', position: 'relative' }}>{lang === 'es' ? '▮ ANALÍTICA DE APUESTAS DE FÚTBOL' : '▮ FOOTBALL BETTING ANALYTICS'}</p>
+        <p className="fe-up" style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 18, animationDelay: '0.05s', position: 'relative' }}>{lang === 'es' ? '▮ ANALÍTICA DE FÚTBOL' : '▮ FOOTBALL ANALYTICS'}</p>
 
         <h1 style={{ margin: 0, textTransform: 'uppercase', lineHeight: 0.88, position: 'relative' }}>
           <span className="fe-up" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.15s' }}>{lang === 'es' ? 'Fútbol, impulsado' : 'Football, powered'}</span>
