@@ -2,8 +2,12 @@ name: Daily Refresh
 
 on:
   schedule:
-    # 05:00 UTC = 07:00 Berlin (verano) / 06:00 Berlin (invierno)
-    - cron: '0 5 * * *'
+    # Corre 4 veces al día para agarrar partidos que se confirman/agregan más tarde
+    # (algunas ligas como Brasileirao no aparecen en la corrida matutina, se agregan durante el día)
+    - cron: '0 5 * * *'   # 05:00 UTC = 07:00 Berlin (verano)
+    - cron: '0 11 * * *'  # 11:00 UTC = 13:00 Berlin
+    - cron: '0 17 * * *'  # 17:00 UTC = 19:00 Berlin
+    - cron: '0 23 * * *'  # 23:00 UTC = 01:00 Berlin
   workflow_dispatch: {}
 
 jobs:
