@@ -244,8 +244,15 @@ export default function MatchPage() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Mono', monospace" }}>
+      <style>{`
+        @keyframes ball-bounce { 0%, 100% { transform: translateY(0) rotate(0deg) } 50% { transform: translateY(-24px) rotate(180deg) } }
+        @keyframes ball-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.35 } 50% { transform: scaleX(0.55); opacity: 0.12 } }
+      `}</style>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>⚽</div>
+        <div style={{ height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 10 }}>
+          <div style={{ fontSize: 36, animation: 'ball-bounce 0.9s ease-in-out infinite' }}>⚽</div>
+          <div style={{ width: 32, height: 7, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', marginTop: 4, animation: 'ball-shadow 0.9s ease-in-out infinite' }} />
+        </div>
         <div style={{ color: G, fontSize: 13 }}>{t.loading}</div>
       </div>
     </div>
