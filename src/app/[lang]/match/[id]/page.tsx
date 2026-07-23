@@ -219,19 +219,29 @@ export default function MatchPage() {
       if (res.status === 402) {
         setAiNeedsPayment(true)
         setAiLoading(false)
+        clearTimeout(slowTimer)
+        return
+      }
+      if (res.status === 202) {
+        // Ya hay una generación en curso (ej. otra pestaña) — esperar y reintentar,
+        // sin disparar una segunda llamada pagada a la IA.
+        clearTimeout(slowTimer)
+        setTimeout(() => loadAiAnalysis(), 4000)
         return
       }
       const d = await res.json()
       if (d.error) {
         setAiError(d.error)
+        setAiLoading(false)
       } else {
         setAiContent(d.content)
+        setAiLoading(false)
       }
     } catch (e: any) {
       setAiError(e.message)
+      setAiLoading(false)
     } finally {
       clearTimeout(slowTimer)
-      setAiLoading(false)
       setAiSlowWarning(false)
     }
   }

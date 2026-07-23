@@ -31,6 +31,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ content: record.content, cached: true })
   }
 
+  // Ya hay una generación en curso (otra pestaña, un reload del usuario, etc.) —
+  // NO disparar una segunda llamada pagada a la IA. Avisar al frontend que espere.
+  if (record.status === 'generating' && record.generation_started_at) {
+    const secondsSinceStart = (Date.now() - new Date(record.generation_started_at).getTime()) / 1000
+    if (secondsSinceStart < 90) {
+      return NextResponse.json({ generating: true }, { status: 202 })
+    }
+    // Han pasado más de 90s — probablemente el intento anterior murió sin terminar.
+    // Se permite reintentar (sigue el flujo normal más abajo).
+  }
+
+  // Marcar como "generando" ANTES de llamar a la IA — esto es el candado que evita
+  // llamadas duplicadas si el usuario recarga o reintenta mientras se genera.
+  await supabaseAdmin.from('ai_analyses').update({
+    status: 'generating',
+    generation_started_at: new Date().toISOString(),
+  }).eq('id', record.id)
+
   // Pagado pero aún no generado — generar ahora
   const { data: match } = await supabaseAdmin
     .from('matches')
