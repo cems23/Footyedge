@@ -390,6 +390,10 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   if (process.env.NODE_ENV === 'development' && allMatches.length === 0 && rankings.length === 0) {
     allMatches = MOCK_MATCHES
     rankings = MOCK_RANKINGS
+    btts = MOCK_MATCHES.map(m => ({ ...m, expected_goals_home: 1.1 + m.prob_btts, expected_goals_away: 0.7 + m.prob_over25 }))
+    corners = MOCK_MATCHES.map(m => ({ ...m, corners_potential: 0.5 + m.prob_btts * 0.3, odds_corners_over_85: '1.85', odds_corners_over_95: '2.20' }))
+    firsthalf = MOCK_MATCHES.map(m => ({ ...m, o15HT_potential: m.prob_over15 * 0.6, odds_1st_half_over05: '1.35', odds_1st_half_over15: '2.60' }))
+    doublechance = MOCK_MATCHES.map(m => ({ ...m, odds_doublechance_1x: '1.28', odds_doublechance_x2: '1.55', odds_doublechance_12: '1.18' }))
   }
   const router = useRouter()
   const isPro = user.plan === 'pro' || user.plan === 'elite'
@@ -790,64 +794,67 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                   <span style={{ color: '#4a6785', fontSize: 12 }}>{valueBetsOpen ? '▲' : '▼'}</span>
                 </div>
                 {valueBetsOpen && (
-                  <div>
-                    {visibleRankings.map((r, idx) => {
+                  <div style={{ padding: 18 }}>
+                    {visibleRankings.length > 0 && (() => {
+                      const r = visibleRankings[0]
                       const locked = r.is_pro_only && !isPro
                       const badge = mktBadge(r.market, lang)
-                      return isMobile ? (
-                        // MOBILE card
-                        <div key={r.rank} onClick={() => !locked && router.push(`/${lang || 'es'}/match/${r.match_id}`)}
-                          style={{ padding: '12px 16px', borderBottom: idx < visibleRankings.length - 1 ? '1px solid #0f1e32' : 'none', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.4 : 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: 11, color: '#00c878', fontWeight: 700, flexShrink: 0 }}>{locked ? '🔒' : `#${r.rank}`}</span>
-                              <span style={{ fontSize: 12, color: '#4a6785', flexShrink: 0 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)}</span>
-                              <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.matches?.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {r.matches?.away_team_name}</span>
+                      const k = calcKellyStake(r.odds, r.ev, bankroll)
+                      return (
+                        <div onClick={() => !locked && router.push(`/${lang || 'es'}/match/${r.match_id}`)}
+                          style={{ position: 'relative', overflow: 'hidden', borderRadius: 18, border: '1px solid rgba(0,200,120,0.45)', background: 'linear-gradient(120deg, rgba(0,200,120,0.10), rgba(13,30,53,0.7) 55%)', padding: '22px 26px', marginBottom: 16, cursor: locked ? 'not-allowed' : 'pointer', boxShadow: '0 18px 50px rgba(0,0,0,0.4), 0 0 40px rgba(0,200,120,0.10)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 22, justifyContent: 'space-between', transition: 'box-shadow .2s ease' }}
+                          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.boxShadow = '0 22px 60px rgba(0,0,0,0.5), 0 0 60px rgba(0,200,120,0.22)')}
+                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.boxShadow = '0 18px 50px rgba(0,0,0,0.4), 0 0 40px rgba(0,200,120,0.10)')}>
+                          <span aria-hidden style={{ position: 'absolute', right: -6, bottom: -26, fontFamily: '"Bebas Neue", sans-serif', fontSize: 150, lineHeight: 1, color: 'transparent', WebkitTextStroke: '2px rgba(0,200,120,0.14)', pointerEvents: 'none', transform: 'skewX(-8deg)' }}>#1</span>
+                          <div style={{ minWidth: 220 }}>
+                            <div style={{ fontSize: 10, color: '#00c878', letterSpacing: '0.2em', marginBottom: 8 }}>★ {lang === 'en' ? 'BET OF THE DAY' : 'APUESTA DEL DÍA'}</div>
+                            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 34, lineHeight: 0.95, color: '#f2f6ff', transform: 'skewX(-6deg)', transformOrigin: 'left' }}>
+                              {r.matches?.home_team_name} <span style={{ color: '#00c878' }}>vs</span> {r.matches?.away_team_name}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, marginLeft: 8 }}>
-                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 20, lineHeight: 1, color: '#00c878', letterSpacing: '0.02em', textShadow: '0 0 12px rgba(0,200,120,0.4)' }}>EV +{(r.ev * 100).toFixed(0)}%</span>
-                              {(() => { const k = calcKellyStake(r.odds, r.ev, bankroll); return (
-                                <span style={{ fontSize: 11, color: '#f6b93b', fontWeight: 700, letterSpacing: '0.03em' }}>🎯 {k.pct}% · {k.amount} 🪙</span>
-                              )})()}
-                            </div>
+                            <div style={{ fontSize: 11, color: '#8ba2c0', marginTop: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name}</div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 10, color: '#4a6785' }}>{r.matches?.league_name} · {r.matches?.kickoff_at ? timeStr(r.matches.kickoff_at) : ''}</span>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 12, letterSpacing: '0.08em', padding: '2px 10px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{r.odds?.toFixed(2)}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                            <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 15, letterSpacing: '0.08em', padding: '5px 16px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, color: '#f2f6ff' }}>{r.odds?.toFixed(2)}</div>
+                              <div style={{ fontSize: 9, color: '#8ba2c0', letterSpacing: '0.1em' }}>{lang === 'en' ? 'ODDS' : 'CUOTA'}</div>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        // DESKTOP row
-                        <div key={r.rank} onClick={() => !locked && router.push(`/${lang || 'es'}/match/${r.match_id}`)}
-                          style={{ display: 'grid', gridTemplateColumns: '28px auto 1fr auto auto auto', gap: 12, alignItems: 'center', padding: '12px 16px', borderBottom: idx < visibleRankings.length - 1 ? '1px solid #0f1e32' : 'none', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.4 : 1, transition: 'background 0.15s' }}
-                          onMouseEnter={e => !locked && ((e.currentTarget as HTMLElement).style.background = 'rgba(0,200,120,0.06)')}
-                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-                          {locked ? <span style={{ fontSize: 14 }}>🔒</span> : <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, color: '#00c878', letterSpacing: '0.02em', textShadow: '0 0 10px rgba(0,200,120,0.4)' }}>#{r.rank}</span>}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ fontSize: 10, color: '#4a6785' }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)}</span>
-                            {r.matches?.home_team_logo && <img src={r.matches.home_team_logo} width={14} height={14} alt="" />}
-                            {r.matches?.away_team_logo && <img src={r.matches.away_team_logo} width={14} height={14} alt="" />}
-                          </div>
-                          <div>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{r.matches?.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {r.matches?.away_team_name}</span>
-                            <span style={{ fontSize: 10, color: '#4a6785', marginLeft: 8 }}>{r.matches?.league_name} · {r.matches?.kickoff_at ? timeStr(r.matches.kickoff_at) : ''}</span>
-                          </div>
-                          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: '0.08em', padding: '3px 12px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
-                          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 20, color: '#f2f6ff', minWidth: 44, letterSpacing: '0.03em' }}>{r.odds?.toFixed(2)}</span>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 90 }}>
-                            <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 24, lineHeight: 1, color: '#00c878', letterSpacing: '0.02em', textShadow: '0 0 14px rgba(0,200,120,0.45)' }}>EV +{(r.ev * 100).toFixed(0)}%</span>
-                            {(() => { const k = calcKellyStake(r.odds, r.ev, bankroll); return (
-                              <span style={{ fontSize: 11, color: '#f6b93b', fontWeight: 700, letterSpacing: '0.03em' }}>🎯 {k.pct}% · {k.amount} 🪙</span>
-                            )})()}
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 52, lineHeight: 1, color: '#00c878', textShadow: '0 0 24px rgba(0,200,120,0.55)' }}>{locked ? '🔒' : `EV +${(r.ev * 100).toFixed(0)}%`}</div>
+                            <div style={{ fontSize: 12, color: '#f6b93b', fontWeight: 700, marginTop: 4 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
                           </div>
                         </div>
                       )
-                    })}
+                    })()}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 14 }}>
+                      {visibleRankings.slice(1).map((r) => {
+                        const locked = r.is_pro_only && !isPro
+                        const badge = mktBadge(r.market, lang)
+                        const k = calcKellyStake(r.odds, r.ev, bankroll)
+                        return (
+                          <div key={r.rank} onClick={() => !locked && router.push(`/${lang || 'es'}/match/${r.match_id}`)}
+                            style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '16px 18px', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.5 : 1, transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(0,200,120,0.6)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.45)' }}
+                            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
+                            <span aria-hidden style={{ position: 'absolute', right: 2, top: -14, fontFamily: '"Bebas Neue", sans-serif', fontSize: 74, lineHeight: 1, color: 'transparent', WebkitTextStroke: '1.5px rgba(0,200,120,0.16)', pointerEvents: 'none', transform: 'skewX(-8deg)' }}>#{r.rank}</span>
+                            <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name}</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff', marginBottom: 12 }}>{r.matches?.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {r.matches?.away_team_name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 12, letterSpacing: '0.08em', padding: '3px 12px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
+                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 19, color: '#f2f6ff' }}>{r.odds?.toFixed(2)}</span>
+                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 24, lineHeight: 1, color: '#00c878', textShadow: '0 0 14px rgba(0,200,120,0.45)' }}>{locked ? '🔒' : `EV +${(r.ev * 100).toFixed(0)}%`}</span>
+                            </div>
+                            <div style={{ height: 4, background: '#0a1628', borderRadius: 2, margin: '12px 0 8px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${Math.min(100, (r.ev / 0.2) * 100)}%`, background: 'linear-gradient(90deg, #00c878, #4dffb0)', borderRadius: 2 }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: '#f6b93b', fontWeight: 700 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
+                          </div>
+                        )
+                      })}
+                    </div>
                     {!isElite && rankings.length > visibleRankings.length && (
-                      <div style={{ padding: '12px 16px', textAlign: 'center', fontSize: 11, color: '#ffb400', borderTop: '1px solid #1a2e4a' }}>
+                      <div style={{ padding: '14px 4px 0', textAlign: 'center', fontSize: 11, color: '#f6b93b' }}>
                         🔒 {rankings.length - visibleRankings.length} {T.hiddenBets} · <span onClick={() => router.push(`/${lang || 'es'}/pricing`)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>{isPro ? T.upgradeElite : T.upgradePro}</span>
                       </div>
                     )}
@@ -865,54 +872,42 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                   <span style={{ color: '#4a6785', fontSize: 12 }}>{bttsOpen ? '▲' : '▼'}</span>
                 </div>
                 {bttsOpen && (
-                  <div>
-                    {btts.filter(m => m.prob_btts >= 0.60).slice(0, isPro ? 10 : 3).map((m, i) => {
+                  <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
+                    {btts.filter(m => m.prob_btts >= 0.60).slice(0, isPro ? 10 : 3).map((m) => {
                       const pct = Math.round(m.prob_btts * 100)
                       const color = pct >= 70 ? '#00c878' : pct >= 60 ? '#ffb400' : '#6b7fa3'
                       const isHot = pct >= 65
-                      return isMobile ? (
+                      const circ = 2 * Math.PI * 26
+                      return (
                         <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                          style={{ padding: '12px 16px', borderBottom: i < 9 ? '1px solid #0f1e32' : 'none', cursor: 'pointer' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: 12, flexShrink: 0 }}>{getFlag(m.league_name, m.league_id)}</span>
-                              {m.home_team_logo && <img src={m.home_team_logo} width={14} height={14} alt="" style={{ flexShrink: 0 }} />}
-                              <span style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.home_team_name}</span>
-                              <span style={{ fontSize: 10, color: '#00c878', flexShrink: 0 }}>vs</span>
-                              {m.away_team_logo && <img src={m.away_team_logo} width={14} height={14} alt="" style={{ flexShrink: 0 }} />}
-                              <span style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.away_team_name}</span>
+                          style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 14, borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '14px 16px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = `${color}99`; el.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
+                          {isHot && <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 12, zIndex: 1 }}>🔥</span>}
+                          <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0, marginTop: 2 }}>
+                            <circle cx="29" cy="29" r="24" stroke="#0a1628" strokeWidth="6" fill="none" />
+                            <circle cx="29" cy="29" r="24" stroke={color} strokeWidth="6" fill="none" strokeLinecap="round"
+                              strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * (1 - pct / 100)}`} transform="rotate(-90 29 29)"
+                              style={{ filter: pct >= 70 ? 'drop-shadow(0 0 6px rgba(0,200,120,0.55))' : 'none', transition: 'stroke-dashoffset .6s ease' }} />
+                            <text x="29" y="35" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="16">{pct}%</text>
+                          </svg>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                              {m.home_team_logo && <img src={m.home_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
+                              <span style={{ fontSize: 12, color: '#00c878' }}>vs</span>
+                              {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 8 }}>
-                              {isHot && <span style={{ fontSize: 9, color: '#ff9944' }}>🔥</span>}
-                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, lineHeight: 1, color, textShadow: pct >= 70 ? '0 0 12px rgba(0,200,120,0.4)' : 'none' }}>{pct}%</span>
-                            </div>
-                          </div>
-                          <div style={{ fontSize: 10, color: '#4a6785', marginTop: 3 }}>
-                            {m.league_name} · {timeStr(m.kickoff_at, lang)} · λ {m.expected_goals_home?.toFixed(2)}+{m.expected_goals_away?.toFixed(2)}
-                          </div>
-                        </div>
-                      ) : (
-                        <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                          style={{ display: 'grid', gridTemplateColumns: '28px auto 1fr auto auto auto', gap: 12, alignItems: 'center', padding: '12px 16px', borderBottom: i < 9 ? '1px solid #0f1e32' : 'none', cursor: 'pointer' }}
-                          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(100,181,246,0.03)')}
-                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-                          <span style={{ fontSize: 10, color: '#4a6785' }}>{getFlag(m.league_name, m.league_id)}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {m.home_team_logo && <img src={m.home_team_logo} width={16} height={16} alt="" />}
-                            {m.away_team_logo && <img src={m.away_team_logo} width={16} height={16} alt="" />}
-                          </div>
-                          <div>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>{m.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {m.away_team_name}</span>
-                            <span style={{ fontSize: 10, color: '#4a6785', marginLeft: 8 }}>{m.league_name} · {timeStr(m.kickoff_at, lang)}</span>
-                          </div>
-                          <span style={{ fontSize: 10, color: '#6b7fa3' }}>λ {m.expected_goals_home?.toFixed(2)}+{m.expected_goals_away?.toFixed(2)}</span>
-                          {isHot && <span style={{ fontSize: 10, background: '#ff6b0015', border: '1px solid #ff6b0050', color: '#ff9944', padding: '2px 10px', borderRadius: 999, letterSpacing: '0.05em' }}>🔥 HOT</span>}
-                          <div style={{ textAlign: 'right', minWidth: 50 }}>
-                            <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, lineHeight: 1, color, textShadow: pct >= 70 ? '0 0 12px rgba(0,200,120,0.4)' : 'none' }}>{pct}%</span>
+                            <div style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                            <div style={{ fontSize: 10, color: '#6b7fa3', marginTop: 4 }}>λ {m.expected_goals_home?.toFixed(2)}+{m.expected_goals_away?.toFixed(2)}</div>
                           </div>
                         </div>
                       )
                     })}
+                    {btts.filter(m => m.prob_btts >= 0.60).length === 0 && (
+                      <div style={{ gridColumn: '1 / -1', padding: 24, textAlign: 'center', color: '#8ba2c0', fontSize: 12 }}>—</div>
+                    )}
                   </div>
                 )}
               </div>
@@ -927,37 +922,48 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                     </div>
                     <span style={{ color: '#4a6785', fontSize: 12 }}>{cornersOpen ? '▲' : '▼'}</span>
                   </div>
-                  {cornersOpen && corners.map((m: any, i: number) => {
-                    const pct = m.corners_potential != null ? Math.round(m.corners_potential * 100) : null
-                    const color = pct && pct >= 70 ? '#00c878' : pct && pct >= 55 ? '#ffb400' : '#6b7fa3'
-                    return (
-                      <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                        style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr auto' : '28px auto 1fr auto auto auto', gap: 10, alignItems: 'center', padding: '12px 16px', borderBottom: i < corners.length-1 ? '1px solid #0f1e32' : 'none', cursor: 'pointer' }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(255,153,68,0.03)')}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-                        {!isMobile && <span style={{ fontSize: 10, color: '#4a6785' }}>{getFlag(m.league_name, m.league_id)}</span>}
-                        {!isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {m.home_team_logo && <img src={m.home_team_logo} width={16} height={16} alt="" />}
-                          {m.away_team_logo && <img src={m.away_team_logo} width={16} height={16} alt="" />}
-                        </div>}
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>{m.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {m.away_team_name}</span>
-                          <span style={{ fontSize: 10, color: '#4a6785', marginLeft: 8 }}>{m.league_name} · {timeStr(m.kickoff_at, lang)}</span>
+                  {cornersOpen && (
+                  <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                    {corners.map((m: any) => {
+                      const pct = m.corners_potential != null ? Math.round(m.corners_potential * 100) : null
+                      const color = pct && pct >= 70 ? '#00c878' : pct && pct >= 55 ? '#ff9944' : '#6b7fa3'
+                      return (
+                        <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
+                          style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 14, borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '14px 16px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = `${color}99`; el.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
+                          {pct !== null && (
+                            <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0, marginTop: 2 }}>
+                              <circle cx="29" cy="29" r="24" stroke="#0a1628" strokeWidth="6" fill="none" />
+                              <circle cx="29" cy="29" r="24" stroke={color} strokeWidth="6" fill="none" strokeLinecap="round"
+                                strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * (1 - pct / 100)}`} transform="rotate(-90 29 29)"
+                                style={{ filter: pct >= 70 ? `drop-shadow(0 0 6px ${color}88)` : 'none', transition: 'stroke-dashoffset .6s ease' }} />
+                              <text x="29" y="35" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="16">{pct}%</text>
+                            </svg>
+                          )}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                              {m.home_team_logo && <img src={m.home_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
+                              <span style={{ fontSize: 12, color: '#00c878' }}>vs</span>
+                              {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
+                            </div>
+                            <div style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 10, color: '#6b7fa3' }}>
+                              {m.odds_corners_over_85 && <span>O8.5: <b style={{ color: '#f2f6ff' }}>{m.odds_corners_over_85}</b></span>}
+                              {m.odds_corners_over_95 && <span>O9.5: <b style={{ color: '#f2f6ff' }}>{m.odds_corners_over_95}</b></span>}
+                            </div>
+                          </div>
                         </div>
-                        {!isMobile && <div style={{ fontSize: 10, color: '#6b7fa3', textAlign: 'center' }}>
-                          {m.odds_corners_over_85 && <span>O8.5: <b style={{color:'#fff'}}>{m.odds_corners_over_85}</b></span>}
-                          {m.odds_corners_over_95 && <span style={{marginLeft:6}}>O9.5: <b style={{color:'#fff'}}>{m.odds_corners_over_95}</b></span>}
-                        </div>}
-                        <div style={{ textAlign: 'right', minWidth: 50 }}>
-                          {pct !== null && <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, lineHeight: 1, color, textShadow: pct >= 70 ? '0 0 12px rgba(0,200,120,0.4)' : 'none' }}>{pct}%</span>}
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
+                )}
                 </div>
               )}
 
-              {/* FIRST HALF SECTION */}
+              {/* FIRST HALF SECTION */}{/* FIRST HALF SECTION */}
               {firsthalf && firsthalf.length > 0 && (
                 <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                   <div onClick={() => setFirstHalfOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', cursor: 'pointer', borderBottom: firstHalfOpen ? '1px solid #1a2e4a' : 'none' }}>
@@ -967,37 +973,48 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                     </div>
                     <span style={{ color: '#4a6785', fontSize: 12 }}>{firstHalfOpen ? '▲' : '▼'}</span>
                   </div>
-                  {firstHalfOpen && firsthalf.map((m: any, i: number) => {
-                    const pct = m.o15HT_potential != null ? Math.round(m.o15HT_potential * 100) : null
-                    const color = pct && pct >= 60 ? '#00c878' : pct && pct >= 45 ? '#ffb400' : '#6b7fa3'
-                    return (
-                      <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                        style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr auto' : '28px auto 1fr auto auto', gap: 10, alignItems: 'center', padding: '12px 16px', borderBottom: i < firsthalf.length-1 ? '1px solid #0f1e32' : 'none', cursor: 'pointer' }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,188,212,0.03)')}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-                        {!isMobile && <span style={{ fontSize: 10, color: '#4a6785' }}>{getFlag(m.league_name, m.league_id)}</span>}
-                        {!isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {m.home_team_logo && <img src={m.home_team_logo} width={16} height={16} alt="" />}
-                          {m.away_team_logo && <img src={m.away_team_logo} width={16} height={16} alt="" />}
-                        </div>}
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>{m.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {m.away_team_name}</span>
-                          <span style={{ fontSize: 10, color: '#4a6785', marginLeft: 8 }}>{m.league_name} · {timeStr(m.kickoff_at, lang)}</span>
+                  {firstHalfOpen && (
+                  <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+                    {firsthalf.map((m: any) => {
+                      const pct = m.o15HT_potential != null ? Math.round(m.o15HT_potential * 100) : null
+                      const color = pct && pct >= 60 ? '#00c878' : pct && pct >= 45 ? '#00bcd4' : '#6b7fa3'
+                      return (
+                        <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
+                          style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 14, borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '14px 16px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = `${color}99`; el.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
+                          {pct !== null && (
+                            <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0, marginTop: 2 }}>
+                              <circle cx="29" cy="29" r="24" stroke="#0a1628" strokeWidth="6" fill="none" />
+                              <circle cx="29" cy="29" r="24" stroke={color} strokeWidth="6" fill="none" strokeLinecap="round"
+                                strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * (1 - pct / 100)}`} transform="rotate(-90 29 29)"
+                                style={{ filter: pct >= 60 ? `drop-shadow(0 0 6px ${color}88)` : 'none', transition: 'stroke-dashoffset .6s ease' }} />
+                              <text x="29" y="35" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="16">{pct}%</text>
+                            </svg>
+                          )}
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                              {m.home_team_logo && <img src={m.home_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
+                              <span style={{ fontSize: 12, color: '#00c878' }}>vs</span>
+                              {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
+                            </div>
+                            <div style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 10, color: '#6b7fa3' }}>
+                              {m.odds_1st_half_over05 && <span>O0.5: <b style={{ color: '#f2f6ff' }}>{m.odds_1st_half_over05}</b></span>}
+                              {m.odds_1st_half_over15 && <span>O1.5: <b style={{ color: '#f2f6ff' }}>{m.odds_1st_half_over15}</b></span>}
+                            </div>
+                          </div>
                         </div>
-                        {!isMobile && <div style={{ fontSize: 10, color: '#6b7fa3', textAlign: 'center' }}>
-                          {m.odds_1st_half_over05 && <span>O0.5: <b style={{color:'#fff'}}>{m.odds_1st_half_over05}</b></span>}
-                          {m.odds_1st_half_over15 && <span style={{marginLeft:6}}>O1.5: <b style={{color:'#fff'}}>{m.odds_1st_half_over15}</b></span>}
-                        </div>}
-                        <div style={{ textAlign: 'right', minWidth: 50 }}>
-                          {pct !== null && <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, lineHeight: 1, color, textShadow: pct >= 70 ? '0 0 12px rgba(0,200,120,0.4)' : 'none' }}>{pct}%</span>}
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
+                )}
                 </div>
               )}
 
-              {/* DOUBLE CHANCE SECTION */}
+              {/* DOUBLE CHANCE SECTION */}{/* DOUBLE CHANCE SECTION */}
               {doublechance && doublechance.length > 0 && (
                 <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                   <div onClick={() => setDcOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', cursor: 'pointer', borderBottom: dcOpen ? '1px solid #1a2e4a' : 'none' }}>
@@ -1007,33 +1024,34 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                     </div>
                     <span style={{ color: '#4a6785', fontSize: 12 }}>{dcOpen ? '▲' : '▼'}</span>
                   </div>
-                  {dcOpen && doublechance.map((m: any, i: number) => {
-                    return (
+                  {dcOpen && (
+                  <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                    {doublechance.map((m: any) => (
                       <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                        style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr auto' : '28px auto 1fr auto', gap: 10, alignItems: 'center', padding: '12px 16px', borderBottom: i < doublechance.length-1 ? '1px solid #0f1e32' : 'none', cursor: 'pointer' }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(206,147,216,0.03)')}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-                        {!isMobile && <span style={{ fontSize: 10, color: '#4a6785' }}>{getFlag(m.league_name, m.league_id)}</span>}
-                        {!isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {m.home_team_logo && <img src={m.home_team_logo} width={16} height={16} alt="" />}
-                          {m.away_team_logo && <img src={m.away_team_logo} width={16} height={16} alt="" />}
-                        </div>}
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>{m.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {m.away_team_name}</span>
-                          <span style={{ fontSize: 10, color: '#4a6785', marginLeft: 8 }}>{m.league_name} · {timeStr(m.kickoff_at, lang)}</span>
+                        style={{ borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '14px 16px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(206,147,216,0.6)'; el.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
+                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                          {m.home_team_logo && <img src={m.home_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
+                          <span style={{ fontSize: 12, color: '#00c878' }}>vs</span>
+                          {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
                         </div>
-                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          {m.odds_doublechance_1x && <span style={{ fontSize: 11, background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.3)', color: '#ce93d8', borderRadius: 4, padding: '2px 7px' }}>1X: {m.odds_doublechance_1x}</span>}
-                          {m.odds_doublechance_x2 && <span style={{ fontSize: 11, background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.3)', color: '#ce93d8', borderRadius: 4, padding: '2px 7px' }}>X2: {m.odds_doublechance_x2}</span>}
-                          {m.odds_doublechance_12 && <span style={{ fontSize: 11, background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.3)', color: '#ce93d8', borderRadius: 4, padding: '2px 7px' }}>12: {m.odds_doublechance_12}</span>}
+                        <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 10 }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {m.odds_doublechance_1x && <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: '0.04em', background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.4)', color: '#ce93d8', borderRadius: 999, padding: '4px 12px' }}>1X {m.odds_doublechance_1x}</span>}
+                          {m.odds_doublechance_x2 && <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: '0.04em', background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.4)', color: '#ce93d8', borderRadius: 999, padding: '4px 12px' }}>X2 {m.odds_doublechance_x2}</span>}
+                          {m.odds_doublechance_12 && <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: '0.04em', background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.4)', color: '#ce93d8', borderRadius: 999, padding: '4px 12px' }}>12 {m.odds_doublechance_12}</span>}
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
+                )}
                 </div>
               )}
 
-              {/* FILTERS BAR */}
+              {/* FILTERS BAR */}{/* FILTERS BAR */}
               <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', padding: '12px 16px', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 10, color: '#4a6785', textTransform: 'uppercase' }}>{T.sort}</span>
