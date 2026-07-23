@@ -921,7 +921,14 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       )
                     })}
                     {btts.filter(m => m.prob_btts >= 0.60).length === 0 && (
-                      <div style={{ gridColumn: '1 / -1', padding: 24, textAlign: 'center', color: '#8ba2c0', fontSize: 12 }}>—</div>
+                      <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '32px 20px', color: '#4a6785' }}>
+                        <div style={{ fontSize: 28, marginBottom: 10 }}>⚽</div>
+                        <div style={{ fontSize: 13, color: '#8ba2c0' }}>
+                          {lang === 'en'
+                            ? 'No matches reach 60% BTTS probability today'
+                            : 'Ningún partido supera el 60% de probabilidad BTTS hoy'}
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

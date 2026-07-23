@@ -180,7 +180,8 @@ export async function getLeagueStats(leagueId: number, season: number): Promise<
 // ── TEAM STATS ──────────────────────────────────────────────
 
 export async function getTeamStats(
-  teamId: number, leagueId: number, season: number, isHome: boolean
+  teamId: number, leagueId: number, season: number, isHome: boolean,
+  _isFallback = false
 ): Promise<TeamStats> {
   const cacheKey = `team_${teamId}_${leagueId}_${season}_${isHome ? "h" : "a"}`
   const cached = await getCached<TeamStats>(cacheKey)
@@ -205,6 +206,23 @@ export async function getTeamStats(
   // should NOT be treated the same in both roles
   const playedHome = s.fixtures?.played?.home || 0
   const playedAway = s.fixtures?.played?.away || 0
+  const rawPlayed = isHome ? playedHome : playedAway
+
+  // Sin partidos esta temporada (ej. equipo recién entrando a clasificatorias) —
+  // usar la temporada anterior del MISMO equipo en vez de un promedio genérico de liga.
+  // Preserva diferenciación real entre equipos en vez de aplanar todos al mismo valor.
+  if (rawPlayed === 0 && !_isFallback && season > 2020) {
+    try {
+      const prevSeason = await getTeamStats(teamId, leagueId, season - 1, isHome, true)
+      if (prevSeason.matchesPlayed >= 3) {
+        await setCached(cacheKey, prevSeason)
+        return prevSeason
+      }
+    } catch {
+      // si falla, seguimos con el flujo normal (promedio de liga en poisson.ts)
+    }
+  }
+
   const played = isHome
     ? Math.max(1, playedHome)
     : Math.max(1, playedAway)
