@@ -10,6 +10,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { searchParams } = new URL(req.url)
+  const lang = searchParams.get('lang') === 'en' ? 'en' : 'es'
+
   const supabaseAdmin = createServiceClient()
 
   const { data: record } = await supabaseAdmin
@@ -46,29 +49,50 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const pred = Array.isArray(match.model_predictions) ? match.model_predictions[0] : match.model_predictions
 
-  const prompt = `Eres un analista experto de fútbol para FootyEdge, una plataforma de analítica de apuestas basada en modelos estadísticos (Poisson + Dixon-Coles).
+  // Las probabilidades del modelo se muestran en una cuadrícula aparte en el frontend
+  // (sin costo de IA) — el prompt solo pide contexto cualitativo, no que repita números.
+  // Esto reduce tokens de salida y por tanto el costo por análisis.
+  const favored = pred
+    ? (pred.prob_home_win > pred.prob_away_win ? match.home_team_name : match.away_team_name)
+    : null
+
+  const prompt = lang === 'en'
+    ? `You are a football analyst for FootyEdge, a betting analytics platform using a Poisson + Dixon-Coles statistical model.
+
+MATCH: ${match.home_team_name} vs ${match.away_team_name}
+COMPETITION: ${match.league_name}
+DATE: ${match.kickoff_at}
+${favored ? `The statistical model favors: ${favored}` : ''}
+
+Search the web for CURRENT news specific to this match: confirmed injuries/suspensions, expected lineup changes, table context/motivation, recent form of both teams. Do NOT restate the model's probabilities or expected goals — those are already shown separately. Focus only on qualitative context the model can't see.
+
+Write in English, 150-220 words, using this exact markdown structure:
+## Context
+(1-2 sentences: table situation, motivation, narrative stakes)
+## Key Factors
+(3-5 short bullet points: confirmed injuries, suspensions, notable absences, lineup news — be specific with player names when found)
+## Verdict
+(2-3 sentences: does this context reinforce or contradict the model's lean? Be honest — this is analysis to inform a decision, not a guaranteed prediction.)
+
+Use **bold** for player names and key terms. Be concise — every sentence must add real information.`
+    : `Eres un analista de fútbol para FootyEdge, una plataforma de analítica de apuestas basada en un modelo estadístico Poisson + Dixon-Coles.
 
 PARTIDO: ${match.home_team_name} vs ${match.away_team_name}
-LIGA: ${match.league_name}
+COMPETICIÓN: ${match.league_name}
 FECHA: ${match.kickoff_at}
+${favored ? `El modelo estadístico favorece a: ${favored}` : ''}
 
-PROBABILIDADES DEL MODELO ESTADÍSTICO:
-- Victoria local: ${pred ? (pred.prob_home_win * 100).toFixed(1) : '?'}%
-- Empate: ${pred ? (pred.prob_draw * 100).toFixed(1) : '?'}%
-- Victoria visitante: ${pred ? (pred.prob_away_win * 100).toFixed(1) : '?'}%
-- Over 2.5 goles: ${pred ? (pred.prob_over25 * 100).toFixed(1) : '?'}%
-- Ambos anotan (BTTS): ${pred ? (pred.prob_btts * 100).toFixed(1) : '?'}%
-- Goles esperados: ${pred?.expected_goals_home?.toFixed(2) ?? '?'} - ${pred?.expected_goals_away?.toFixed(2) ?? '?'}
+Busca en la web noticias ACTUALES específicas de este partido: lesiones/sanciones confirmadas, cambios de alineación esperados, contexto de tabla/motivación, forma reciente de ambos equipos. NO repitas las probabilidades ni los goles esperados del modelo — ya se muestran aparte. Enfócate solo en el contexto cualitativo que el modelo no puede ver.
 
-Busca en la web noticias recientes y relevantes sobre este partido: lesiones, sanciones, rotaciones esperadas, contexto de tabla/motivación, racha reciente de ambos equipos, y cualquier factor cualitativo que el modelo estadístico no pueda capturar.
+Escribe en español, 150-220 palabras, usando exactamente esta estructura markdown:
+## Contexto
+(1-2 frases: situación en la tabla, motivación, contexto narrativo)
+## Factores Clave
+(3-5 viñetas cortas: lesiones confirmadas, sanciones, bajas notables, noticias de alineación — sé específico con nombres de jugadores si los encuentras)
+## Veredicto
+(2-3 frases: ¿este contexto refuerza o contradice la inclinación del modelo? Sé honesto — esto es análisis para informar una decisión, no una predicción garantizada.)
 
-Escribe un análisis profundo en español (250-350 palabras) que:
-1. Explique en lenguaje claro qué está viendo el modelo estadístico y por qué
-2. Añada el contexto cualitativo que encuentres (lesiones, forma, motivación)
-3. Señale si ese contexto refuerza o contradice lo que dice el modelo
-4. Sea honesto: no es una predicción garantizada, es análisis para ayudar a decidir
-
-No uses encabezados ni listas — texto corrido, tono profesional pero directo.`
+Usa **negrita** para nombres de jugadores y términos clave. Sé conciso — cada frase debe aportar información real.`
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -80,9 +104,9 @@ No uses encabezados ni listas — texto corrido, tono profesional pero directo.`
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1200,
+        max_tokens: 700,
         messages: [{ role: 'user', content: prompt }],
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
       }),
     })
 

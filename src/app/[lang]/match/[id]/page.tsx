@@ -11,6 +11,58 @@ const BORDER = '#1a2e4a'
 
 const pColor = (p: number) => p >= 0.70 ? '#00c878' : p >= 0.55 ? '#ffb400' : p >= 0.40 ? '#6b7fa3' : '#3a4a5a'
 
+function renderAiMarkdown(text: string): JSX.Element[] {
+  const lines = text.split('\n').filter(l => l.trim().length > 0)
+  const elements: JSX.Element[] = []
+  let listBuffer: string[] = []
+
+  const flushList = (key: string) => {
+    if (listBuffer.length === 0) return
+    elements.push(
+      <ul key={key} style={{ margin: '8px 0 16px', paddingLeft: 20, listStyle: 'none' }}>
+        {listBuffer.map((item, i) => (
+          <li key={i} style={{ marginBottom: 8, position: 'relative', paddingLeft: 16 }}>
+            <span style={{ position: 'absolute', left: 0, color: '#00c878' }}>▸</span>
+            {renderInlineBold(item)}
+          </li>
+        ))}
+      </ul>
+    )
+    listBuffer = []
+  }
+
+  function renderInlineBold(str: string) {
+    const parts = str.split(/(\*\*[^*]+\*\*)/g)
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: '#f2f6ff', fontWeight: 700 }}>{part.slice(2, -2)}</strong>
+      }
+      return <span key={i}>{part}</span>
+    })
+  }
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('## ')) {
+      flushList(`list-${idx}`)
+      elements.push(
+        <div key={idx} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1, color: '#00c878', textTransform: 'uppercase', marginTop: 18, marginBottom: 8, borderBottom: '1px solid #1a2e4a', paddingBottom: 6 }}>
+          {trimmed.replace('## ', '')}
+        </div>
+      )
+    } else if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+      listBuffer.push(trimmed.replace(/^[-•]\s*/, ''))
+    } else {
+      flushList(`list-${idx}`)
+      elements.push(
+        <p key={idx} style={{ marginBottom: 10, lineHeight: 1.7 }}>{renderInlineBold(trimmed)}</p>
+      )
+    }
+  })
+  flushList('list-end')
+  return elements
+}
+
 export default function MatchPage() {
   const { id, lang } = useParams() as { id: string; lang: string }
   const router = useRouter()
@@ -160,7 +212,7 @@ export default function MatchPage() {
     setAiError(null)
     setAiNeedsPayment(false)
     try {
-      const res = await fetch(`/api/match/${id}/ai-analysis`)
+      const res = await fetch(`/api/match/${id}/ai-analysis?lang=${lang}`)
       if (res.status === 402) {
         setAiNeedsPayment(true)
         setAiLoading(false)
@@ -833,8 +885,26 @@ export default function MatchPage() {
               )}
 
               {!aiLoading && aiContent && (
-                <div style={{ color: '#c5d3e8', fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                  {aiContent}
+                <div>
+                  {pred && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10, marginBottom: 24, padding: 16, background: 'rgba(0,200,120,0.05)', border: '1px solid rgba(0,200,120,0.2)', borderRadius: 10 }}>
+                    {[
+                      { label: lang === 'en' ? 'Home Win' : 'Local', v: pred.prob_home_win },
+                      { label: lang === 'en' ? 'Draw' : 'Empate', v: pred.prob_draw },
+                      { label: lang === 'en' ? 'Away Win' : 'Visita', v: pred.prob_away_win },
+                      { label: 'Over 2.5', v: pred.prob_over25 },
+                      { label: 'BTTS', v: pred.prob_btts },
+                    ].map((s, i) => (
+                      <div key={i} style={{ textAlign: 'center' }}>
+                        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: pColor(s.v) }}>{Math.round(s.v * 100)}%</div>
+                        <div style={{ fontSize: 9, color: '#4a6785', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{s.label}</div>
+                      </div>
+                    ))}
+                    </div>
+                  )}
+                  <div style={{ color: '#c5d3e8', fontSize: 14 }}>
+                    {renderAiMarkdown(aiContent)}
+                  </div>
                 </div>
               )}
             </div>
