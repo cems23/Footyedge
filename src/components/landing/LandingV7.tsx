@@ -25,22 +25,36 @@ const bebas: CSSProperties = { fontFamily: '"Bebas Neue", sans-serif', letterSpa
 const mono: CSSProperties = { fontFamily: '"DM Mono", ui-monospace, monospace' };
 const slant: CSSProperties = { ...bebas, transform: 'skewX(-8deg)', display: 'inline-block' };
 
-const SCENES = [
+const SCENES_EN = [
   { tag: '01 · THE MODEL', title: 'Dixon-Coles under the hood', body: 'A Poisson goal model with dynamic home advantage, temporal decay and per-league calibration — tuned independently across 29 leagues.' },
   { tag: '02 · VALUE BETS', title: 'Edge, not opinions', body: 'Every market is priced by the model and compared against live bookmaker odds. Only bets with positive expected value make the board.' },
   { tag: '03 · RANKINGS', title: 'Team markets, ranked', body: 'Over 0.5–3.5 and BTTS hit-rates for every team, with Total / Home / Away splits built from 12,000+ historical matches.' },
   { tag: '04 · AI ANALYSIS', title: 'A scout in the loop', body: 'On-demand AI match reports with live web context — injuries, news, form — layered on top of the numbers.' },
 ];
+const SCENES_ES = [
+  { tag: '01 · EL MODELO', title: 'Dixon-Coles por dentro', body: 'Un modelo Poisson de goles con ventaja local dinámica, decaimiento temporal y calibración por liga — ajustado de forma independiente en 29 ligas.' },
+  { tag: '02 · VALUE BETS', title: 'Ventaja, no opiniones', body: 'Cada mercado se calcula con el modelo y se compara contra las cuotas reales de las casas. Solo las apuestas con valor esperado positivo llegan al tablero.' },
+  { tag: '03 · RANKINGS', title: 'Mercados por equipo, ordenados', body: 'Tasas de acierto de Over 0.5–3.5 y BTTS para cada equipo, con splits Total / Casa / Fuera construidos con más de 12,000 partidos históricos.' },
+  { tag: '04 · ANÁLISIS IA', title: 'Un ojeador en el proceso', body: 'Informes de partido generados por IA bajo demanda, con contexto web en vivo — lesiones, noticias, forma — sobre los números del modelo.' },
+];
 
-const FEATURES = [
+const FEATURES_EN = [
   { k: 'MODEL', t: 'A pricing engine, not a tipster', d: 'FootyEdge prices every match itself. Dixon-Coles Poisson with per-league rho, decayed form and dynamic home advantage produce true probabilities for 1X2, Over/Under and BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'leagues calibrated' },
   { k: 'EDGE', t: 'Value surfaced daily', d: 'Model prices meet market odds every morning. Anything trading above its fair probability is flagged with its EV and edge — filtered by per-market thresholds so noise stays out.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'only positive-value picks' },
   { k: 'DATA', t: 'Rankings & filters', d: 'Per-team market stats across three seasons of history. Sort any league by Over 2.5 rate, BTTS, home splits — then filter fixtures that match your pattern.', stat: 12264, statSuffix: '', statText: '', statLabel: 'matches of history' },
   { k: 'AI', t: 'AI match analysis', d: 'One tap unlocks a narrative report for any fixture: current injuries, tactical context and news pulled from the live web, reconciled with the model’s numbers.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'per report, cached forever' },
 ];
+const FEATURES_ES = [
+  { k: 'MODELO', t: 'Un motor de precios, no un pronosticador', d: 'FootyEdge calcula cada partido por sí mismo. Poisson Dixon-Coles con rho por liga, forma con decaimiento y ventaja local dinámica generan probabilidades reales para 1X2, Over/Under y BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'ligas calibradas' },
+  { k: 'VALOR', t: 'Valor detectado cada día', d: 'Los precios del modelo se comparan cada mañana contra las cuotas del mercado. Todo lo que cotiza por encima de su probabilidad justa se marca con su EV y edge — filtrado por umbrales de cada mercado para que no entre ruido.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'solo picks de valor positivo' },
+  { k: 'DATOS', t: 'Rankings y filtros', d: 'Estadísticas de mercado por equipo en tres temporadas de historial. Ordena cualquier liga por tasa de Over 2.5, BTTS, splits en casa — y filtra los partidos que calzan con tu patrón.', stat: 12264, statSuffix: '', statText: '', statLabel: 'partidos de historial' },
+  { k: 'IA', t: 'Análisis de partido con IA', d: 'Un clic desbloquea un informe narrativo para cualquier partido: lesiones actuales, contexto táctico y noticias sacadas de la web en vivo, cruzadas con los números del modelo.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'por informe, guardado para siempre' },
+];
 
 type TierItem = { t: string; on: boolean };
-const TIERS: { name: string; price: string; per: string; badge: string | null; gold: boolean; hot: boolean; items: TierItem[]; cta: string }[] = [
+type Tier = { name: string; price: string; per: string; badge: string | null; gold: boolean; hot: boolean; items: TierItem[]; cta: string };
+
+const TIERS_EN: Tier[] = [
   {
     name: 'FREE', price: '$0', per: 'forever', badge: null, gold: false, hot: false, cta: 'Start for free',
     items: [
@@ -86,6 +100,52 @@ const TIERS: { name: string; price: string; per: string; badge: string | null; g
   },
 ];
 
+const TIERS_ES: Tier[] = [
+  {
+    name: 'FREE', price: '$0', per: 'siempre', badge: null, gold: false, hot: false, cta: 'Empezar gratis',
+    items: [
+      { t: '3 value bets diarias (Over 1.5)', on: true },
+      { t: 'Análisis completo de partido', on: true },
+      { t: 'Tabla de posiciones', on: true },
+      { t: 'Alineaciones confirmadas', on: true },
+      { t: 'Tabla de partidos con probabilidades', on: true },
+      { t: 'H2H y forma del equipo', on: false },
+      { t: 'Value bets de Over 2.5 / BTTS / 1X2', on: false },
+      { t: 'Asesor de Stake Kelly', on: false },
+      { t: 'Análisis de partido con IA', on: false },
+    ],
+  },
+  {
+    name: 'PRO', price: '$9.99', per: '/mes', badge: '⚡ MÁS POPULAR', gold: false, hot: true, cta: 'Empezar con Pro',
+    items: [
+      { t: 'Top 8 value bets (todos los mercados)', on: true },
+      { t: 'BTTS + Overs completos', on: true },
+      { t: 'Tabla completa con todos los %', on: true },
+      { t: 'H2H, Forma, Bajas, Alineaciones', on: true },
+      { t: 'Comparador de equipos', on: true },
+      { t: 'Asesor de Stake Kelly', on: true },
+      { t: 'Marcadores más probables', on: true },
+      { t: 'Partidos en vivo completos', on: true },
+      { t: '3 análisis de partido con IA / mes', on: true },
+      { t: 'Value Radar', on: false },
+      { t: 'Early Line Hunter', on: false },
+    ],
+  },
+  {
+    name: 'ELITE', price: '$16.99', per: '/mes', badge: '👑 MÁXIMO PODER', gold: true, hot: false, cta: 'Empezar con Elite',
+    items: [
+      { t: 'Todo lo de Pro', on: true },
+      { t: 'Top 20 value bets diarias', on: true },
+      { t: '🎯 Value Radar — escáner de ineficiencias del mercado', on: true },
+      { t: '⚡ Early Line Hunter — detecta valor antes que nadie', on: true },
+      { t: '10 análisis de partido con IA / mes', on: true },
+      { t: 'Ligas favoritas personalizadas', on: true },
+      { t: 'Estadísticas avanzadas (xG, tiros, córners)', on: true },
+      { t: 'Soporte prioritario', on: true },
+    ],
+  },
+];
+
 function Logo({ size = 34 }: { size?: number }) {
   const [broken, setBroken] = useState(false);
   if (broken) {
@@ -118,7 +178,10 @@ function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
   return <span ref={ref}>{v.toLocaleString('en-US')}{suffix}</span>;
 }
 
-export default function LandingEN() {
+export default function LandingV7({ lang = 'en' }: { lang?: string }) {
+  const SCENES = lang === 'es' ? SCENES_ES : SCENES_EN;
+  const FEATURES = lang === 'es' ? FEATURES_ES : FEATURES_EN;
+  const TIERS = lang === 'es' ? TIERS_ES : TIERS_EN;
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -184,14 +247,17 @@ export default function LandingEN() {
           transition: 'height .3s ease, background .3s ease, border-color .3s ease',
         }}
       >
-        <a href="/en" style={{ textDecoration: 'none' }}><Logo size={scrolled ? 78 : 112} /></a>
+        <a href={`/${lang}`} style={{ textDecoration: 'none' }}><Logo size={scrolled ? 78 : 112} /></a>
 
         <nav className="fe-nav" style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-          {[['#engine', 'Engine'], ['#features', 'Product'], ['#pricing', 'Pricing']].map(([h, l]) => (
+          {(lang === 'es'
+            ? [['#engine', 'Motor'], ['#features', 'Producto'], ['#pricing', 'Precios']]
+            : [['#engine', 'Engine'], ['#features', 'Product'], ['#pricing', 'Pricing']]
+          ).map(([h, l]) => (
             <a key={h} className="fe-navlink" href={h} style={{ ...mono, fontSize: 13, color: C.mute, textDecoration: 'none' }}>{l}</a>
           ))}
-          <a className="fe-navlink" href="/en/auth/login" style={{ ...mono, fontSize: 13, color: C.white, textDecoration: 'none' }}>Log in</a>
-          <a className="fe-btn" href="/en/auth/register" style={btnStyle(true, 'sm')}>Start free</a>
+          <a className="fe-navlink" href={`/${lang}/auth/login`} style={{ ...mono, fontSize: 13, color: C.white, textDecoration: 'none' }}>{lang === 'es' ? 'Entrar' : 'Log in'}</a>
+          <a className="fe-btn" href={`/${lang}/auth/register`} style={btnStyle(true, 'sm')}>{lang === 'es' ? 'Empezar gratis' : 'Start free'}</a>
         </nav>
 
         <button className="fe-burger" aria-label="Menu" onClick={() => setMenu(!menu)}
@@ -202,10 +268,13 @@ export default function LandingEN() {
 
       {menu && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(7,13,26,0.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34 }}>
-          {[['#engine', 'ENGINE'], ['#features', 'PRODUCT'], ['#pricing', 'PRICING'], ['/login', 'LOG IN']].map(([h, l], i) => (
+          {(lang === 'es'
+            ? [['#engine', 'MOTOR'], ['#features', 'PRODUCTO'], ['#pricing', 'PRECIOS'], [`/${lang}/auth/login`, 'ENTRAR']]
+            : [['#engine', 'ENGINE'], ['#features', 'PRODUCT'], ['#pricing', 'PRICING'], [`/${lang}/auth/login`, 'LOG IN']]
+          ).map(([h, l], i) => (
             <a key={h} href={h} onClick={() => setMenu(false)} className="fe-menu-item" style={{ ...slant, fontSize: 46, color: C.white, textDecoration: 'none', animationDelay: `${i * 0.07}s` }}>{l}</a>
           ))}
-          <a href="/en/auth/register" onClick={() => setMenu(false)} style={btnStyle(true, 'lg')}>Start free</a>
+          <a href={`/${lang}/auth/register`} onClick={() => setMenu(false)} style={btnStyle(true, 'lg')}>{lang === 'es' ? 'Empezar gratis' : 'Start free'}</a>
         </div>
       )}
 
@@ -251,7 +320,7 @@ export default function LandingEN() {
         <div className="fe-floaties" aria-hidden>
           {/* mini card: value bet */}
           <div className="fe-mini fe-mini-bet" style={{ ...mono }}>
-            <div className="fe-mini-head">TODAY · VALUE BET</div>
+            <div className="fe-mini-head">{lang === 'es' ? 'HOY · VALUE BET' : 'TODAY · VALUE BET'}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'baseline' }}>
               <span style={{ color: C.white, fontSize: 13 }}>Girona — Betis</span>
               <span style={{ color: C.mute, fontSize: 11 }}>Over 2.5</span>
@@ -264,7 +333,7 @@ export default function LandingEN() {
 
           {/* mini card: ranking */}
           <div className="fe-mini fe-mini-rank" style={{ ...mono }}>
-            <div className="fe-mini-head">OVER 2.5 · TOP TEAMS</div>
+            <div className="fe-mini-head">{lang === 'es' ? 'OVER 2.5 · TOP EQUIPOS' : 'OVER 2.5 · TOP TEAMS'}</div>
             {[['Bayern', 86], ['Girona', 79], ['Toulouse', 71]].map(([t, v]) => (
               <div key={t as string} style={{ display: 'grid', gridTemplateColumns: '64px 1fr 30px', gap: 8, alignItems: 'center', marginTop: 6 }}>
                 <span style={{ color: C.white, fontSize: 11 }}>{t}</span>
@@ -278,10 +347,10 @@ export default function LandingEN() {
 
           {/* mini card: kelly */}
           <div className="fe-mini fe-mini-kelly" style={{ ...mono }}>
-            <div className="fe-mini-head">KELLY STAKE</div>
+            <div className="fe-mini-head">{lang === 'es' ? 'STAKE KELLY' : 'KELLY STAKE'}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
               <span style={{ ...bebas, fontSize: 30, color: C.green, letterSpacing: '0.02em' }}>1.8u</span>
-              <span style={{ color: C.mute, fontSize: 11 }}>of bankroll</span>
+              <span style={{ color: C.mute, fontSize: 11 }}>{lang === 'es' ? 'del bankroll' : 'of bankroll'}</span>
             </div>
           </div>
 
@@ -291,22 +360,23 @@ export default function LandingEN() {
           <span className="fe-chip fe-chip-c" style={{ ...mono }}>29 LEAGUES</span>
         </div>
 
-        <p className="fe-up" style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 18, animationDelay: '0.05s', position: 'relative' }}>▮ FOOTBALL BETTING ANALYTICS</p>
+        <p className="fe-up" style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 18, animationDelay: '0.05s', position: 'relative' }}>{lang === 'es' ? '▮ ANALÍTICA DE APUESTAS DE FÚTBOL' : '▮ FOOTBALL BETTING ANALYTICS'}</p>
 
         <h1 style={{ margin: 0, textTransform: 'uppercase', lineHeight: 0.88, position: 'relative' }}>
-          <span className="fe-up" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.15s' }}>Bet the math.</span>
+          <span className="fe-up" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.15s' }}>{lang === 'es' ? 'Apuesta la matemática.' : 'Bet the math.'}</span>
           <br />
-          <span className="fe-up fe-outline" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.3s' }}>Not the hype.</span>
+          <span className="fe-up fe-outline" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.3s' }}>{lang === 'es' ? 'No el hype.' : 'Not the hype.'}</span>
         </h1>
 
         <p className="fe-up" style={{ maxWidth: 560, fontSize: 'clamp(16px,1.4vw,19px)', color: C.mute, lineHeight: 1.6, margin: '30px 0 38px', animationDelay: '0.45s', position: 'relative' }}>
-          FootyEdge prices every match with its own statistical engine and flags the odds
-          the market got wrong — every day, across 29 leagues.
+          {lang === 'es'
+            ? 'FootyEdge calcula cada partido con su propio motor estadístico y marca las cuotas en las que el mercado se equivoca — todos los días, en 29 ligas.'
+            : 'FootyEdge prices every match with its own statistical engine and flags the odds the market got wrong — every day, across 29 leagues.'}
         </p>
 
         <div className="fe-up" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', animationDelay: '0.6s', position: 'relative' }}>
-          <a className="fe-btn fe-pulse" href="/en/auth/register" style={btnStyle(true, 'lg')}>See today’s value bets →</a>
-          <a className="fe-btn" href="#engine" style={btnStyle(false, 'lg')}>How the engine works</a>
+          <a className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={btnStyle(true, 'lg')}>{lang === 'es' ? 'Ver las value bets de hoy →' : "See today's value bets →"}</a>
+          <a className="fe-btn" href="#engine" style={btnStyle(false, 'lg')}>{lang === 'es' ? 'Cómo funciona el motor' : 'How the engine works'}</a>
         </div>
 
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, borderTop: `1px solid ${C.line}`, background: 'rgba(10,22,38,0.7)', overflow: 'hidden', zIndex: 2 }}>
@@ -344,10 +414,10 @@ export default function LandingEN() {
                 <video ref={videoRef} src="/demo.mp4" muted playsInline preload="auto" style={{ width: '100%', height: 'calc(100% - 37px)', objectFit: 'cover', display: 'block' }} />
               ) : (
                 <div style={{ position: 'relative', height: 'calc(100% - 37px)' }}>
-                  <Scene0 active={scene === 0} p={sceneP} />
-                  <Scene1 active={scene === 1} p={sceneP} />
-                  <Scene2 active={scene === 2} p={sceneP} />
-                  <Scene3 active={scene === 3} p={sceneP} />
+                  <Scene0 active={scene === 0} p={sceneP} lang={lang} />
+                  <Scene1 active={scene === 1} p={sceneP} lang={lang} />
+                  <Scene2 active={scene === 2} p={sceneP} lang={lang} />
+                  <Scene3 active={scene === 3} p={sceneP} lang={lang} />
                 </div>
               )}
             </div>
@@ -364,10 +434,10 @@ export default function LandingEN() {
 
       {/* product */}
       <section id="features" style={{ padding: 'clamp(64px,8vw,110px) clamp(16px,5vw,64px)' }}>
-        <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>▮ THE PRODUCT</p>
+        <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>{lang === 'es' ? '▮ EL PRODUCTO' : '▮ THE PRODUCT'}</p>
         <h2 data-reveal style={{ margin: '0 0 48px', textTransform: 'uppercase', lineHeight: 0.9 }}>
-          <span style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)' }}>Find the edge.</span><br />
-          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)' }}>Before the market does.</span>
+          <span style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)' }}>{lang === 'es' ? 'Encuentra la ventaja.' : 'Find the edge.'}</span><br />
+          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)' }}>{lang === 'es' ? 'Antes que el mercado.' : 'Before the market does.'}</span>
         </h2>
 
         <div className="fe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 20 }}>
@@ -388,8 +458,8 @@ export default function LandingEN() {
       {/* pricing */}
       <section id="pricing" style={{ padding: 'clamp(64px,8vw,110px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}`, position: 'relative' }}>
         <div className="fe-halftone" aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5 }} />
-        <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>▮ PRICING</p>
-        <h2 data-reveal style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)', lineHeight: 0.92, margin: '0 0 48px', textTransform: 'uppercase' }}>Pick your edge</h2>
+        <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>{lang === 'es' ? '▮ PRECIOS' : '▮ PRICING'}</p>
+        <h2 data-reveal style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)', lineHeight: 0.92, margin: '0 0 48px', textTransform: 'uppercase' }}>{lang === 'es' ? 'Elige tu plan' : 'Pick your edge'}</h2>
 
         <div className="fe-grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 20, position: 'relative', alignItems: 'stretch' }}>
           {TIERS.map((t, i) => (
@@ -410,7 +480,7 @@ export default function LandingEN() {
                   </li>
                 ))}
               </ul>
-              <a className="fe-btn" href="/en/auth/register" style={{ ...btnStyle(t.hot || t.gold, 'md'), marginTop: 'auto', textAlign: 'center', fontSize: 16, padding: '15px 22px', position: 'relative', ...(t.gold ? { background: `linear-gradient(90deg, ${C.gold}, #ffd66b)`, border: `2px solid ${C.gold}`, boxShadow: '0 8px 30px rgba(246,185,59,0.35)', color: C.ink } : {}) }}>{t.cta}</a>
+              <a className="fe-btn" href={`/${lang}/auth/register`} style={{ ...btnStyle(t.hot || t.gold, 'md'), marginTop: 'auto', textAlign: 'center', fontSize: 16, padding: '15px 22px', position: 'relative', ...(t.gold ? { background: `linear-gradient(90deg, ${C.gold}, #ffd66b)`, border: `2px solid ${C.gold}`, boxShadow: '0 8px 30px rgba(246,185,59,0.35)', color: C.ink } : {}) }}>{t.cta}</a>
             </article>
           ))}
         </div>
@@ -420,18 +490,20 @@ export default function LandingEN() {
       <section style={{ padding: 'clamp(80px,10vw,140px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}`, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div className="fe-glow" aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 'min(80vw,900px)', aspectRatio: '2', background: `radial-gradient(ellipse, ${C.greenDim}, transparent 70%)` }} />
         <h2 data-reveal style={{ margin: '0 0 28px', textTransform: 'uppercase', lineHeight: 0.88, position: 'relative' }}>
-          <span style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>The board resets</span><br />
-          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>every morning.</span>
+          <span style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>{lang === 'es' ? 'El tablero se reinicia' : 'The board resets'}</span><br />
+          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>{lang === 'es' ? 'cada mañana.' : 'every morning.'}</span>
         </h2>
         <p data-reveal style={{ color: C.mute, fontSize: 17, maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.6, position: 'relative' }}>
-          Fresh value bets across 29 leagues, priced before you’ve had coffee. Free to start.
+          {lang === 'es'
+            ? 'Value bets frescas en 29 ligas, calculadas antes de tu café. Gratis para empezar.'
+            : "Fresh value bets across 29 leagues, priced before you've had coffee. Free to start."}
         </p>
-        <a data-reveal className="fe-btn fe-pulse" href="/en/auth/register" style={{ ...btnStyle(true, 'lg'), position: 'relative' }}>Start free — no card needed</a>
+        <a data-reveal className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={{ ...btnStyle(true, 'lg'), position: 'relative' }}>{lang === 'es' ? 'Empezar gratis — sin tarjeta' : 'Start free — no card needed'}</a>
       </section>
 
       <footer style={{ borderTop: `1px solid ${C.line}`, padding: '32px clamp(16px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
         <Logo size={80} />
-        <span style={{ ...mono, fontSize: 12, color: C.mute }}>© {new Date().getFullYear()} FootyEdge · 18+ · Bet responsibly</span>
+        <span style={{ ...mono, fontSize: 12, color: C.mute }}>© {new Date().getFullYear()} FootyEdge · 18+ · {lang === 'es' ? 'Apuesta con responsabilidad' : 'Bet responsibly'}</span>
       </footer>
     </main>
   );
@@ -445,11 +517,11 @@ function SceneShell({ active, children }: { active: boolean; children: React.Rea
   );
 }
 
-function Scene0({ active, p }: { active: boolean; p: number }) {
+function Scene0({ active, p, lang }: { active: boolean; p: number; lang: string }) {
   const bars = [0.05, 0.16, 0.27, 0.24, 0.15, 0.08, 0.05];
   return (
     <SceneShell active={active}>
-      <p style={{ ...mono, fontSize: 11, color: C.mute, margin: '0 0 12px' }}>P(goals) · λ_home 1.62 · λ_away 1.14 · ρ −0.08</p>
+      <p style={{ ...mono, fontSize: 11, color: C.mute, margin: '0 0 12px' }}>{lang === 'es' ? 'P(goles)' : 'P(goals)'} · λ_home 1.62 · λ_away 1.14 · ρ −0.08</p>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: '70%' }}>
         {bars.map((b, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -462,15 +534,15 @@ function Scene0({ active, p }: { active: boolean; p: number }) {
   );
 }
 
-function Scene1({ active, p }: { active: boolean; p: number }) {
+function Scene1({ active, p, lang }: { active: boolean; p: number; lang: string }) {
   const rows = [
     ['Girona vs Betis', 'Over 2.5', '+14.2%'],
     ['Twente vs AZ', 'BTTS', '+11.8%'],
-    ['Mainz vs Köln', 'Draw', '+10.4%'],
+    ['Mainz vs Köln', lang === 'es' ? 'Empate' : 'Draw', '+10.4%'],
   ];
   return (
     <SceneShell active={active}>
-      <p style={{ ...mono, fontSize: 11, color: C.mute, margin: '0 0 12px' }}>TODAY · VALUE BOARD</p>
+      <p style={{ ...mono, fontSize: 11, color: C.mute, margin: '0 0 12px' }}>{lang === 'es' ? 'HOY · TABLERO DE VALOR' : 'TODAY · VALUE BOARD'}</p>
       <div style={{ display: 'grid', gap: 10 }}>
         {rows.map(([m, mk, e], i) => (
           <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.cardSolid, border: `1px solid ${C.line}`, borderRadius: 12, padding: '12px 16px', opacity: p * 3 > i ? 1 : 0.15, transform: p * 3 > i ? 'translateX(0)' : 'translateX(24px)', transition: 'all .25s ease' }}>
@@ -484,7 +556,7 @@ function Scene1({ active, p }: { active: boolean; p: number }) {
   );
 }
 
-function Scene2({ active, p }: { active: boolean; p: number }) {
+function Scene2({ active, p, lang }: { active: boolean; p: number; lang: string }) {
   const rows = [['Bayern', 0.86], ['Girona', 0.79], ['Toulouse', 0.71], ['Como', 0.66]] as const;
   return (
     <SceneShell active={active}>
@@ -506,8 +578,13 @@ function Scene2({ active, p }: { active: boolean; p: number }) {
   );
 }
 
-function Scene3({ active, p }: { active: boolean; p: number }) {
-  const lines = [
+function Scene3({ active, p, lang }: { active: boolean; p: number; lang: string }) {
+  const lines = lang === 'es' ? [
+    '→ Revisando reportes de lesiones…',
+    '→ Local sin su pareja de centrales titular',
+    '→ xG del visitante sube 0.4 en los últimos 5',
+    '✓ Ventaja del modelo confirmada: Over 2.5 (+12%)',
+  ] : [
     '→ Scanning injury reports…',
     '→ Home side missing first-choice CB pairing',
     '→ Away xG trend up 0.4 over last 5',
@@ -515,7 +592,7 @@ function Scene3({ active, p }: { active: boolean; p: number }) {
   ];
   return (
     <SceneShell active={active}>
-      <p style={{ ...mono, fontSize: 11, color: C.mute, margin: '0 0 12px' }}>🤖 AI ANALYSIS · LIVE WEB CONTEXT</p>
+      <p style={{ ...mono, fontSize: 11, color: C.mute, margin: '0 0 12px' }}>{lang === 'es' ? '🤖 ANÁLISIS IA · CONTEXTO WEB EN VIVO' : '🤖 AI ANALYSIS · LIVE WEB CONTEXT'}</p>
       <div style={{ ...mono, fontSize: 13, display: 'grid', gap: 12 }}>
         {lines.map((l, i) => (
           <div key={l} style={{ color: i === lines.length - 1 ? C.green : C.mute, opacity: p * 4 > i ? 1 : 0.12, transition: 'opacity .25s ease' }}>{l}</div>
