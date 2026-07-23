@@ -208,15 +208,35 @@ export async function getTeamStats(
   const playedAway = s.fixtures?.played?.away || 0
   const rawPlayed = isHome ? playedHome : playedAway
 
-  // Sin partidos esta temporada (ej. equipo recién entrando a clasificatorias) —
-  // usar la temporada anterior del MISMO equipo en vez de un promedio genérico de liga.
-  // Preserva diferenciación real entre equipos en vez de aplanar todos al mismo valor.
-  if (rawPlayed === 0 && !_isFallback && season > 2020) {
+  // Sin partidos en ESTA competición esta temporada (ej. equipo recién entrando a
+  // clasificatorias continentales, pero activo en su liga doméstica) — buscar sus
+  // últimos partidos reales en CUALQUIER competición esta temporada (sin filtro de liga),
+  // en vez de un promedio genérico compartido. Preserva diferenciación real entre equipos.
+  if (rawPlayed === 0 && !_isFallback) {
     try {
-      const prevSeason = await getTeamStats(teamId, leagueId, season - 1, isHome, true)
-      if (prevSeason.matchesPlayed >= 3) {
-        await setCached(cacheKey, prevSeason)
-        return prevSeason
+      const anyCompFixtures = await apf<any[]>("/fixtures", { team: teamId, season, last: 10, status: 'FT' })
+      const finished = (anyCompFixtures ?? []).filter(f => f.goals?.home !== null && f.goals?.away !== null)
+      if (finished.length >= 3) {
+        let gScored = 0, gConceded = 0
+        const recentScored: number[] = []
+        const recentConceded: number[] = []
+        for (const f of finished) {
+          const wasHome = f.teams?.home?.id === teamId
+          const scored   = wasHome ? (f.goals?.home ?? 0) : (f.goals?.away ?? 0)
+          const conceded = wasHome ? (f.goals?.away ?? 0) : (f.goals?.home ?? 0)
+          gScored += scored
+          gConceded += conceded
+          recentScored.push(scored)
+          recentConceded.push(conceded)
+        }
+        const fallbackResult: TeamStats = {
+          goalsScored: gScored, goalsConceded: gConceded, matchesPlayed: finished.length,
+          xgScored: undefined, xgConceded: undefined,
+          recentGoalsScored: recentScored, recentGoalsConceded: recentConceded,
+          recentXgScored: [], isHome,
+        }
+        await setCached(cacheKey, fallbackResult)
+        return fallbackResult
       }
     } catch {
       // si falla, seguimos con el flujo normal (promedio de liga en poisson.ts)
