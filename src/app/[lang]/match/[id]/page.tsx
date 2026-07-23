@@ -208,7 +208,7 @@ export default function MatchPage() {
     }
   }
 
-  const loadAiAnalysis = async () => {
+  const loadAiAnalysis = async (paymentRetries = 0) => {
     setAiLoading(true)
     setAiError(null)
     setAiNeedsPayment(false)
@@ -217,6 +217,14 @@ export default function MatchPage() {
     try {
       const res = await fetch(`/api/match/${id}/ai-analysis?lang=${lang}`)
       if (res.status === 402) {
+        // Justo después de pagar, el webhook de Stripe puede tardar 1-2s en marcar
+        // el pago como completado — reintentar unas veces antes de rendirse y
+        // mostrar la pantalla de pago (evita el falso "no pagado" tras pagar de verdad).
+        if (paymentRetries < 3) {
+          clearTimeout(slowTimer)
+          setTimeout(() => loadAiAnalysis(paymentRetries + 1), 1500)
+          return
+        }
         setAiNeedsPayment(true)
         setAiLoading(false)
         clearTimeout(slowTimer)
