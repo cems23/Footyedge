@@ -27,26 +27,26 @@ const slant: CSSProperties = { ...bebas, transform: 'skewX(-8deg)', display: 'in
 
 const SCENES_EN = [
   { tag: '01 · THE MODEL', title: 'Dixon-Coles under the hood', body: 'A Poisson goal model with dynamic home advantage, temporal decay and per-league calibration — tuned independently across 29 leagues.' },
-  { tag: '02 · VALUE BETS', title: 'Edge, not opinions', body: 'Every market is priced by the model and compared against live bookmaker odds. Only bets with positive expected value make the board.' },
+  { tag: '02 · SIGNALS', title: 'Signal, not opinions', body: 'Every market is priced by the model and compared against live market prices. Only signals with positive expected value make the board.' },
   { tag: '03 · RANKINGS', title: 'Team markets, ranked', body: 'Over 0.5–3.5 and BTTS hit-rates for every team, with Total / Home / Away splits built from 12,000+ historical matches.' },
   { tag: '04 · AI ANALYSIS', title: 'A scout in the loop', body: 'On-demand AI match reports with live web context — injuries, news, form — layered on top of the numbers.' },
 ];
 const SCENES_ES = [
   { tag: '01 · EL MODELO', title: 'Dixon-Coles por dentro', body: 'Un modelo Poisson de goles con ventaja local dinámica, decaimiento temporal y calibración por liga — ajustado de forma independiente en 29 ligas.' },
-  { tag: '02 · VALUE BETS', title: 'Ventaja, no opiniones', body: 'Cada mercado se calcula con el modelo y se compara contra las cuotas reales de las casas. Solo las apuestas con valor esperado positivo llegan al tablero.' },
+  { tag: '02 · SEÑALES', title: 'Señal, no opiniones', body: 'Cada mercado se calcula con el modelo y se compara contra los precios reales de las casas. Solo las señales con valor esperado positivo llegan al tablero.' },
   { tag: '03 · RANKINGS', title: 'Mercados por equipo, ordenados', body: 'Tasas de acierto de Over 0.5–3.5 y BTTS para cada equipo, con splits Total / Casa / Fuera construidos con más de 12,000 partidos históricos.' },
   { tag: '04 · ANÁLISIS IA', title: 'Un ojeador en el proceso', body: 'Informes de partido generados por IA bajo demanda, con contexto web en vivo — lesiones, noticias, forma — sobre los números del modelo.' },
 ];
 
 const FEATURES_EN = [
   { k: 'MODEL', t: 'A pricing engine, not a tipster', d: 'FootyEdge prices every match itself. Dixon-Coles Poisson with per-league rho, decayed form and dynamic home advantage produce true probabilities for 1X2, Over/Under and BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'leagues calibrated' },
-  { k: 'EDGE', t: 'Value surfaced daily', d: 'Model prices meet market odds every morning. Anything trading above its fair probability is flagged with its EV and edge — filtered by per-market thresholds so noise stays out.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'only positive-value picks' },
+  { k: 'SIGNAL', t: 'Signals surfaced daily', d: 'Model prices meet market prices every morning. Anything trading above its fair probability is flagged with its statistical edge — filtered by per-market thresholds so noise stays out.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'only positive-signal picks' },
   { k: 'DATA', t: 'Rankings & filters', d: 'Per-team market stats across three seasons of history. Sort any league by Over 2.5 rate, BTTS, home splits — then filter fixtures that match your pattern.', stat: 12264, statSuffix: '', statText: '', statLabel: 'matches of history' },
   { k: 'AI', t: 'AI match analysis', d: 'One tap unlocks a narrative report for any fixture: current injuries, tactical context and news pulled from the live web, reconciled with the model’s numbers.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'per report, cached forever' },
 ];
 const FEATURES_ES = [
   { k: 'MODELO', t: 'Un motor de precios, no un pronosticador', d: 'FootyEdge calcula cada partido por sí mismo. Poisson Dixon-Coles con rho por liga, forma con decaimiento y ventaja local dinámica generan probabilidades reales para 1X2, Over/Under y BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'ligas calibradas' },
-  { k: 'VALOR', t: 'Valor detectado cada día', d: 'Los precios del modelo se comparan cada mañana contra las cuotas del mercado. Todo lo que cotiza por encima de su probabilidad justa se marca con su EV y edge — filtrado por umbrales de cada mercado para que no entre ruido.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'solo picks de valor positivo' },
+  { k: 'SEÑAL', t: 'Señales detectadas cada día', d: 'Los precios del modelo se comparan cada mañana contra los precios del mercado. Todo lo que cotiza por encima de su probabilidad justa se marca con su ventaja estadística — filtrado por umbrales de cada mercado para que no entre ruido.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'solo señales positivas' },
   { k: 'DATOS', t: 'Rankings y filtros', d: 'Estadísticas de mercado por equipo en tres temporadas de historial. Ordena cualquier liga por tasa de Over 2.5, BTTS, splits en casa — y filtra los partidos que calzan con tu patrón.', stat: 12264, statSuffix: '', statText: '', statLabel: 'partidos de historial' },
   { k: 'IA', t: 'Análisis de partido con IA', d: 'Un clic desbloquea un informe narrativo para cualquier partido: lesiones actuales, contexto táctico y noticias sacadas de la web en vivo, cruzadas con los números del modelo.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'por informe, guardado para siempre' },
 ];
@@ -58,26 +58,26 @@ const TIERS_EN: Tier[] = [
   {
     name: 'FREE', price: '$0', per: 'forever', badge: null, gold: false, hot: false, cta: 'Start for free',
     items: [
-      { t: '3 daily value bets (Over 1.5)', on: true },
+      { t: '3 daily signals (Over 1.5)', on: true },
       { t: 'Full match analysis', on: true },
       { t: 'League standings', on: true },
       { t: 'Confirmed lineups', on: true },
       { t: 'Match table with probabilities', on: true },
       { t: 'H2H and team form', on: false },
-      { t: 'Over 2.5 / BTTS / 1X2 value bets', on: false },
-      { t: 'Kelly Stake Advisor', on: false },
+      { t: 'Over 2.5 / BTTS / 1X2 signals', on: false },
+      { t: 'Bankroll Advisor', on: false },
       { t: 'AI match analyses', on: false },
     ],
   },
   {
     name: 'PRO', price: '$9.99', per: '/mo', badge: '⚡ MOST POPULAR', gold: false, hot: true, cta: 'Start with Pro',
     items: [
-      { t: 'Top 8 value bets (all markets)', on: true },
+      { t: 'Top 8 signals (all markets)', on: true },
       { t: 'Full BTTS + Overs', on: true },
       { t: 'Complete table with all %', on: true },
       { t: 'H2H, Form, Injuries, Lineups', on: true },
       { t: 'Team comparator', on: true },
-      { t: 'Kelly Stake Advisor', on: true },
+      { t: 'Bankroll Advisor', on: true },
       { t: 'Most likely scorelines', on: true },
       { t: 'Full live matches', on: true },
       { t: '3 AI match analyses / month', on: true },
@@ -89,7 +89,7 @@ const TIERS_EN: Tier[] = [
     name: 'ELITE', price: '$16.99', per: '/mo', badge: '👑 MAXIMUM POWER', gold: true, hot: false, cta: 'Start with Elite',
     items: [
       { t: 'Everything in Pro', on: true },
-      { t: 'Top 20 daily value bets', on: true },
+      { t: 'Top 20 daily signals', on: true },
       { t: '🎯 Value Radar — market inefficiency scanner', on: true },
       { t: '⚡ Early Line Hunter — detect value early', on: true },
       { t: '10 AI match analyses / month', on: true },
@@ -104,26 +104,26 @@ const TIERS_ES: Tier[] = [
   {
     name: 'FREE', price: '$0', per: 'siempre', badge: null, gold: false, hot: false, cta: 'Empezar gratis',
     items: [
-      { t: '3 value bets diarias (Over 1.5)', on: true },
+      { t: '3 señales diarias (Over 1.5)', on: true },
       { t: 'Análisis completo de partido', on: true },
       { t: 'Tabla de posiciones', on: true },
       { t: 'Alineaciones confirmadas', on: true },
       { t: 'Tabla de partidos con probabilidades', on: true },
       { t: 'H2H y forma del equipo', on: false },
-      { t: 'Value bets de Over 2.5 / BTTS / 1X2', on: false },
-      { t: 'Asesor de Stake Kelly', on: false },
+      { t: 'Señales de Over 2.5 / BTTS / 1X2', on: false },
+      { t: 'Asesor de Bankroll', on: false },
       { t: 'Análisis de partido con IA', on: false },
     ],
   },
   {
     name: 'PRO', price: '$9.99', per: '/mes', badge: '⚡ MÁS POPULAR', gold: false, hot: true, cta: 'Empezar con Pro',
     items: [
-      { t: 'Top 8 value bets (todos los mercados)', on: true },
+      { t: 'Top 8 señales (todos los mercados)', on: true },
       { t: 'BTTS + Overs completos', on: true },
       { t: 'Tabla completa con todos los %', on: true },
       { t: 'H2H, Forma, Bajas, Alineaciones', on: true },
       { t: 'Comparador de equipos', on: true },
-      { t: 'Asesor de Stake Kelly', on: true },
+      { t: 'Asesor de Bankroll', on: true },
       { t: 'Marcadores más probables', on: true },
       { t: 'Partidos en vivo completos', on: true },
       { t: '3 análisis de partido con IA / mes', on: true },
@@ -135,7 +135,7 @@ const TIERS_ES: Tier[] = [
     name: 'ELITE', price: '$16.99', per: '/mes', badge: '👑 MÁXIMO PODER', gold: true, hot: false, cta: 'Empezar con Elite',
     items: [
       { t: 'Todo lo de Pro', on: true },
-      { t: 'Top 20 value bets diarias', on: true },
+      { t: 'Top 20 señales diarias', on: true },
       { t: '🎯 Value Radar — escáner de ineficiencias del mercado', on: true },
       { t: '⚡ Early Line Hunter — detecta valor antes que nadie', on: true },
       { t: '10 análisis de partido con IA / mes', on: true },
@@ -320,14 +320,14 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         <div className="fe-floaties" aria-hidden>
           {/* mini card: value bet */}
           <div className="fe-mini fe-mini-bet" style={{ ...mono }}>
-            <div className="fe-mini-head">{lang === 'es' ? 'HOY · VALUE BET' : 'TODAY · VALUE BET'}</div>
+            <div className="fe-mini-head">{lang === 'es' ? 'HOY · SEÑAL' : 'TODAY · SIGNAL'}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'baseline' }}>
               <span style={{ color: C.white, fontSize: 13 }}>Girona — Betis</span>
               <span style={{ color: C.mute, fontSize: 11 }}>Over 2.5</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginTop: 6 }}>
-              <span style={{ color: C.mute, fontSize: 11 }}>odds 2.10</span>
-              <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>+14.2% EV</span>
+              <span style={{ color: C.mute, fontSize: 11 }}>price 2.10</span>
+              <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>+14.2% edge</span>
             </div>
           </div>
 
@@ -363,25 +363,25 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         <p className="fe-up" style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 18, animationDelay: '0.05s', position: 'relative' }}>{lang === 'es' ? '▮ ANALÍTICA DE APUESTAS DE FÚTBOL' : '▮ FOOTBALL BETTING ANALYTICS'}</p>
 
         <h1 style={{ margin: 0, textTransform: 'uppercase', lineHeight: 0.88, position: 'relative' }}>
-          <span className="fe-up" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.15s' }}>{lang === 'es' ? 'Apuesta la matemática.' : 'Bet the math.'}</span>
+          <span className="fe-up" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.15s' }}>{lang === 'es' ? 'Fútbol, impulsado' : 'Football, powered'}</span>
           <br />
-          <span className="fe-up fe-outline" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.3s' }}>{lang === 'es' ? 'No el hype.' : 'Not the hype.'}</span>
+          <span className="fe-up fe-outline" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.3s' }}>{lang === 'es' ? 'por datos.' : 'by data.'}</span>
         </h1>
 
         <p className="fe-up" style={{ maxWidth: 560, fontSize: 'clamp(16px,1.4vw,19px)', color: C.mute, lineHeight: 1.6, margin: '30px 0 38px', animationDelay: '0.45s', position: 'relative' }}>
           {lang === 'es'
-            ? 'FootyEdge calcula cada partido con su propio motor estadístico y marca las cuotas en las que el mercado se equivoca — todos los días, en 29 ligas.'
-            : 'FootyEdge prices every match with its own statistical engine and flags the odds the market got wrong — every day, across 29 leagues.'}
+            ? 'FootyEdge calcula cada partido con su propio motor estadístico y detecta señales estadísticas relevantes — todos los días, en 29 ligas.'
+            : 'FootyEdge prices every match with its own statistical engine and surfaces the signals that matter — every day, across 29 leagues.'}
         </p>
 
         <div className="fe-up" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', animationDelay: '0.6s', position: 'relative' }}>
-          <a className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={btnStyle(true, 'lg')}>{lang === 'es' ? 'Ver las value bets de hoy →' : "See today's value bets →"}</a>
+          <a className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={btnStyle(true, 'lg')}>{lang === 'es' ? 'Ver las señales de hoy →' : "See today's signals →"}</a>
           <a className="fe-btn" href="#engine" style={btnStyle(false, 'lg')}>{lang === 'es' ? 'Cómo funciona el motor' : 'How the engine works'}</a>
         </div>
 
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, borderTop: `1px solid ${C.line}`, background: 'rgba(10,22,38,0.7)', overflow: 'hidden', zIndex: 2 }}>
           <div className="fe-ticker" style={{ ...mono, fontSize: 12, color: C.mute, whiteSpace: 'nowrap', padding: '10px 0', display: 'inline-block' }}>
-            {ticker()}{ticker()}
+            {ticker(lang)}{ticker(lang)}
           </div>
         </div>
       </section>
@@ -436,7 +436,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
       <section id="features" style={{ padding: 'clamp(64px,8vw,110px) clamp(16px,5vw,64px)' }}>
         <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>{lang === 'es' ? '▮ EL PRODUCTO' : '▮ THE PRODUCT'}</p>
         <h2 data-reveal style={{ margin: '0 0 48px', textTransform: 'uppercase', lineHeight: 0.9 }}>
-          <span style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)' }}>{lang === 'es' ? 'Encuentra la ventaja.' : 'Find the edge.'}</span><br />
+          <span style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)' }}>{lang === 'es' ? 'Encuentra la señal.' : 'Find the signal.'}</span><br />
           <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)' }}>{lang === 'es' ? 'Antes que el mercado.' : 'Before the market does.'}</span>
         </h2>
 
@@ -459,7 +459,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
       <section id="pricing" style={{ padding: 'clamp(64px,8vw,110px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}`, position: 'relative' }}>
         <div className="fe-halftone" aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5 }} />
         <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>{lang === 'es' ? '▮ PRECIOS' : '▮ PRICING'}</p>
-        <h2 data-reveal style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)', lineHeight: 0.92, margin: '0 0 48px', textTransform: 'uppercase' }}>{lang === 'es' ? 'Elige tu plan' : 'Pick your edge'}</h2>
+        <h2 data-reveal style={{ ...slant, fontSize: 'clamp(48px,7vw,104px)', lineHeight: 0.92, margin: '0 0 48px', textTransform: 'uppercase' }}>{lang === 'es' ? 'Elige tu plan' : 'Choose your plan'}</h2>
 
         <div className="fe-grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 20, position: 'relative', alignItems: 'stretch' }}>
           {TIERS.map((t, i) => (
@@ -495,8 +495,8 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         </h2>
         <p data-reveal style={{ color: C.mute, fontSize: 17, maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.6, position: 'relative' }}>
           {lang === 'es'
-            ? 'Value bets frescas en 29 ligas, calculadas antes de tu café. Gratis para empezar.'
-            : "Fresh value bets across 29 leagues, priced before you've had coffee. Free to start."}
+            ? 'Señales nuevas en 29 ligas, calculadas antes de tu café. Gratis para empezar.'
+            : "Fresh signals across 29 leagues, priced before you've had coffee. Free to start."}
         </p>
         <a data-reveal className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={{ ...btnStyle(true, 'lg'), position: 'relative' }}>{lang === 'es' ? 'Empezar gratis — sin tarjeta' : 'Start free — no card needed'}</a>
       </section>
@@ -548,7 +548,7 @@ function Scene1({ active, p, lang }: { active: boolean; p: number; lang: string 
           <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.cardSolid, border: `1px solid ${C.line}`, borderRadius: 12, padding: '12px 16px', opacity: p * 3 > i ? 1 : 0.15, transform: p * 3 > i ? 'translateX(0)' : 'translateX(24px)', transition: 'all .25s ease' }}>
             <span style={{ fontSize: 13 }}>{m}</span>
             <span style={{ ...mono, fontSize: 12, color: C.mute }}>{mk}</span>
-            <span style={{ ...mono, fontSize: 13, color: C.green, fontWeight: 700 }}>{e} EV</span>
+            <span style={{ ...mono, fontSize: 13, color: C.green, fontWeight: 700 }}>{e} edge</span>
           </div>
         ))}
       </div>
@@ -618,13 +618,15 @@ function btnStyle(primary: boolean, size: 'sm' | 'md' | 'lg'): CSSProperties {
 
 const dot = (c: string): CSSProperties => ({ width: 10, height: 10, borderRadius: '50%', background: c, display: 'inline-block' });
 
-function ticker() {
-  const items = ['LALIGA · 6 VALUE BETS', 'BUNDESLIGA · EDGE +11.8%', 'SERIE A · OVER 2.5 HOT', 'EREDIVISIE · BTTS 67% HR', 'PREMIER · 4 VALUE BETS', 'LIGUE 1 · DRAW VALUE', 'ÚRVALSDEILD · NEW LEAGUE'];
+function ticker(lang: string) {
+  const items = lang === 'es'
+    ? ['LALIGA · 6 SEÑALES', 'BUNDESLIGA · EDGE +11.8%', 'SERIE A · OVER 2.5 ALTO', 'EREDIVISIE · BTTS 67% HR', 'PREMIER · 4 SEÑALES', 'LIGUE 1 · SEÑAL DE EMPATE', 'ÚRVALSDEILD · LIGA NUEVA']
+    : ['LALIGA · 6 SIGNALS', 'BUNDESLIGA · EDGE +11.8%', 'SERIE A · OVER 2.5 HOT', 'EREDIVISIE · BTTS 67% HR', 'PREMIER · 4 SIGNALS', 'LIGUE 1 · DRAW SIGNAL', 'ÚRVALSDEILD · NEW LEAGUE'];
   return items.map((t) => `  ▮ ${t}  `).join('·');
 }
 
 function marquee() {
-  return 'EV+ · EDGE · VALUE · 29 LEAGUES · DIXON-COLES · BTTS · OVER 2.5 · '.repeat(3);
+  return 'EDGE+ · SIGNAL · DATA · 29 LEAGUES · DIXON-COLES · BTTS · OVER 2.5 · '.repeat(3);
 }
 
 const css = `
