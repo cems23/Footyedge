@@ -45,28 +45,6 @@ export default function MatchPage() {
       .catch(() => setLoading(false))
   }, [id])
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Mono', monospace" }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>⚽</div>
-        <div style={{ color: G, fontSize: 13 }}>Cargando análisis completo...</div>
-      </div>
-    </div>
-  )
-
-  if (!data?.match) return (
-    <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#ff4d4d' }}>Partido no encontrado</div>
-    </div>
-  )
-
-  const { match, h2h, standings, injuries, homeForm, awayForm, scorePredictions, lineups, matchStats, seasonStats, fsData } = data
-  const pred = match.model_predictions?.[0]
-  const kickoff = new Date(match.kickoff_at)
-
-  const lT = (pred?.expected_goals_home ?? 0) + (pred?.expected_goals_away ?? 0)
-  const prob_over15 = pred ? 1 - Math.exp(-lT) * (1 + lT) : null
-
   const startAiCheckout = async () => {
     setAiLoading(true)
     setAiError(null)
@@ -118,6 +96,29 @@ export default function MatchPage() {
       loadAiAnalysis()
     }
   }, [tab])
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Mono', monospace" }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⚽</div>
+        <div style={{ color: G, fontSize: 13 }}>Cargando análisis completo...</div>
+      </div>
+    </div>
+  )
+
+  if (!data?.match) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#ff4d4d' }}>Partido no encontrado</div>
+    </div>
+  )
+
+  const { match, h2h, standings, injuries, homeForm, awayForm, scorePredictions, lineups, matchStats, seasonStats, fsData } = data
+  const pred = match.model_predictions?.[0]
+  const kickoff = new Date(match.kickoff_at)
+
+  const lT = (pred?.expected_goals_home ?? 0) + (pred?.expected_goals_away ?? 0)
+  const prob_over15 = pred ? 1 - Math.exp(-lT) * (1 + lT) : null
+
 
   const tabs = [
     { id: 'analysis', label: '📊 Análisis' },
