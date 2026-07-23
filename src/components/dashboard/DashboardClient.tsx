@@ -602,8 +602,10 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
         {notif && <Notif msg={notif.msg} type={notif.type} />}
 
+        <style dangerouslySetInnerHTML={{ __html: "@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');" }} />
+
         {/* ── HEADER ── */}
-        <div style={{ background: 'rgba(10,22,40,0.95)', borderBottom: '1px solid #1a2e4a', padding: '0 16px', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ background: 'rgba(7,13,26,0.88)', borderBottom: '1px solid #1a2e4a', padding: '0 16px', backdropFilter: 'blur(14px)', position: 'sticky', top: 0, zIndex: 100 }}>
           <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 52, flexWrap: 'wrap', gap: 8, padding: '6px 0' }}>
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setActiveTab('matches')}>
@@ -612,27 +614,27 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
             {/* Center stats */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <span style={{ fontSize: 11, color: '#4a6785', whiteSpace: 'nowrap' }}>{T.today ?? (lang === 'en' ? 'TODAY' : 'HOY')} · {new Date().toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+              <span style={{ fontSize: 11, color: '#00c878', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{T.today ?? (lang === 'en' ? 'TODAY' : 'HOY')} · {new Date().toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
               <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>{allMatches.length}</div>
-                  <div style={{ fontSize: 9, color: '#4a6785', textTransform: 'uppercase' }}>{T.matches}</div>
+                  <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, lineHeight: 1, letterSpacing: '0.02em', color: 'white' }}>{allMatches.length}</div>
+                  <div style={{ fontSize: 9, color: '#8ba2c0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{T.matches}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ff9944' }}>{hotCount}</div>
-                  <div style={{ fontSize: 9, color: '#4a6785', textTransform: 'uppercase' }}>🔥 HOT</div>
+                  <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, lineHeight: 1, letterSpacing: '0.02em', color: '#ff9944' }}>{hotCount}</div>
+                  <div style={{ fontSize: 9, color: '#8ba2c0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>🔥 HOT</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#64b5f6' }}>{bttsCount}</div>
-                  <div style={{ fontSize: 9, color: '#4a6785', textTransform: 'uppercase' }}>BTTS ≥65%</div>
+                  <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, lineHeight: 1, letterSpacing: '0.02em', color: '#64b5f6' }}>{bttsCount}</div>
+                  <div style={{ fontSize: 9, color: '#8ba2c0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>BTTS ≥65%</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#4caf50' }}>{ov25Count}</div>
-                  <div style={{ fontSize: 9, color: '#4a6785', textTransform: 'uppercase' }}>Ov2.5 ≥65%</div>
+                  <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, lineHeight: 1, letterSpacing: '0.02em', color: '#00c878' }}>{ov25Count}</div>
+                  <div style={{ fontSize: 9, color: '#8ba2c0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Ov2.5 ≥65%</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#ce93d8' }}>{rankings.length}</div>
-                  <div style={{ fontSize: 9, color: '#4a6785', textTransform: 'uppercase' }}>Value Bets</div>
+                  <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, lineHeight: 1, letterSpacing: '0.02em', color: '#ce93d8' }}>{rankings.length}</div>
+                  <div style={{ fontSize: 9, color: '#8ba2c0', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Value Bets</div>
                 </div>
               </div>
             </div>
@@ -1050,7 +1052,7 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
                 {/* DESKTOP */}
                 {!isMobile && (
                   <div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, padding: '8px 16px', borderBottom: '1px solid #1a2e4a', fontSize: 9, color: '#4a6785', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, padding: '8px 16px', borderBottom: '1px solid #1a2e4a', fontSize: 9, color: '#8ba2c0', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                       <span>{lang === 'en' ? 'League' : 'Liga'}</span><span>{lang === 'en' ? 'Match' : 'Partido'}</span><span style={{ textAlign: 'center' }}>Hora</span>
                       <span style={{ textAlign: 'center' }}>BTTS</span><span style={{ textAlign: 'center' }}>Ov1.5</span>
                       <span style={{ textAlign: 'center' }}>{'Ov2.5'}</span><span style={{ textAlign: 'center' }}>{lang === 'en' ? 'Home' : 'Local'}</span>

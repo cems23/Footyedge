@@ -190,8 +190,8 @@ export default function LandingEN() {
           {[['#engine', 'Engine'], ['#features', 'Product'], ['#pricing', 'Pricing']].map(([h, l]) => (
             <a key={h} className="fe-navlink" href={h} style={{ ...mono, fontSize: 13, color: C.mute, textDecoration: 'none' }}>{l}</a>
           ))}
-          <a className="fe-navlink" href="/login" style={{ ...mono, fontSize: 13, color: C.white, textDecoration: 'none' }}>Log in</a>
-          <a className="fe-btn" href="/signup" style={btnStyle(true, 'sm')}>Start free</a>
+          <a className="fe-navlink" href="/en/auth/login" style={{ ...mono, fontSize: 13, color: C.white, textDecoration: 'none' }}>Log in</a>
+          <a className="fe-btn" href="/en/auth/register" style={btnStyle(true, 'sm')}>Start free</a>
         </nav>
 
         <button className="fe-burger" aria-label="Menu" onClick={() => setMenu(!menu)}
@@ -205,7 +205,7 @@ export default function LandingEN() {
           {[['#engine', 'ENGINE'], ['#features', 'PRODUCT'], ['#pricing', 'PRICING'], ['/login', 'LOG IN']].map(([h, l], i) => (
             <a key={h} href={h} onClick={() => setMenu(false)} className="fe-menu-item" style={{ ...slant, fontSize: 46, color: C.white, textDecoration: 'none', animationDelay: `${i * 0.07}s` }}>{l}</a>
           ))}
-          <a href="/signup" onClick={() => setMenu(false)} style={btnStyle(true, 'lg')}>Start free</a>
+          <a href="/en/auth/register" onClick={() => setMenu(false)} style={btnStyle(true, 'lg')}>Start free</a>
         </div>
       )}
 
@@ -305,7 +305,7 @@ export default function LandingEN() {
         </p>
 
         <div className="fe-up" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', animationDelay: '0.6s', position: 'relative' }}>
-          <a className="fe-btn fe-pulse" href="/signup" style={btnStyle(true, 'lg')}>See today’s value bets →</a>
+          <a className="fe-btn fe-pulse" href="/en/auth/register" style={btnStyle(true, 'lg')}>See today’s value bets →</a>
           <a className="fe-btn" href="#engine" style={btnStyle(false, 'lg')}>How the engine works</a>
         </div>
 
@@ -410,7 +410,7 @@ export default function LandingEN() {
                   </li>
                 ))}
               </ul>
-              <a className="fe-btn" href="/signup" style={{ ...btnStyle(t.hot || t.gold, 'md'), marginTop: 'auto', textAlign: 'center', fontSize: 16, padding: '15px 22px', position: 'relative', ...(t.gold ? { background: `linear-gradient(90deg, ${C.gold}, #ffd66b)`, border: `2px solid ${C.gold}`, boxShadow: '0 8px 30px rgba(246,185,59,0.35)', color: C.ink } : {}) }}>{t.cta}</a>
+              <a className="fe-btn" href="/en/auth/register" style={{ ...btnStyle(t.hot || t.gold, 'md'), marginTop: 'auto', textAlign: 'center', fontSize: 16, padding: '15px 22px', position: 'relative', ...(t.gold ? { background: `linear-gradient(90deg, ${C.gold}, #ffd66b)`, border: `2px solid ${C.gold}`, boxShadow: '0 8px 30px rgba(246,185,59,0.35)', color: C.ink } : {}) }}>{t.cta}</a>
             </article>
           ))}
         </div>
@@ -426,7 +426,7 @@ export default function LandingEN() {
         <p data-reveal style={{ color: C.mute, fontSize: 17, maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.6, position: 'relative' }}>
           Fresh value bets across 29 leagues, priced before you’ve had coffee. Free to start.
         </p>
-        <a data-reveal className="fe-btn fe-pulse" href="/signup" style={{ ...btnStyle(true, 'lg'), position: 'relative' }}>Start free — no card needed</a>
+        <a data-reveal className="fe-btn fe-pulse" href="/en/auth/register" style={{ ...btnStyle(true, 'lg'), position: 'relative' }}>Start free — no card needed</a>
       </section>
 
       <footer style={{ borderTop: `1px solid ${C.line}`, padding: '32px clamp(16px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
