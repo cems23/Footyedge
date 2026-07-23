@@ -14,6 +14,7 @@ export interface TeamStats {
   xgScored?: number
   xgConceded?: number
   isHome: boolean
+  usedFallback?: boolean  // true si los datos vienen de "cualquier competición" (menos confiable)
 }
 
 export interface LeagueStats {
@@ -286,7 +287,7 @@ export function valueMetrics(modelProb: number, odds: number) {
   return { impliedProb, edge: modelProb - impliedProb, ev: modelProb * odds - 1 }
 }
 
-export function calcConfidence(edge: number, ev: number, fH: number, fA: number, prob: number, matchesH = 10, matchesA = 10): number {
+export function calcConfidence(edge: number, ev: number, fH: number, fA: number, prob: number, matchesH = 10, matchesA = 10, homeUsedFallback = false, awayUsedFallback = false): number {
   const e = Math.min(1, Math.max(0, (edge - MIN_EDGE) / 0.20)) * 40
   const v = Math.min(1, Math.max(0, (ev   - MIN_EV)   / 0.40)) * 30
   const f = Math.min(1, Math.max(0, 1 - Math.abs((fH + fA) / 2 - 1) / 0.4)) * 20
@@ -294,7 +295,10 @@ export function calcConfidence(edge: number, ev: number, fH: number, fA: number,
   // Penalizar por pocos partidos jugados
   const minMatches = Math.min(matchesH, matchesA)
   const dataPenalty = minMatches < 5 ? 0.5 : minMatches < 10 ? 0.75 : 1.0
-  return Math.round((e + v + f + s) * dataPenalty)
+  // Penalizar extra si alguno de los dos usó datos de "cualquier competición"
+  // (menos comparable que datos de la misma competición — mayor incertidumbre real)
+  const fallbackPenalty = (homeUsedFallback || awayUsedFallback) ? 0.7 : 1.0
+  return Math.round((e + v + f + s) * dataPenalty * fallbackPenalty)
 }
 
 export function analyzeMatch(input: MatchInput): MatchAnalysis {
@@ -334,13 +338,16 @@ export function analyzeMatch(input: MatchInput): MatchAnalysis {
         market: m.market, label: m.label,
         modelProb: m.prob, impliedProb, edge, ev,
         odds: m.odds!,
-        confidence: calcConfidence(edge, ev, formHome, formAway, m.prob, input.home.matchesPlayed, input.away.matchesPlayed)
+        confidence: calcConfidence(edge, ev, formHome, formAway, m.prob, input.home.matchesPlayed, input.away.matchesPlayed, input.home.usedFallback, input.away.usedFallback)
       }
     })
     .filter(b => b.edge > (MARKET_MIN_EDGE[b.market] ?? MIN_EDGE) && b.ev > (MARKET_MIN_EV[b.market] ?? MIN_EV))
     // Bloquear apuestas con muy poco historial real — datos insuficientes para confiar,
     // sin importar qué tan alto se vea el EV (previene EVs absurdos por lambdas basados en 0 partidos)
     .filter(() => Math.min(input.home.matchesPlayed, input.away.matchesPlayed) >= 3)
+    // Techo de seguridad absoluto — un edge/EV real sostenible casi nunca supera estos valores
+    // en mercados eficientes; mejor descartar que arriesgar una mala recomendación.
+    .filter(b => b.edge <= 0.45 && b.ev <= 1.5)
     .sort((a, b) => b.ev * b.confidence - a.ev * a.confidence)
 
   return {

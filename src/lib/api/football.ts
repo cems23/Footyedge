@@ -233,7 +233,7 @@ export async function getTeamStats(
           goalsScored: gScored, goalsConceded: gConceded, matchesPlayed: finished.length,
           xgScored: undefined, xgConceded: undefined,
           recentGoalsScored: recentScored, recentGoalsConceded: recentConceded,
-          recentXgScored: [], isHome,
+          recentXgScored: [], isHome, usedFallback: true,
         }
         await setCached(cacheKey, fallbackResult)
         return fallbackResult
