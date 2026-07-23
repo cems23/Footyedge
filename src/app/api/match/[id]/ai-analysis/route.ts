@@ -74,7 +74,7 @@ Write in English, 150-220 words, using this exact markdown structure:
 ## Verdict
 (2-3 sentences: does this context reinforce or contradict the model's lean? Be honest — this is analysis to inform a decision, not a guaranteed prediction.)
 
-Use **bold** for player names and key terms. Be concise — every sentence must add real information.`
+Use **bold** (double asterisks) for player names and key terms — never single asterisks for italics. Be concise — every sentence must add real information. Stay strictly within the 150-220 word count.`
     : `Eres un analista de fútbol para FootyEdge, una plataforma de analítica de apuestas basada en un modelo estadístico Poisson + Dixon-Coles.
 
 PARTIDO: ${match.home_team_name} vs ${match.away_team_name}
@@ -92,7 +92,7 @@ Escribe en español, 150-220 palabras, usando exactamente esta estructura markdo
 ## Veredicto
 (2-3 frases: ¿este contexto refuerza o contradice la inclinación del modelo? Sé honesto — esto es análisis para informar una decisión, no una predicción garantizada.)
 
-Usa **negrita** para nombres de jugadores y términos clave. Sé conciso — cada frase debe aportar información real.`
+Usa **negrita** (doble asterisco) para nombres de jugadores y términos clave — nunca asterisco simple para cursiva. Sé conciso — cada frase debe aportar información real. Respeta estrictamente el límite de 150-220 palabras.`
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -104,7 +104,7 @@ Usa **negrita** para nombres de jugadores y términos clave. Sé conciso — cad
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 700,
+        max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }],
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
       }),
