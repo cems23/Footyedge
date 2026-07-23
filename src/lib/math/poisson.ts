@@ -184,13 +184,14 @@ export function calcLambdas(input: MatchInput) {
   const hMatchesPlayed = Math.max(1, home.matchesPlayed)
   const aMatchesPlayed = Math.max(1, away.matchesPlayed)
 
-  // Sin partidos jugados esta temporada (ej. clasificatorias tempranas) —
-  // usar el promedio de la liga en vez de dejar que el cálculo colapse a ~0,
-  // que producía lambdas absurdamente bajas y EVs irreales.
-  const hGoalsAvgRaw = home.matchesPlayed > 0 ? home.goalsScored / hMatchesPlayed : league.avgHomeGoals
-  const hConAvgRaw   = home.matchesPlayed > 0 ? home.goalsConceded / hMatchesPlayed : league.avgAwayGoals
-  const aGoalsAvgRaw = away.matchesPlayed > 0 ? away.goalsScored / aMatchesPlayed : league.avgAwayGoals
-  const aConAvgRaw   = away.matchesPlayed > 0 ? away.goalsConceded / aMatchesPlayed : league.avgHomeGoals
+  // Con muy pocos partidos jugados esta temporada (ej. clasificatorias tempranas,
+  // 1-2 partidos con muestra ínfima) — usar el promedio de la liga en vez de confiar
+  // en una muestra demasiado pequeña, que producía lambdas absurdamente bajas y EVs irreales.
+  const MIN_SAMPLE = 3
+  const hGoalsAvgRaw = home.matchesPlayed >= MIN_SAMPLE ? home.goalsScored / hMatchesPlayed : league.avgHomeGoals
+  const hConAvgRaw   = home.matchesPlayed >= MIN_SAMPLE ? home.goalsConceded / hMatchesPlayed : league.avgAwayGoals
+  const aGoalsAvgRaw = away.matchesPlayed >= MIN_SAMPLE ? away.goalsScored / aMatchesPlayed : league.avgAwayGoals
+  const aConAvgRaw   = away.matchesPlayed >= MIN_SAMPLE ? away.goalsConceded / aMatchesPlayed : league.avgHomeGoals
 
   const hXgAvg    = home.xgScored   ? home.xgScored   / hMatchesPlayed : undefined
   const aXgAvg    = away.xgScored   ? away.xgScored   / aMatchesPlayed : undefined
