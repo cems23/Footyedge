@@ -1,0 +1,43 @@
+name: Settle Results (hourly)
+
+on:
+  schedule:
+    # Cada hora al minuto 15 — liquida partidos terminados (kickoff hace >2h)
+    # sin esperar al cron principal de 4x/día. Así los resultados aparecen
+    # máximo ~1h después de que el partido sea liquidable.
+    - cron: '15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Liquidar partidos terminados (en loop hasta vaciar)
+        shell: bash --noprofile --norc {0}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: https://footyedge.xyz
+        run: |
+          set +e
+          # settle-results procesa máx 15 por corrida — iterar hasta 4 veces
+          # o hasta que no quede nada pendiente (settled=0)
+          for i in 1 2 3 4; do
+            echo "— Pasada $i —"
+            resp=$(curl -s "$BASE_URL/api/cron/settle-results" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              --max-time 55)
+            echo "$resp"
+            settled=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('settled', 0))" 2>/dev/null)
+            if [ "$settled" = "0" ] || [ -z "$settled" ]; then
+              echo "Cola vacía o sin cambios — terminando."
+              break
+            fi
+            sleep 2
+          done
+
+          # Re-consolidar para que el dashboard refleje el estado nuevo de inmediato
+          curl -s -w "\nconsolidate status: %{http_code}\n" \
+            "$BASE_URL/api/matches/consolidate" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --max-time 55
+          exit 0
