@@ -55,6 +55,8 @@ export async function GET(req: NextRequest) {
       prob_away_win: pred.prob_away_win,
       expected_goals_home: lH,
       expected_goals_away: lA,
+      home_goals: m.home_goals,
+      away_goals: m.away_goals,
       status: m.status,
       league_id: m.league_id,
       odds_over25: oddsMap[m.id]?.odds_over25 ?? null,

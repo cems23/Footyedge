@@ -54,6 +54,8 @@ interface MatchData {
   prob_away_win: number
   expected_goals_home: number
   expected_goals_away: number
+  home_goals?: number | null
+  away_goals?: number | null
   odds_over25?: number | null
   odds_home?: number | null
   odds_away?: number | null
@@ -1158,14 +1160,15 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                     {filteredMatches.map((m, i) => {
                       const isHot = m.prob_btts >= 0.65 || m.prob_over25 >= 0.65
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
+                      const isDone = ['FT','AET','PEN','AWD','WO'].includes(m.status ?? '')
                       return (
                         <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                          style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, alignItems: 'center', padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', transition: 'background 0.1s', background: isLive ? 'rgba(255,50,50,0.03)' : 'transparent' }}
+                          style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, alignItems: 'center', padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', transition: 'background 0.1s', background: isLive ? 'rgba(255,50,50,0.03)' : 'transparent', opacity: isDone ? 0.55 : 1 }}
                           onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,200,120,0.06)')}
                           onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 28 }}>
                             <span style={{ fontSize: 12 }}>{getFlag(m.league_name, m.league_id)}</span>
-                            {isHot && <span style={{ fontSize: 9 }}>🔥</span>}
+                            {isHot && !isDone && <span style={{ fontSize: 9 }}>🔥</span>}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                             {m.home_team_logo && <img src={m.home_team_logo} width={14} height={14} alt="" style={{ flexShrink: 0 }} />}
@@ -1175,15 +1178,27 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             <span style={{ fontSize: 13, fontWeight: 700, color: '#f2f6ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.away_team_name}</span>
                             <span style={{ fontSize: 9, color: '#3a5578', flexShrink: 0 }}>{m.league_name}</span>
                           </div>
-                          <span style={{ fontSize: 12, color: '#8ba2c0', letterSpacing: '0.04em', textAlign: 'center' }}>{timeStr(m.kickoff_at, lang)}</span>
-                          <ProbCell v={m.prob_btts} />
-                          <ProbCell v={m.prob_over15} />
-                          <ProbCell v={m.prob_over25} />
-                          <ProbCell v={m.prob_home_win} />
-                          <ProbCell v={m.prob_away_win} />
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#64b5f6', textAlign: 'center' }}>{m.odds_home ? m.odds_home.toFixed(2) : '—'}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#ef9a9a', textAlign: 'center' }}>{m.odds_away ? m.odds_away.toFixed(2) : '—'}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#00c878', textAlign: 'center' }}>{m.odds_over25 ? m.odds_over25.toFixed(2) : '—'}</span>
+                          {isDone ? (
+                            <span style={{ fontSize: 10, color: '#4a6785', letterSpacing: '0.04em', textAlign: 'center', fontWeight: 700 }}>{lang === 'en' ? 'FT' : 'FIN'}</span>
+                          ) : (
+                            <span style={{ fontSize: 12, color: '#8ba2c0', letterSpacing: '0.04em', textAlign: 'center' }}>{timeStr(m.kickoff_at, lang)}</span>
+                          )}
+                          {isDone ? (
+                            <span style={{ gridColumn: 'span 5', textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#c5d3e8', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+                              {m.home_goals ?? '?'} — {m.away_goals ?? '?'}
+                            </span>
+                          ) : (
+                            <>
+                              <ProbCell v={m.prob_btts} />
+                              <ProbCell v={m.prob_over15} />
+                              <ProbCell v={m.prob_over25} />
+                              <ProbCell v={m.prob_home_win} />
+                              <ProbCell v={m.prob_away_win} />
+                            </>
+                          )}
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#64b5f6', textAlign: 'center' }}>{!isDone && m.odds_home ? m.odds_home.toFixed(2) : '—'}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#ef9a9a', textAlign: 'center' }}>{!isDone && m.odds_away ? m.odds_away.toFixed(2) : '—'}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#00c878', textAlign: 'center' }}>{!isDone && m.odds_over25 ? m.odds_over25.toFixed(2) : '—'}</span>
                         </div>
                       )
                     })}
@@ -1196,9 +1211,10 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                     {filteredMatches.map((m, i) => {
                       const isHot = m.prob_btts >= 0.65 || m.prob_over25 >= 0.65
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
+                      const isDone = ['FT','AET','PEN','AWD','WO'].includes(m.status ?? '')
                       return (
                         <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                          style={{ padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer' }}>
+                          style={{ padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', opacity: isDone ? 0.55 : 1 }}>
                           {/* Teams row */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, minWidth: 0 }}>
@@ -1211,29 +1227,37 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 8 }}>
                               {isLive && <span style={{ fontSize: 9, background: '#ff333320', border: '1px solid #ff3333', color: '#ff5555', padding: '1px 4px', borderRadius: 3 }}>LIVE</span>}
-                              {isHot && <span style={{ fontSize: 12 }}>🔥</span>}
-                              <span style={{ fontSize: 12, color: '#6b7fa3' }}>{timeStr(m.kickoff_at, lang)}</span>
+                              {isHot && !isDone && <span style={{ fontSize: 12 }}>🔥</span>}
+                              <span style={{ fontSize: 12, color: '#6b7fa3' }}>{isDone ? (lang === 'en' ? 'FT' : 'FIN') : timeStr(m.kickoff_at, lang)}</span>
                             </div>
                           </div>
                           {/* League */}
                           <div style={{ fontSize: 10, color: '#3a5578', marginBottom: 8 }}>{m.league_name}</div>
-                          {/* Stats pills */}
-                          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                            {[
-                              { label: 'BTTS', val: Math.round(m.prob_btts * 100) + '%', color: probColor(m.prob_btts) },
-                              { label: 'Ov1.5', val: Math.round(m.prob_over15 * 100) + '%', color: probColor(m.prob_over15) },
-                              { label: 'Ov2.5', val: Math.round(m.prob_over25 * 100) + '%', color: probColor(m.prob_over25) },
-                              { label: lang === 'en' ? 'Home' : 'Local', val: Math.round(m.prob_home_win * 100) + '%', color: probColor(m.prob_home_win) },
-                              { label: lang === 'en' ? 'Away' : 'Visita', val: Math.round(m.prob_away_win * 100) + '%', color: probColor(m.prob_away_win) },
-                            ].map(s => (
-                              <div key={s.label} style={{ flex: 1, minWidth: 44, background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '4px 2px', textAlign: 'center' }}>
-                                <div style={{ fontSize: 8, color: '#4a6785', marginBottom: 2, textTransform: 'uppercase' }}>{s.label}</div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</div>
-                              </div>
-                            ))}
-                          </div>
+                          {/* Stats pills o marcador final */}
+                          {isDone ? (
+                            <div style={{ textAlign: 'center', padding: '6px 0' }}>
+                              <span style={{ fontSize: 20, fontWeight: 700, color: '#c5d3e8', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
+                                {m.home_goals ?? '?'} — {m.away_goals ?? '?'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                              {[
+                                { label: 'BTTS', val: Math.round(m.prob_btts * 100) + '%', color: probColor(m.prob_btts) },
+                                { label: 'Ov1.5', val: Math.round(m.prob_over15 * 100) + '%', color: probColor(m.prob_over15) },
+                                { label: 'Ov2.5', val: Math.round(m.prob_over25 * 100) + '%', color: probColor(m.prob_over25) },
+                                { label: lang === 'en' ? 'Home' : 'Local', val: Math.round(m.prob_home_win * 100) + '%', color: probColor(m.prob_home_win) },
+                                { label: lang === 'en' ? 'Away' : 'Visita', val: Math.round(m.prob_away_win * 100) + '%', color: probColor(m.prob_away_win) },
+                              ].map(s => (
+                                <div key={s.label} style={{ flex: 1, minWidth: 44, background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '4px 2px', textAlign: 'center' }}>
+                                  <div style={{ fontSize: 8, color: '#4a6785', marginBottom: 2, textTransform: 'uppercase' }}>{s.label}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {/* Odds row */}
-                          {(m.odds_home || m.odds_over25) && (
+                          {!isDone && (m.odds_home || m.odds_over25) && (
                             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                               {m.odds_home && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(100,181,246,0.08)', border: '1px solid rgba(100,181,246,0.2)', borderRadius: 6, padding: '3px 8px' }}>
