@@ -74,7 +74,11 @@ export async function GET(req: NextRequest) {
             season: fixture.league.season,
             home_team_id: fixture.teams.home.id, home_team_name: fixture.teams.home.name, home_team_logo: fixture.teams.home.logo,
             away_team_id: fixture.teams.away.id, away_team_name: fixture.teams.away.name, away_team_logo: fixture.teams.away.logo,
-            kickoff_at: fixture.fixture.date, status: 'scheduled',
+            kickoff_at: fixture.fixture.date,
+            // NO se incluye 'status' aquí a propósito — este upsert corre varias veces al día
+            // (cron 4x/día) y si forzáramos 'scheduled' siempre, revertiría el status 'FT' que
+            // settle-results ya haya puesto en un partido que ya terminó. Solo partidos NUEVOS
+            // usan el valor por defecto de la columna ('scheduled'), los existentes conservan el suyo.
           }, { onConflict: 'external_id' }).select('id').single()
 
         if (!savedMatch) continue
