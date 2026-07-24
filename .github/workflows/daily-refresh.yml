@@ -18,7 +18,12 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.xyz
+        # No usar "bash -e" implícito para este step: un timeout de curl (exit 28) en
+        # UNA liga (ej. Conference League con muchos fixtures el mismo día) no debe
+        # tumbar el resto del loop ni saltarse consolidate/settle-results.
+        shell: bash --noprofile --norc {0}
         run: |
+          set +e
           LEAGUES="2 13 11 3 848 39 40 41 42 140 141 135 136 78 79 61 62 88 94 203 144 128 71 253 262 113 103 169 307 164"
           for league in $LEAGUES; do
             echo "Analizando liga $league..."
@@ -26,14 +31,21 @@ jobs:
               "$BASE_URL/api/matches/analyze-league?leagueId=$league" \
               -H "Authorization: Bearer $CRON_SECRET" \
               --max-time 55)
-            echo "  status: $code"
-            if [ "$code" != "200" ]; then
-              echo "  respuesta: $(cat /tmp/resp.json)"
+            curl_exit=$?
+            if [ "$curl_exit" != "0" ]; then
+              echo "  ⚠️ curl falló (exit $curl_exit, probablemente timeout) — sigue con la siguiente liga"
+            else
+              echo "  status: $code"
+              if [ "$code" != "200" ]; then
+                echo "  respuesta: $(cat /tmp/resp.json)"
+              fi
             fi
             sleep 2
           done
+          exit 0
 
       - name: Consolidar value bets
+        if: always()
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.xyz
@@ -44,6 +56,7 @@ jobs:
             --max-time 55
 
       - name: Settle resultados de partidos pasados
+        if: always()
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.xyz
