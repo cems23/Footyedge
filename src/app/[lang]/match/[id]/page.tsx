@@ -190,7 +190,7 @@ export default function MatchPage() {
     setAiLoading(true)
     setAiError(null)
     try {
-      const res = await fetch(`/api/match/${id}/ai-analysis/checkout`, { method: 'POST' })
+      const res = await fetch(`/api/match/${id}/ai-analysis/checkout?lang=${lang}`, { method: 'POST' })
       const d = await res.json()
       if (d.alreadyPaid) {
         loadAiAnalysis()
