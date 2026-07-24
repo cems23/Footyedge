@@ -207,7 +207,14 @@ export function calcLambdas(input: MatchInput) {
   const formHome = calcFormFactor(home.recentGoalsScored, hGoalsAvg || 1)
   const formAway = calcFormFactor(away.recentGoalsScored, aGoalsAvg || 1)
 
-  // Home advantage dinámico por liga (clampado 1.05-1.35)
+  // Home advantage dinámico por liga — se calcula solo para referencia/diagnóstico.
+  // IMPORTANTE: NO se vuelve a aplicar como divisor abajo. La ventaja local ya está
+  // capturada UNA vez al usar league.avgHomeGoals vs league.avgAwayGoals como bases
+  // separadas para el lambda de local/visitante (avgHomeGoals ya es empíricamente
+  // más alto que avgAwayGoals en cada liga). Dividir el lambda del visitante otra vez
+  // entre este mismo ratio duplicaba la ventaja local, inflando la probabilidad de
+  // victoria local muy por encima de lo real (32% HR observado vs lo que el modelo
+  // predecía). Recalibrado 25/07/2026.
   const dynamicHomeAdv = league.avgAwayGoals > 0
     ? Math.min(1.35, Math.max(1.05, league.avgHomeGoals / league.avgAwayGoals))
     : 1.15
@@ -217,11 +224,10 @@ export function calcLambdas(input: MatchInput) {
     defenseWeakness(aConAvg,  league.avgHomeGoals) *
     league.avgHomeGoals * formHome
 
-  // Visitante penalizado por ventaja local de la liga
   const rawLambdaAway =
     attackStrength(aGoalsAvg, league.avgAwayGoals) *
     defenseWeakness(hConAvg,  league.avgAwayGoals) *
-    (league.avgAwayGoals / dynamicHomeAdv) * formAway
+    league.avgAwayGoals * formAway
 
   return {
     lambdaHome: Math.min(3.5, Math.max(0.3, rawLambdaHome)),
