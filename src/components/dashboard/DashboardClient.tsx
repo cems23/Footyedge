@@ -828,7 +828,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               {r.matches?.home_team_name} <span style={{ color: '#00c878' }}>vs</span> {r.matches?.away_team_name}
                               {r.matches?.away_team_logo && <img src={r.matches.away_team_logo} width={28} height={28} alt="" style={{ flexShrink: 0 }} />}
                             </div>
-                            <div style={{ fontSize: 11, color: '#8ba2c0', marginTop: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name}</div>
+                            <div style={{ fontSize: 11, color: '#8ba2c0', marginTop: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                             <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 15, letterSpacing: '0.08em', padding: '5px 16px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
@@ -855,7 +855,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(0,200,120,0.6)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.45)' }}
                             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
                             <span aria-hidden style={{ position: 'absolute', right: 2, top: -14, fontFamily: '"Bebas Neue", sans-serif', fontSize: 74, lineHeight: 1, color: 'transparent', WebkitTextStroke: '1.5px rgba(0,200,120,0.16)', pointerEvents: 'none', transform: 'skewX(-8deg)' }}>#{r.rank}</span>
-                            <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name}</div>
+                            <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
                             <div style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               {r.matches?.home_team_logo && <img src={r.matches.home_team_logo} width={18} height={18} alt="" style={{ flexShrink: 0 }} />}
                               {r.matches?.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {r.matches?.away_team_name}
