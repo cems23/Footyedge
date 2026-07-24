@@ -1159,7 +1159,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const isHot = m.prob_btts >= 0.65 || m.prob_over25 >= 0.65
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
                       return (
-                        <div key={m.id} onClick={() => isPro ? router.push(`/${lang || 'es'}/match/${m.id}`) : router.push(`/${lang || 'es'}/pricing?reason=pro`)}
+                        <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
                           style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, alignItems: 'center', padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', transition: 'background 0.1s', background: isLive ? 'rgba(255,50,50,0.03)' : 'transparent' }}
                           onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,200,120,0.06)')}
                           onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
@@ -1197,7 +1197,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const isHot = m.prob_btts >= 0.65 || m.prob_over25 >= 0.65
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
                       return (
-                        <div key={m.id} onClick={() => isPro ? router.push(`/${lang || 'es'}/match/${m.id}`) : router.push(`/${lang || 'es'}/pricing?reason=pro`)}
+                        <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
                           style={{ padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer' }}>
                           {/* Teams row */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
