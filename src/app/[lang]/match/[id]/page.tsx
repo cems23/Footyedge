@@ -77,6 +77,7 @@ export default function MatchPage() {
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiNeedsPayment, setAiNeedsPayment] = useState(false)
   const [aiSlowWarning, setAiSlowWarning] = useState(false)
+  const [aiQuota, setAiQuota] = useState<{ plan: string; quota: number; used: number; remaining: number } | null>(null)
   const t: Record<string, any> = lang === 'en' ? {
     loading: 'Loading full analysis...', notFound: 'Match not found',
     home: 'Home', away: 'Away', expectedGoals: 'Expected Goals (λ)',
@@ -170,6 +171,10 @@ export default function MatchPage() {
     supabase.from('users').select('plan').single().then(({ data }) => {
       if (data?.plan) setUserPlan(data.plan)
     })
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/user/ai-quota').then(r => r.json()).then(setAiQuota).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -408,7 +413,9 @@ export default function MatchPage() {
                   </div>
                 </div>
                 <span style={{ background: '#ffb400', color: '#0a1628', fontWeight: 700, fontSize: 13, padding: '9px 18px', borderRadius: 8, whiteSpace: 'nowrap' }}>
-                  {lang === 'en' ? 'View →' : 'Ver →'}
+                  {aiQuota && aiQuota.remaining > 0
+                    ? (lang === 'en' ? `Free (${aiQuota.remaining} left) →` : `Gratis (${aiQuota.remaining} restantes) →`)
+                    : (lang === 'en' ? 'View →' : 'Ver →')}
                 </span>
               </div>
 
@@ -943,16 +950,32 @@ export default function MatchPage() {
               {!aiLoading && aiNeedsPayment && (
                 <div style={{ textAlign: 'center', padding: 20 }}>
                   <div style={{ fontSize: 32, marginBottom: 12 }}>🤖</div>
-                  <p style={{ color: '#8fa3bf', fontSize: 13, marginBottom: 20, maxWidth: 420, margin: '0 auto 20px' }}>
+                  <p style={{ color: '#8fa3bf', fontSize: 13, marginBottom: 12, maxWidth: 420, margin: '0 auto 12px' }}>
                     {lang === 'en'
                       ? 'Unlock an AI-generated narrative analysis for this specific match, with current news and context.'
                       : 'Desbloquea un análisis narrativo generado por IA para este partido específico, con noticias y contexto actualizado.'}
                   </p>
+                  {aiQuota && aiQuota.remaining > 0 && (
+                    <div style={{ color: '#00c878', fontSize: 12, fontWeight: 700, marginBottom: 16 }}>
+                      {lang === 'en'
+                        ? `✓ Included in your ${aiQuota.plan === 'elite' ? 'Elite' : 'Pro'} plan — ${aiQuota.remaining} of ${aiQuota.quota} free this month`
+                        : `✓ Incluido en tu plan ${aiQuota.plan === 'elite' ? 'Elite' : 'Pro'} — ${aiQuota.remaining} de ${aiQuota.quota} gratis este mes`}
+                    </div>
+                  )}
+                  {aiQuota && aiQuota.plan !== 'free' && aiQuota.quota > 0 && aiQuota.remaining === 0 && (
+                    <div style={{ color: '#ffb400', fontSize: 12, marginBottom: 16 }}>
+                      {lang === 'en'
+                        ? `You've used your ${aiQuota.quota} free analyses this month — next one is $1.39`
+                        : `Ya usaste tus ${aiQuota.quota} análisis gratis este mes — el siguiente cuesta $1.39`}
+                    </div>
+                  )}
                   <button
                     onClick={startAiCheckout}
-                    style={{ background: G, border: 'none', color: '#0a1628', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                    style={{ background: (aiQuota && aiQuota.remaining > 0) ? '#00c878' : G, border: 'none', color: '#0a1628', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
                   >
-                    {lang === 'en' ? 'Unlock for $1.39' : 'Desbloquear por $1.39'}
+                    {aiQuota && aiQuota.remaining > 0
+                      ? (lang === 'en' ? 'Unlock free →' : 'Desbloquear gratis →')
+                      : (lang === 'en' ? 'Unlock for $1.39' : 'Desbloquear por $1.39')}
                   </button>
                 </div>
               )}
