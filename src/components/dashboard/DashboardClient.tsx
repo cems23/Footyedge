@@ -743,8 +743,11 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 {lang === 'en' ? '🇪🇸 ES' : '🇬🇧 EN'}
               </button>
 
-              {user.email === 'admin@footyedge.com' && (
+              {['admin@footyedge.com', 'carlosmartens8@gmail.com'].includes(user.email ?? '') && (
                 <>
+                  <button onClick={() => router.push('/admin')} style={{ background: 'rgba(255,180,0,0.1)', border: '1px solid rgba(255,180,0,0.45)', color: '#ffb400', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>
+                    🛠️ Admin
+                  </button>
                   <button onClick={runAnalysis} disabled={loading} style={{ background: 'rgba(0,200,120,0.1)', border: '1px solid rgba(0,200,120,0.45)', color: '#00c878', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: '0 0 14px rgba(0,200,120,0.18)' }}>
                     {loading ? '⟳' : '↻'} Actualizar
                   </button>

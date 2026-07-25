@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const BG = '#070d1a'
 const CARD = 'rgba(13,30,53,0.6)'
@@ -39,6 +40,7 @@ function pct(n: number) { return `${(n * 100).toFixed(1)}%` }
 function hrColor(hr: number) { return hr >= 0.5 ? G : hr >= 0.35 ? GOLD : '#ff5555' }
 
 export default function AdminPage() {
+  const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -70,8 +72,15 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: '100vh', background: BG, color: 'white', fontFamily: "'DM Mono', monospace", padding: '32px clamp(16px,4vw,48px)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ fontSize: 11, color: G, letterSpacing: '0.2em', marginBottom: 6 }}>◆ FOOTYEDGE ADMIN</div>
-        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 42, margin: 0, letterSpacing: '0.02em' }}>PANEL DE CONTROL</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, color: G, letterSpacing: '0.2em', marginBottom: 6 }}>◆ FOOTYEDGE ADMIN</div>
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 42, margin: 0, letterSpacing: '0.02em' }}>PANEL DE CONTROL</h1>
+          </div>
+          <button onClick={() => router.push('/es/dashboard')} style={{ background: 'transparent', border: `1px solid ${BORDER}`, color: MUTE, padding: '8px 16px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}>
+            ← Volver al Dashboard
+          </button>
+        </div>
 
         {/* ── USUARIOS ── */}
         <SectionTitle>👥 Usuarios</SectionTitle>
