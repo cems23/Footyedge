@@ -24,7 +24,7 @@ jobs:
         shell: bash --noprofile --norc {0}
         run: |
           set +e
-          LEAGUES="2 13 11 3 848 39 40 41 42 140 141 135 136 78 79 61 62 88 94 203 144 128 71 253 262 113 103 179 307 164 106 119 188 197 207 218 235 239 242 283 292 332"
+          LEAGUES="2 13 11 3 848 39 40 41 42 140 141 135 136 78 79 61 62 88 94 203 144 128 71 253 262 113 103 179 307 164 106 119 98 197 207 218 235 265 268 239 292 332"
           for league in $LEAGUES; do
             echo "Analizando liga $league..."
             code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \

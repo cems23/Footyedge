@@ -62,11 +62,11 @@ export const ACTIVE_LEAGUES = [
   { id: 218, sportKey: 'soccer_austria_bundesliga',         name: 'Austria BL',     season: 2026, hasOdds: true  },
   { id: 197, sportKey: 'soccer_greece_super_league',        name: 'Super League GR',season: 2026, hasOdds: true  },
   { id: 141, sportKey: 'soccer_spain_segunda',              name: 'Segunda Div',    season: 2026, hasOdds: false },
-  { id: 283, sportKey: 'soccer_colombia_primera_a',         name: 'Liga BetPlay',   season: 2026, hasOdds: false },
-  { id: 239, sportKey: 'soccer_chile_primera_division',     name: 'Primera Chile',  season: 2026, hasOdds: false },
-  { id: 242, sportKey: 'soccer_uruguay_primera_division',   name: 'Primera Uruguay',season: 2026, hasOdds: false },
+  { id: 239, sportKey: 'soccer_colombia_primera_a',         name: 'Liga BetPlay',   season: 2026, hasOdds: false },
+  { id: 265, sportKey: 'soccer_chile_primera_division',     name: 'Primera Chile',  season: 2026, hasOdds: false },
+  { id: 268, sportKey: 'soccer_uruguay_primera_division',   name: 'Primera Uruguay',season: 2026, hasOdds: false },
   { id: 332, sportKey: 'soccer_iran_persian_gulf_pro',      name: 'Persian Gulf',   season: 2026, hasOdds: false },
-  { id: 188, sportKey: 'soccer_japan_j1_league',            name: 'J1 League',      season: 2026, hasOdds: false },
+  { id: 98,  sportKey: 'soccer_japan_j1_league',            name: 'J1 League',      season: 2026, hasOdds: false },
   { id: 292, sportKey: 'soccer_south_korea_k_league_1',     name: 'K League 1',     season: 2026, hasOdds: false },
 ]
 
