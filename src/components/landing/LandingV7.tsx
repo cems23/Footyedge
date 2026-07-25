@@ -709,7 +709,7 @@ html { scroll-behavior: smooth; }
 .fe-mini-bet   { right: 6%;  top: 14%; animation-delay: 0.2s, 0.9s; }
 .fe-mini-rank  { right: 16%; top: 54%; animation-delay: 1.4s, 1.2s; }
 .fe-mini-kelly { right: 6%;  top: 74%; animation-delay: 0.8s, 1.5s; min-width: 160px; }
-.fe-mini-ai    { left: 6%; top: 34%; animation-delay: 1.1s, 0.6s; min-width: 190px; border-color: rgba(246,185,59,0.5); box-shadow: 0 16px 40px rgba(0,0,0,0.45), 0 0 24px rgba(246,185,59,0.12); }
+.fe-mini-ai    { left: 6%; top: 88%; animation-delay: 1.1s, 0.6s; min-width: 200px; border: 2px solid rgba(255,200,60,0.9); box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 40px rgba(255,200,60,0.45); }
 
 .fe-chip {
   position: absolute; font-size: 12px; color: #00c878;
