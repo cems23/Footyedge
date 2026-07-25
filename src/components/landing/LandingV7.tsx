@@ -354,16 +354,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
             </div>
           </div>
 
-          {/* mini card: análisis IA */}
-          <div className="fe-mini fe-mini-ai" style={{ ...mono }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 16 }}>🤖</span>
-              <span className="fe-mini-head" style={{ margin: 0, color: C.gold }}>{lang === 'es' ? 'ANÁLISIS IA' : 'AI ANALYSIS'}</span>
-            </div>
-            <div style={{ color: C.white, fontSize: 12, lineHeight: 1.4 }}>
-              {lang === 'es' ? 'Lesiones, forma y contexto real de cada equipo' : 'Real injuries, form and team context'}
-            </div>
-          </div>
+
 
           {/* chips */}
           <span className="fe-chip fe-chip-a" style={{ ...mono }}>BTTS 67% HR</span>
@@ -388,6 +379,12 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         <div className="fe-up" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', animationDelay: '0.6s', position: 'relative' }}>
           <a className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={btnStyle(true, 'lg')}>{lang === 'es' ? 'Ver las señales de hoy →' : "See today's signals →"}</a>
           <a className="fe-btn" href="#engine" style={btnStyle(false, 'lg')}>{lang === 'es' ? 'Cómo funciona el motor' : 'How the engine works'}</a>
+        </div>
+
+        <div className="fe-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginTop: 20, padding: '10px 18px', borderRadius: 12, background: 'rgba(13,30,53,0.75)', border: '2px solid rgba(255,200,60,0.7)', boxShadow: '0 0 30px rgba(255,200,60,0.25)', animationDelay: '0.75s', position: 'relative', ...mono }}>
+          <span style={{ fontSize: 18 }}>🤖</span>
+          <span style={{ color: C.gold, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>{lang === 'es' ? 'ANÁLISIS IA' : 'AI ANALYSIS'}</span>
+          <span style={{ color: C.mute, fontSize: 12 }}>{lang === 'es' ? 'Lesiones, forma y contexto real de cada equipo' : 'Real injuries, form and team context'}</span>
         </div>
 
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, borderTop: `1px solid ${C.line}`, background: 'rgba(10,22,38,0.7)', overflow: 'hidden', zIndex: 2 }}>
@@ -709,7 +706,6 @@ html { scroll-behavior: smooth; }
 .fe-mini-bet   { right: 6%;  top: 14%; animation-delay: 0.2s, 0.9s; }
 .fe-mini-rank  { right: 16%; top: 54%; animation-delay: 1.4s, 1.2s; }
 .fe-mini-kelly { right: 6%;  top: 74%; animation-delay: 0.8s, 1.5s; min-width: 160px; }
-.fe-mini-ai    { right: 40%; top: 20%; animation-delay: 1.1s, 0.6s; min-width: 200px; border: 2px solid rgba(255,200,60,0.9); box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 40px rgba(255,200,60,0.45); }
 
 .fe-chip {
   position: absolute; font-size: 12px; color: #00c878;
