@@ -354,6 +354,17 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
             </div>
           </div>
 
+          {/* mini card: análisis IA */}
+          <div className="fe-mini fe-mini-ai" style={{ ...mono }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 16 }}>🤖</span>
+              <span className="fe-mini-head" style={{ margin: 0, color: C.gold }}>{lang === 'es' ? 'ANÁLISIS IA' : 'AI ANALYSIS'}</span>
+            </div>
+            <div style={{ color: C.white, fontSize: 12, lineHeight: 1.4 }}>
+              {lang === 'es' ? 'Lesiones, forma y contexto real de cada equipo' : 'Real injuries, form and team context'}
+            </div>
+          </div>
+
           {/* chips */}
           <span className="fe-chip fe-chip-a" style={{ ...mono }}>BTTS 67% HR</span>
           <span className="fe-chip fe-chip-b" style={{ ...mono }}>ρ −0.08</span>
@@ -698,6 +709,7 @@ html { scroll-behavior: smooth; }
 .fe-mini-bet   { right: 6%;  top: 14%; animation-delay: 0.2s, 0.9s; }
 .fe-mini-rank  { right: 16%; top: 54%; animation-delay: 1.4s, 1.2s; }
 .fe-mini-kelly { right: 6%;  top: 74%; animation-delay: 0.8s, 1.5s; min-width: 160px; }
+.fe-mini-ai    { left: 6%; top: 34%; animation-delay: 1.1s, 0.6s; min-width: 190px; border-color: rgba(246,185,59,0.5); box-shadow: 0 16px 40px rgba(0,0,0,0.45), 0 0 24px rgba(246,185,59,0.12); }
 
 .fe-chip {
   position: absolute; font-size: 12px; color: #00c878;

@@ -407,8 +407,8 @@ export default function MatchPage() {
                     </div>
                     <div style={{ color: '#8fa3bf', fontSize: 12, marginTop: 2 }}>
                       {lang === 'en'
-                        ? 'Injuries, form and context beyond the numbers — powered by Claude'
-                        : 'Lesiones, forma y contexto más allá de los números — con Claude'}
+                        ? 'Injuries, form and context beyond the numbers — powered by advanced AI'
+                        : 'Lesiones, forma y contexto más allá de los números — con IA de última generación'}
                     </div>
                   </div>
                 </div>
