@@ -85,7 +85,16 @@ export async function GET(req: NextRequest) {
     })
     .sort((a, b) => b.ev * b.confidence_score - a.ev * a.confidence_score)
 
-  const top30 = unique.slice(0, 30)
+  // Una sola value bet por partido (la de mejor calidad) — evita que un mismo
+  // partido con valor en varios mercados infle el conteo y se sienta repetido.
+  const seenMatch = new Set<string>()
+  const onePerMatch = unique.filter(r => {
+    if (seenMatch.has(r.match_id)) return false
+    seenMatch.add(r.match_id)
+    return true
+  })
+
+  const top30 = onePerMatch.slice(0, 30)
 
   // Limpiar daily_rankings de hoy y reescribir
   await supabase.from('daily_rankings').delete().eq('date', today)
