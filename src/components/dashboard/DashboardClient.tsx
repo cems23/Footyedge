@@ -530,8 +530,15 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
     try {
       const res = await fetch('/api/stripe/portal', { method: 'POST' })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-      else showNotif('Error abriendo portal', 'err')
+      if (data.url) {
+        window.location.href = data.url
+      } else if (res.status === 404) {
+        showNotif(lang === 'en'
+          ? 'No active paid subscription found for this account'
+          : 'Esta cuenta no tiene una suscripción de pago activa', 'err')
+      } else {
+        showNotif('Error abriendo portal', 'err')
+      }
     } catch { showNotif('Error', 'err') }
   }
 
