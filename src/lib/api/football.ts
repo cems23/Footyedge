@@ -49,7 +49,7 @@ export const ACTIVE_LEAGUES = [
   { id: 103, sportKey: 'soccer_norway_eliteserien',         name: 'Eliteserien',    season: 2026, hasOdds: true  },
   { id: 106, sportKey: 'soccer_poland_ekstraklasa',         name: 'Ekstraklasa',    season: 2026, hasOdds: true  },
   { id: 207, sportKey: 'soccer_switzerland_super_league',   name: 'Swiss SL',       season: 2026, hasOdds: true  },
-  { id: 169, sportKey: 'soccer_scotland_premiership',       name: 'Scottish PL',    season: 2026, hasOdds: true  },
+  { id: 179, sportKey: 'soccer_scotland_premiership',       name: 'Scottish PL',    season: 2026, hasOdds: true  },
   { id: 41,  sportKey: 'soccer_england_league1',            name: 'League One',     season: 2026, hasOdds: true  },
   { id: 42,  sportKey: 'soccer_england_league2',            name: 'League Two',     season: 2026, hasOdds: true  },
   { id: 79,  sportKey: 'soccer_germany_bundesliga2',        name: 'Bundesliga 2',   season: 2026, hasOdds: true  },

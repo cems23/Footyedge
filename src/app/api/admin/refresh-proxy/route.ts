@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const ADMIN_EMAILS = ['admin@footyedge.com', 'carlosmartens8@gmail.com']
-const LEAGUES = [2,13,11,3,848,39,40,41,42,140,141,135,136,78,79,61,62,88,94,203,144,128,71,253,262,113,103,169,307,164,106,119,188,197,207,218,235,239,242,283,292,332]
+const LEAGUES = [2,13,11,3,848,39,40,41,42,140,141,135,136,78,79,61,62,88,94,203,144,128,71,253,262,113,103,179,307,164,106,119,188,197,207,218,235,239,242,283,292,332]
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()
