@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
       // Además de EV/edge mínimos, exigimos confianza mínima (rating 6+/10).
       // Un EV altísimo con datos poco confiables (rating bajo) es más probable que
       // sea ruido que una oportunidad real — no vale la pena mostrarlo como destacado.
-      return r.ev > 0.08 && r.edge > 0.08 && (r.confidence_score ?? 0) >= 55
+      return r.ev > 0.08 && r.edge > 0.08 && (r.confidence_score ?? 0) >= 50
     })
     .filter(r => {
       const key = `${r.match_id}_${r.market}`
