@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { updateElo, DEFAULT_ELO_RATING } from '@/lib/math/elo'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const maxDuration = 60
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
 
   const { data: unsettledMatches } = await supabase
     .from('matches')
-    .select('id, external_id, home_team_name, away_team_name, kickoff_at, league_name')
+    .select('id, external_id, home_team_id, away_team_id, home_team_name, away_team_name, kickoff_at, league_name')
     .is('home_goals', null)
     .gte('kickoff_at', threeDaysAgo)
     .lte('kickoff_at', twoHoursAgo)
@@ -116,6 +117,40 @@ export async function GET(req: NextRequest) {
         btts_result: result.btts,
         updated_at: new Date().toISOString(),
       }).eq('id', match.id)
+
+      // Actualizar ratings Elo de ambos equipos con el resultado real
+      if (match.home_team_id && match.away_team_id) {
+        try {
+          const [{ data: homeElo }, { data: awayElo }] = await Promise.all([
+            supabase.from('team_elo').select('*').eq('team_id', match.home_team_id).maybeSingle(),
+            supabase.from('team_elo').select('*').eq('team_id', match.away_team_id).maybeSingle(),
+          ])
+
+          const eloHome = homeElo?.elo_rating ?? DEFAULT_ELO_RATING
+          const eloAway = awayElo?.elo_rating ?? DEFAULT_ELO_RATING
+          const playedHome = homeElo?.matches_played ?? 0
+          const playedAway = awayElo?.matches_played ?? 0
+
+          const { newEloHome, newEloAway } = updateElo(
+            eloHome, eloAway, result.homeGoals, result.awayGoals, playedHome, playedAway
+          )
+
+          await Promise.all([
+            supabase.from('team_elo').upsert({
+              team_id: match.home_team_id, team_name: match.home_team_name,
+              elo_rating: newEloHome, matches_played: playedHome + 1,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'team_id' }),
+            supabase.from('team_elo').upsert({
+              team_id: match.away_team_id, team_name: match.away_team_name,
+              elo_rating: newEloAway, matches_played: playedAway + 1,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'team_id' }),
+          ])
+        } catch {
+          // Si falla la actualización de Elo, no bloquea la liquidación del partido
+        }
+      }
 
       const matchDate = match.kickoff_at.split('T')[0]
       const { data: rankings } = await supabase
