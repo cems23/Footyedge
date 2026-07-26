@@ -75,7 +75,10 @@ export async function GET(req: NextRequest) {
       const snap = snapMap[r.match_id]
       // Requiere odds reales del mercado para ser value bet válida
       if (!snap || (!snap.odds_home && !snap.odds_over25)) return false
-      return r.ev > 0.08 && r.edge > 0.08
+      // Además de EV/edge mínimos, exigimos confianza mínima (rating 6+/10).
+      // Un EV altísimo con datos poco confiables (rating bajo) es más probable que
+      // sea ruido que una oportunidad real — no vale la pena mostrarlo como destacado.
+      return r.ev > 0.08 && r.edge > 0.08 && (r.confidence_score ?? 0) >= 55
     })
     .filter(r => {
       const key = `${r.match_id}_${r.market}`
