@@ -762,7 +762,7 @@ html { scroll-behavior: smooth; }
   animation: fe-float 6s ease-in-out infinite, fe-fade 1s ease backwards;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
-.fe-chip-a { right: 42%; top: 25%; animation-delay: 0.6s, 1.1s; }
+.fe-chip-a { right: 42%; top: 45%; animation-delay: 0.6s, 1.1s; }
 .fe-chip-b { right: 10%; top: 40%; animation-delay: 2.2s, 1.3s; }
 .fe-chip-c { right: 38%; top: 76%; animation-delay: 1.1s, 1.6s; }
 
