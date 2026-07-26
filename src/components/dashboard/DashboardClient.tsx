@@ -827,6 +827,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const locked = r.is_pro_only && !isPro
                       const badge = mktBadge(r.market, lang)
                       const k = calcKellyStake(r.odds, r.ev, bankroll)
+                      const rating = Math.max(1, Math.min(10, Math.round((r.confidence_score ?? 50) / 10)))
                       return (
                         <div onClick={() => !locked && router.push(`/${lang || 'es'}/match/${r.match_id}`)}
                           style={{ position: 'relative', overflow: 'hidden', borderRadius: 18, border: '1px solid rgba(0,200,120,0.45)', background: 'linear-gradient(120deg, rgba(0,200,120,0.10), rgba(13,30,53,0.7) 55%)', padding: '22px 26px', marginBottom: 16, cursor: locked ? 'not-allowed' : 'pointer', boxShadow: '0 18px 50px rgba(0,0,0,0.4), 0 0 40px rgba(0,200,120,0.10)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 22, justifyContent: 'space-between', transition: 'box-shadow .2s ease' }}
@@ -850,7 +851,10 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 52, lineHeight: 1, color: '#00c878', textShadow: '0 0 24px rgba(0,200,120,0.55)' }}>{locked ? '🔒' : `EV +${(r.ev * 100).toFixed(0)}%`}</div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, justifyContent: 'flex-end' }}>
+                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: '#f6b93b' }}>{rating}<span style={{ fontSize: 11, color: '#8ba2c0' }}>/10</span></span>
+                              <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 52, lineHeight: 1, color: '#00c878', textShadow: '0 0 24px rgba(0,200,120,0.55)' }}>{locked ? '🔒' : `EV +${(r.ev * 100).toFixed(0)}%`}</div>
+                            </div>
                             <div style={{ fontSize: 12, color: '#f6b93b', fontWeight: 700, marginTop: 4 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
                           </div>
                         </div>
@@ -861,9 +865,44 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                         const locked = r.is_pro_only && !isPro
                         const badge = mktBadge(r.market, lang)
                         const k = calcKellyStake(r.odds, r.ev, bankroll)
+                        const rating = Math.max(1, Math.min(10, Math.round((r.confidence_score ?? 50) / 10)))
+
+                        if (locked) {
+                          // Teaser: mostramos que HAY una señal fuerte (rating + edge), pero no
+                          // cuál partido/mercado es — más persuasivo para conversión que mostrar
+                          // todo el partido y solo tapar el número.
+                          return (
+                            <div key={r.rank} onClick={() => router.push(`/${lang || 'es'}/pricing`)}
+                              style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, border: '1px solid rgba(246,185,59,0.35)', background: 'linear-gradient(135deg, rgba(246,185,59,0.06), rgba(13,30,53,0.85))', padding: '16px 18px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease' }}
+                              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(246,185,59,0.6)' }}
+                              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = 'rgba(246,185,59,0.35)' }}>
+                              <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 10 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 14, filter: 'blur(6px)', opacity: 0.55, userSelect: 'none', marginBottom: 12 }}>
+                                <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#2a3a4a' }} />
+                                <span style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff' }}>Equipo A vs Equipo B</span>
+                                <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#2a3a4a' }} />
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, color: '#f6b93b', lineHeight: 1 }}>{rating}<span style={{ fontSize: 14, color: '#8ba2c0' }}>/10</span></div>
+                                  <div style={{ fontSize: 8, color: '#8ba2c0', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 }}>{lang === 'en' ? 'Rating' : 'Rating'}</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 24, color: '#00c878', textShadow: '0 0 14px rgba(0,200,120,0.45)' }}>+{(r.ev * 100).toFixed(0)}%</div>
+                                  <div style={{ fontSize: 8, color: '#8ba2c0', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 }}>EV</div>
+                                </div>
+                                <span style={{ fontSize: 26 }}>🔒</span>
+                              </div>
+                              <div style={{ marginTop: 12, textAlign: 'center', fontSize: 11, color: '#f6b93b', fontWeight: 700, textDecoration: 'underline' }}>
+                                {isPro ? T.upgradeElite : T.upgradePro}
+                              </div>
+                            </div>
+                          )
+                        }
+
                         return (
-                          <div key={r.rank} onClick={() => !locked && router.push(`/${lang || 'es'}/match/${r.match_id}`)}
-                            style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '16px 18px', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.5 : 1, transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                          <div key={r.rank} onClick={() => router.push(`/${lang || 'es'}/match/${r.match_id}`)}
+                            style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '16px 18px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
                             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(0,200,120,0.6)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.45)' }}
                             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
                             <span aria-hidden style={{ position: 'absolute', right: 2, top: -14, fontFamily: '"Bebas Neue", sans-serif', fontSize: 74, lineHeight: 1, color: 'transparent', WebkitTextStroke: '1.5px rgba(0,200,120,0.16)', pointerEvents: 'none', transform: 'skewX(-8deg)' }}>#{r.rank}</span>
@@ -876,10 +915,13 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                               <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 12, letterSpacing: '0.08em', padding: '3px 12px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
                               <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 19, color: '#f2f6ff' }}>{r.odds?.toFixed(2)}</span>
-                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 24, lineHeight: 1, color: '#00c878', textShadow: '0 0 14px rgba(0,200,120,0.45)' }}>{locked ? '🔒' : `EV +${(r.ev * 100).toFixed(0)}%`}</span>
+                              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 24, lineHeight: 1, color: '#00c878', textShadow: '0 0 14px rgba(0,200,120,0.45)' }}>{`EV +${(r.ev * 100).toFixed(0)}%`}</span>
                             </div>
-                            <div style={{ height: 4, background: '#0a1628', borderRadius: 2, margin: '12px 0 8px', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${Math.min(100, (r.ev / 0.2) * 100)}%`, background: 'linear-gradient(90deg, #00c878, #4dffb0)', borderRadius: 2 }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 0 8px' }}>
+                              <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, color: '#f6b93b' }}>{rating}<span style={{ fontSize: 10, color: '#8ba2c0' }}>/10</span></div>
+                              <div style={{ height: 4, flex: 1, background: '#0a1628', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${Math.min(100, (r.ev / 0.2) * 100)}%`, background: 'linear-gradient(90deg, #00c878, #4dffb0)', borderRadius: 2 }} />
+                              </div>
                             </div>
                             <div style={{ fontSize: 11, color: '#f6b93b', fontWeight: 700 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
                           </div>
