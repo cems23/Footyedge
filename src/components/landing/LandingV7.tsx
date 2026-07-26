@@ -186,6 +186,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
   const [menu, setMenu] = useState(false);
   const [progress, setProgress] = useState(0);
   const [hasVideo, setHasVideo] = useState(false);
+  const [teasers, setTeasers] = useState<any[]>([]);
   const rigRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -216,6 +217,10 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
     v.preload = 'metadata';
     v.src = '/demo.mp4';
     v.onloadedmetadata = () => setHasVideo(true);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/public/teaser-picks').then(r => r.json()).then(d => setTeasers(d.teasers ?? [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -393,6 +398,49 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           </div>
         </div>
       </section>
+
+      {/* teasers reales de hoy — sin necesitar cuenta */}
+      {teasers.length > 0 && (
+        <section style={{ padding: 'clamp(48px,6vw,80px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}` }}>
+          <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center' }}>
+            {lang === 'es' ? `▮ SEÑALES DE HOY · ${new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-GB', { day: '2-digit', month: 'long' })}` : `▮ TODAY'S SIGNALS · ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long' })}`}
+          </p>
+          <h2 data-reveal style={{ textAlign: 'center', margin: '0 0 36px', textTransform: 'uppercase', lineHeight: 0.95 }}>
+            <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Esto es real, ' : 'This is real, '}</span>
+            <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'hoy mismo' : 'right now'}</span>
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, maxWidth: 1000, margin: '0 auto' }}>
+            {teasers.map((t, i) => (
+              <div key={i} data-reveal style={{ background: C.card, border: '1px solid rgba(246,185,59,0.35)', borderRadius: 16, padding: 20, transitionDelay: `${i * 0.08}s` }}>
+                <div style={{ ...mono, fontSize: 11, color: C.mute, marginBottom: 14 }}>
+                  {t.league_name ?? '—'} · {t.kickoff_at ? new Date(t.kickoff_at).toLocaleTimeString(lang === 'es' ? 'es-ES' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                </div>
+                <div style={{ filter: 'blur(6px)', opacity: 0.5, userSelect: 'none', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.line }} />
+                  <span style={{ fontSize: 15, fontWeight: 700 }}>{lang === 'es' ? 'Equipo A vs Equipo B' : 'Team A vs Team B'}</span>
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.line }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ ...bebas, fontSize: 30, color: C.gold }}>{t.rating}<span style={{ fontSize: 13, color: C.mute }}>/10</span></div>
+                    <div style={{ ...mono, fontSize: 9, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rating</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ ...bebas, fontSize: 24, color: C.green }}>+{Math.round((t.ev ?? 0) * 100)}%</div>
+                    <div style={{ ...mono, fontSize: 9, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.06em' }}>EV</div>
+                  </div>
+                  <span style={{ fontSize: 24 }}>🔒</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 28 }}>
+            <a className="fe-btn" href={`/${lang}/auth/register`} style={btnStyle(true, 'md')}>
+              {lang === 'es' ? 'Ver todas las señales gratis →' : 'See all signals free →'}
+            </a>
+          </div>
+        </section>
+      )}
 
       {/* scroll-scrub rig (compacto 180vh) */}
       <section id="engine" ref={rigRef} style={{ position: 'relative', height: '180vh' }}>
