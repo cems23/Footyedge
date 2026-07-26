@@ -402,16 +402,16 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
       {/* teasers reales de hoy — sin necesitar cuenta */}
       {teasers.length > 0 && (
         <section style={{ padding: 'clamp(48px,6vw,80px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}` }}>
-          <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center' }}>
+          <p style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center' }}>
             {lang === 'es' ? `▮ SEÑALES DE HOY · ${new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-GB', { day: '2-digit', month: 'long' })}` : `▮ TODAY'S SIGNALS · ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long' })}`}
           </p>
-          <h2 data-reveal style={{ textAlign: 'center', margin: '0 0 36px', textTransform: 'uppercase', lineHeight: 0.95 }}>
+          <h2 style={{ textAlign: 'center', margin: '0 0 36px', textTransform: 'uppercase', lineHeight: 0.95 }}>
             <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Esto es real, ' : 'This is real, '}</span>
             <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'hoy mismo' : 'right now'}</span>
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, maxWidth: 1000, margin: '0 auto' }}>
             {teasers.map((t, i) => (
-              <div key={i} data-reveal style={{ background: C.card, border: '1px solid rgba(246,185,59,0.35)', borderRadius: 16, padding: 20, transitionDelay: `${i * 0.08}s` }}>
+              <div key={i} style={{ background: C.card, border: '1px solid rgba(246,185,59,0.35)', borderRadius: 16, padding: 20 }}>
                 <div style={{ ...mono, fontSize: 11, color: C.mute, marginBottom: 14 }}>
                   {t.league_name ?? '—'} · {t.kickoff_at ? new Date(t.kickoff_at).toLocaleTimeString(lang === 'es' ? 'es-ES' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </div>
