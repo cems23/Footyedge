@@ -38,11 +38,20 @@ export async function GET(req: NextRequest) {
   const [{ data: preds }, { data: snaps }, { data: todayMatches }] = await Promise.all([
     supabase.from('model_predictions').select('match_id,prob_home_win,prob_draw,prob_away_win,prob_over25,prob_btts').in('match_id', matchIds),
     supabase.from('odds_snapshots').select('match_id,odds_home,odds_draw,odds_away,odds_over25').in('match_id', matchIds),
-    supabase.from('matches').select('id,kickoff_at').in('id', matchIds)
+    supabase.from('matches').select('id,kickoff_at,league_id').in('id', matchIds)
       .gte('kickoff_at', today + 'T00:00:00.000Z')
       .lt('kickoff_at', new Date(new Date(today).getTime() + 86400000).toISOString().split('T')[0] + 'T00:00:00.000Z'),
   ])
   const todayMatchIds = new Set((todayMatches ?? []).map((m: any) => m.id))
+  const leagueIdByMatch = Object.fromEntries((todayMatches ?? []).map((m: any) => [m.id, m.league_id]))
+
+  // Ligas grandes con mercados más eficientes/líquidos — el mercado merece más peso
+  // ahí. Ligas chicas suelen tener menos dinero circulando y odds menos afinadas,
+  // así que confiamos más en el modelo. Pesos de partida, a recalibrar con datos
+  // reales una vez haya suficientes apuestas liquidadas bajo este sistema.
+  const MAJOR_LEAGUES = new Set([2, 39, 140, 135, 78, 61]) // Champions, PL, LaLiga, SerieA, Bundesliga, Ligue1
+  const MODEL_WEIGHT_MAJOR = 0.6
+  const MODEL_WEIGHT_MINOR = 0.8
 
   const predMap = Object.fromEntries((preds ?? []).map(p => [p.match_id, p]))
   const snapMap = Object.fromEntries((snaps ?? []).map(s => [s.match_id, s]))
@@ -59,10 +68,18 @@ export async function GET(req: NextRequest) {
       home: snap.odds_home, away: snap.odds_away,
       draw: snap.odds_draw, over25: snap.odds_over25,
     } : {}
-    const prob = probMap[r.market]
+    const modelProb = probMap[r.market]
     const odds = oddsMap[r.market] || r.odds
-    if (!prob || !odds || odds <= 1) return { ev: r.ev, edge: r.edge, odds: r.odds }
-    return { ev: prob * odds - 1, edge: prob - (1 / odds), odds }
+    if (!modelProb || !odds || odds <= 1) return { ev: r.ev, edge: r.edge, odds: r.odds }
+
+    // Mezcla modelo-mercado: reduce falsos positivos donde el modelo diverge mucho
+    // del mercado por datos escasos/ruidosos, en vez de por una ventaja real.
+    const leagueId = leagueIdByMatch[r.match_id]
+    const modelWeight = MAJOR_LEAGUES.has(leagueId) ? MODEL_WEIGHT_MAJOR : MODEL_WEIGHT_MINOR
+    const marketImpliedProb = 1 / odds
+    const prob = modelWeight * modelProb + (1 - modelWeight) * marketImpliedProb
+
+    return { ev: prob * odds - 1, edge: prob - marketImpliedProb, odds }
   }
 
   // Deduplicar, recalcular y filtrar EVs negativos y sin odds reales
