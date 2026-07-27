@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from('team_elo')
-    .select('team_id, team_name, elo_rating, matches_played')
+    .select('team_id, team_name, elo_rating, matches_played, league_id, league_name, logo_url')
     .order('elo_rating', { ascending: false })
     .limit(50)
 

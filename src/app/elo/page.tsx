@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
 const EloChart = dynamic(() => import('./EloChart'), { ssr: false })
@@ -10,6 +11,7 @@ const BG = '#070d1a'
 const CARD = 'rgba(13,30,53,0.6)'
 const BORDER = '#1a2e4a'
 const G = '#00c878'
+const GOLD = '#ffb400'
 const MUTE = '#8ba2c0'
 
 interface TeamElo {
@@ -17,36 +19,59 @@ interface TeamElo {
   team_name: string
   elo_rating: number
   matches_played: number
+  league_id: number | null
+  league_name: string | null
+  logo_url: string | null
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: G, textTransform: 'uppercase', letterSpacing: '0.06em', transform: 'skewX(-6deg)', display: 'inline-block' }}>
+      ◆ {children}
+    </span>
+  )
 }
 
 export default function EloPage() {
+  const router = useRouter()
   const [teams, setTeams] = useState<TeamElo[]>([])
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<TeamElo | null>(null)
   const [history, setHistory] = useState<{ elo_rating: number; match_date: string }[]>([])
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<string>('sin intentar todavía')
+  const [favorites, setFavorites] = useState<Set<number>>(new Set())
 
-  const loadTeams = useCallback(async (q: string, attempt = 0) => {
-    try {
-      setDebugInfo(attempt === 0 ? 'haciendo fetch...' : `reintentando (${attempt})...`)
-      const res = await fetch(`/api/stats/elo-teams?search=${encodeURIComponent(q)}`, { cache: 'no-store' })
-      const data = await res.json()
-      const count = data.teams?.length ?? 0
-      setDebugInfo(`status: ${res.status} — recibidos: ${count}`)
-      setTeams(data.teams ?? [])
-      // Si viene vacío pero esperábamos datos, reintentar unas veces —
-      // puede ser una instancia de servidor recién iniciada con conexión desincronizada.
-      if (count === 0 && attempt < 3) {
-        setTimeout(() => loadTeams(q, attempt + 1), 2000)
-      }
-    } catch (e: any) {
-      setDebugInfo(`ERROR: ${e.message}`)
-    }
+  const loadTeams = useCallback(async (q: string) => {
+    const res = await fetch(`/api/stats/elo-teams?search=${encodeURIComponent(q)}`, { cache: 'no-store' })
+    const data = await res.json()
+    setTeams(data.teams ?? [])
+  }, [])
+
+  const loadFavorites = useCallback(async () => {
+    const res = await fetch('/api/user/favorite-teams', { cache: 'no-store' })
+    const data = await res.json()
+    setFavorites(new Set((data.favorites ?? []).map((f: any) => f.team_id)))
   }, [])
 
   useEffect(() => { loadTeams(search) }, [search, loadTeams])
+  useEffect(() => { loadFavorites() }, [loadFavorites])
+
+  const toggleFavorite = async (e: React.MouseEvent, team: TeamElo) => {
+    e.stopPropagation()
+    const isFav = favorites.has(team.team_id)
+    const next = new Set(favorites)
+    if (isFav) { next.delete(team.team_id) } else { next.add(team.team_id) }
+    setFavorites(next)
+    if (isFav) {
+      await fetch(`/api/user/favorite-teams?teamId=${team.team_id}`, { method: 'DELETE' })
+    } else {
+      await fetch('/api/user/favorite-teams', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId: team.team_id, teamName: team.team_name }),
+      })
+    }
+  }
 
   const selectTeam = async (team: TeamElo) => {
     setSelected(team)
@@ -71,16 +96,49 @@ export default function EloPage() {
     elo: Math.round(h.elo_rating),
   }))
 
+  const favTeams = teams.filter(t => favorites.has(t.team_id))
+  const rest = teams.filter(t => !favorites.has(t.team_id))
+
+  const grouped = new Map<string, TeamElo[]>()
+  for (const t of rest) {
+    const key = t.league_name ?? 'Sin liga'
+    if (!grouped.has(key)) grouped.set(key, [])
+    grouped.get(key)!.push(t)
+  }
+
+  const TeamRow = ({ t }: { t: TeamElo }) => (
+    <div key={t.team_id} onClick={() => selectTeam(t)}
+      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #14243d', cursor: 'pointer', background: selected?.team_id === t.team_id ? 'rgba(0,200,120,0.08)' : 'transparent' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <button onClick={e => toggleFavorite(e, t)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 0, color: favorites.has(t.team_id) ? GOLD : '#3a5578', flexShrink: 0 }}>
+          {favorites.has(t.team_id) ? '★' : '☆'}
+        </button>
+        {t.logo_url && <img src={t.logo_url} width={22} height={22} alt="" style={{ flexShrink: 0 }} />}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: 'white', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.team_name}</div>
+          <div style={{ color: MUTE, fontSize: 10 }}>{t.matches_played} partidos</div>
+        </div>
+      </div>
+      <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: G, flexShrink: 0 }}>{Math.round(t.elo_rating)}</div>
+    </div>
+  )
+
   return (
     <div style={{ minHeight: '100vh', background: BG, padding: '32px 16px', fontFamily: "'DM Mono', monospace" }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <button onClick={() => router.push('/es/dashboard')} style={{ background: 'transparent', border: `1px solid ${BORDER}`, color: MUTE, padding: '8px 16px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}>
+            ← Volver al Dashboard
+          </button>
+        </div>
+
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 10, color: G, letterSpacing: 6, textTransform: 'uppercase', marginBottom: 6 }}>◆ FOOTYEDGE</div>
-          <h1 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 4, color: 'white', margin: 0 }}>
+          <h1 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.04em', color: 'white', margin: 0, textTransform: 'uppercase', transform: 'skewX(-4deg)' }}>
             ELO <span style={{ color: G }}>RATINGS</span>
           </h1>
           <p style={{ color: MUTE, fontSize: 12, marginTop: 6 }}>
-            Fuerza real de cada equipo, calculada 100% con tus propios datos de partidos liquidados — sin depender de fuentes externas
+            Fuerza real de cada equipo, calculada 100% con tus propios datos de partidos liquidados
           </p>
         </div>
 
@@ -92,31 +150,40 @@ export default function EloPage() {
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1.4fr' : '1fr', gap: 20 }}>
-          {/* Leaderboard */}
-          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden', maxHeight: 520, overflowY: 'auto' }}>
-            {teams.map((t, i) => (
-              <div key={t.team_id} onClick={() => selectTeam(t)}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: i < teams.length - 1 ? '1px solid #14243d' : 'none', cursor: 'pointer', background: selected?.team_id === t.team_id ? 'rgba(0,200,120,0.08)' : 'transparent' }}>
-                <div>
-                  <div style={{ color: 'white', fontSize: 14, fontWeight: 600 }}>{t.team_name}</div>
-                  <div style={{ color: MUTE, fontSize: 10 }}>{t.matches_played} partidos</div>
+          <div style={{ maxHeight: 560, overflowY: 'auto' }}>
+            {favTeams.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ padding: '0 4px 8px' }}><SectionHeader>Favoritos</SectionHeader></div>
+                <div style={{ background: CARD, border: `1px solid ${GOLD}55`, borderRadius: 16, overflow: 'hidden' }}>
+                  {favTeams.map(t => <TeamRow key={t.team_id} t={t} />)}
                 </div>
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: G }}>{Math.round(t.elo_rating)}</div>
               </div>
-            ))}
+            )}
+
             {teams.length === 0 && (
-              <div style={{ padding: 40, textAlign: 'center', color: MUTE, fontSize: 13 }}>
+              <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 40, textAlign: 'center', color: MUTE, fontSize: 13 }}>
                 Sin equipos todavía — se van llenando a medida que se liquidan partidos
               </div>
             )}
+
+            {Array.from(grouped.entries()).map(([league, list]) => (
+              <div key={league} style={{ marginBottom: 16 }}>
+                <div style={{ padding: '0 4px 8px' }}><SectionHeader>{league}</SectionHeader></div>
+                <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden' }}>
+                  {list.map(t => <TeamRow key={t.team_id} t={t} />)}
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Gráfico */}
           {selected && (
-            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>{selected.team_name}</div>
-                <div style={{ color: MUTE, fontSize: 12 }}>Evolución del rating Elo</div>
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20, alignSelf: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                {selected.logo_url && <img src={selected.logo_url} width={32} height={32} alt="" />}
+                <div>
+                  <div style={{ color: 'white', fontSize: 18, fontWeight: 700 }}>{selected.team_name}</div>
+                  <div style={{ color: MUTE, fontSize: 12 }}>Evolución del rating Elo</div>
+                </div>
               </div>
               {loading ? (
                 <div style={{ padding: 60, textAlign: 'center', color: MUTE }}>Cargando...</div>

@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
 
   const { data: unsettledMatches } = await supabase
     .from('matches')
-    .select('id, external_id, home_team_id, away_team_id, home_team_name, away_team_name, kickoff_at, league_name')
+    .select('id, external_id, home_team_id, away_team_id, home_team_name, away_team_name, home_team_logo, away_team_logo, league_id, kickoff_at, league_name')
     .is('home_goals', null)
     .gte('kickoff_at', threeDaysAgo)
     .lte('kickoff_at', twoHoursAgo)
@@ -147,11 +147,13 @@ export async function GET(req: NextRequest) {
             supabase.from('team_elo').upsert({
               team_id: match.home_team_id, team_name: match.home_team_name,
               elo_rating: newEloHome, matches_played: playedHome + 1,
+              league_id: match.league_id, league_name: match.league_name, logo_url: match.home_team_logo,
               updated_at: new Date().toISOString(),
             }, { onConflict: 'team_id' }),
             supabase.from('team_elo').upsert({
               team_id: match.away_team_id, team_name: match.away_team_name,
               elo_rating: newEloAway, matches_played: playedAway + 1,
+              league_id: match.league_id, league_name: match.league_name, logo_url: match.away_team_logo,
               updated_at: new Date().toISOString(),
             }, { onConflict: 'team_id' }),
             // Guardar también el historial de Elo (para el gráfico de evolución)
