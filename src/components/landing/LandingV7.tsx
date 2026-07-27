@@ -42,13 +42,13 @@ const FEATURES_EN = [
   { k: 'MODEL', t: 'A pricing engine, not a tipster', d: 'FootyEdge prices every match itself. Dixon-Coles Poisson with per-league rho, decayed form and dynamic home advantage produce true probabilities for 1X2, Over/Under and BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'leagues calibrated' },
   { k: 'SIGNAL', t: 'Signals surfaced daily', d: 'Model prices meet market prices every morning. Anything trading above its fair probability is flagged with its statistical edge — filtered by per-market thresholds so noise stays out.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'only positive-signal picks' },
   { k: 'DATA', t: 'Rankings & filters', d: 'Per-team market stats across three seasons of history. Sort any league by Over 2.5 rate, BTTS, home splits — then filter fixtures that match your pattern.', stat: 12264, statSuffix: '', statText: '', statLabel: 'matches of history' },
-  { k: 'AI', t: 'AI match analysis', d: 'One tap unlocks a narrative report for any fixture: current injuries, tactical context and news pulled from the live web, reconciled with the model’s numbers.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'per report, cached forever' },
+  { k: 'AI', t: 'AI match analysis', d: 'One tap unlocks a narrative report for any fixture: current injuries, tactical context and news pulled from the live web, reconciled with the model’s numbers.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'per report, cached forever', note: 'Optional — Pro and Elite plans include a few free reports each month.' },
 ];
 const FEATURES_ES = [
   { k: 'MODELO', t: 'Un motor de precios, no un pronosticador', d: 'FootyEdge calcula cada partido por sí mismo. Poisson Dixon-Coles con rho por liga, forma con decaimiento y ventaja local dinámica generan probabilidades reales para 1X2, Over/Under y BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'ligas calibradas' },
   { k: 'SEÑAL', t: 'Señales detectadas cada día', d: 'Los precios del modelo se comparan cada mañana contra los precios del mercado. Todo lo que cotiza por encima de su probabilidad justa se marca con su ventaja estadística — filtrado por umbrales de cada mercado para que no entre ruido.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'solo señales positivas' },
   { k: 'DATOS', t: 'Rankings y filtros', d: 'Estadísticas de mercado por equipo en tres temporadas de historial. Ordena cualquier liga por tasa de Over 2.5, BTTS, splits en casa — y filtra los partidos que calzan con tu patrón.', stat: 12264, statSuffix: '', statText: '', statLabel: 'partidos de historial' },
-  { k: 'IA', t: 'Análisis de partido con IA', d: 'Un clic desbloquea un informe narrativo para cualquier partido: lesiones actuales, contexto táctico y noticias sacadas de la web en vivo, cruzadas con los números del modelo.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'por informe, guardado para siempre' },
+  { k: 'IA', t: 'Análisis de partido con IA', d: 'Un clic desbloquea un informe narrativo para cualquier partido: lesiones actuales, contexto táctico y noticias sacadas de la web en vivo, cruzadas con los números del modelo.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'por informe, guardado para siempre', note: 'Opcional — los planes Pro y Elite incluyen algunos informes gratis cada mes.' },
 ];
 
 type TierItem = { t: string; on: boolean };
@@ -506,6 +506,9 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
               <div style={{ ...mono, fontSize: 11, color: C.mute, marginBottom: 18 }}>{f.statLabel}</div>
               <h3 style={{ ...bebas, fontSize: 30, margin: '0 0 10px', textTransform: 'uppercase' }}>{f.t}</h3>
               <p style={{ color: C.mute, lineHeight: 1.65, fontSize: 15, margin: 0 }}>{f.d}</p>
+              {(f as any).note && (
+                <p style={{ ...mono, color: C.green, fontSize: 12, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>{(f as any).note}</p>
+              )}
             </article>
           ))}
         </div>
