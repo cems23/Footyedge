@@ -76,10 +76,6 @@ export default function EloPage() {
           </p>
         </div>
 
-        <div style={{ background: 'rgba(255,180,0,0.1)', border: '1px solid #ffb400', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#ffb400', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all' }}>
-          DEBUG: {debugInfo}
-        </div>
-
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
