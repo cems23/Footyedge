@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 
 const EloChart = dynamic(() => import('./EloChart'), { ssr: false })
+const TeamRadar = dynamic(() => import('./TeamRadar'), { ssr: false })
 
 const BG = '#070d1a'
 const CARD = 'rgba(13,30,53,0.6)'
@@ -23,6 +24,7 @@ export default function EloPage() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<TeamElo | null>(null)
   const [history, setHistory] = useState<{ elo_rating: number; match_date: string }[]>([])
+  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string>('sin intentar todavía')
 
@@ -49,10 +51,16 @@ export default function EloPage() {
   const selectTeam = async (team: TeamElo) => {
     setSelected(team)
     setLoading(true)
+    setProfile(null)
     try {
-      const res = await fetch(`/api/stats/elo-history?teamId=${team.team_id}`)
-      const data = await res.json()
-      setHistory(data.history ?? [])
+      const [histRes, profRes] = await Promise.all([
+        fetch(`/api/stats/elo-history?teamId=${team.team_id}`),
+        fetch(`/api/stats/team-profile?teamId=${team.team_id}&teamName=${encodeURIComponent(team.team_name)}`),
+      ])
+      const histData = await histRes.json()
+      const profData = await profRes.json()
+      setHistory(histData.history ?? [])
+      if (profData.hasData) setProfile(profData.profile)
     } finally {
       setLoading(false)
     }
@@ -118,6 +126,13 @@ export default function EloPage() {
                 </div>
               ) : (
                 <EloChart data={chartData} />
+              )}
+
+              {!loading && profile && (
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${BORDER}` }}>
+                  <div style={{ color: MUTE, fontSize: 12, marginBottom: 8 }}>Perfil actual del equipo (últimos partidos)</div>
+                  <TeamRadar profile={profile} />
+                </div>
               )}
             </div>
           )}
