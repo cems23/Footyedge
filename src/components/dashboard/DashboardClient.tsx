@@ -16,6 +16,8 @@ interface Ranking {
   confidence_score: number
   rank_score: number
   is_pro_only: boolean
+  model_prob_raw?: number | null
+  market_implied_prob?: number | null
   matches?: {
     id: string
     home_team_name: string
@@ -927,6 +929,11 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               </div>
                             </div>
                             <div style={{ fontSize: 11, color: '#f6b93b', fontWeight: 700 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
+                            {r.model_prob_raw != null && r.market_implied_prob != null && (
+                              <div style={{ fontSize: 10, color: '#64b5f6', marginTop: 6, borderTop: '1px solid #1a2e4a', paddingTop: 6 }}>
+                                📊 {lang === 'en' ? 'Model diverges' : 'Modelo diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts from market' : 'pts del mercado'}
+                              </div>
+                            )}
                           </div>
                         )
                       })}

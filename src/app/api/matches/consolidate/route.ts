@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     } : {}
     const modelProb = probMap[r.market]
     const odds = oddsMap[r.market] || r.odds
-    if (!modelProb || !odds || odds <= 1) return { ev: r.ev, edge: r.edge, odds: r.odds }
+    if (!modelProb || !odds || odds <= 1) return { ev: r.ev, edge: r.edge, odds: r.odds, modelProb: null, marketImpliedProb: null }
 
     // Mezcla modelo-mercado: reduce falsos positivos donde el modelo diverge mucho
     // del mercado por datos escasos/ruidosos, en vez de por una ventaja real.
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     const marketImpliedProb = 1 / odds
     const prob = modelWeight * modelProb + (1 - modelWeight) * marketImpliedProb
 
-    return { ev: prob * odds - 1, edge: prob - marketImpliedProb, odds }
+    return { ev: prob * odds - 1, edge: prob - marketImpliedProb, odds, modelProb, marketImpliedProb }
   }
 
   // Deduplicar, recalcular y filtrar EVs negativos y sin odds reales
@@ -133,6 +133,8 @@ export async function GET(req: NextRequest) {
       confidence_score: r.confidence_score,
       rank_score:       r.rank_score,
       is_pro_only:      i >= 10,
+      model_prob_raw:      r.modelProb,
+      market_implied_prob: r.marketImpliedProb,
     })
   }
 
