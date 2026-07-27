@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import dynamic from 'next/dynamic'
+
+const EloChart = dynamic(() => import('./EloChart'), { ssr: false })
 
 const BG = '#070d1a'
 const CARD = 'rgba(13,30,53,0.6)'
@@ -102,15 +104,7 @@ export default function EloPage() {
                   Todavía no hay suficiente historial para graficar la evolución de este equipo — vuelve en unos días.
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={340}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-                    <XAxis dataKey="date" stroke={MUTE} fontSize={11} />
-                    <YAxis stroke={MUTE} fontSize={11} domain={['dataMin - 20', 'dataMax + 20']} />
-                    <Tooltip contentStyle={{ background: '#0d1e35', border: `1px solid ${BORDER}`, borderRadius: 8, color: 'white' }} />
-                    <Line type="monotone" dataKey="elo" stroke={G} strokeWidth={2} dot={{ fill: G, r: 3 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <EloChart data={chartData} />
               )}
             </div>
           )}
