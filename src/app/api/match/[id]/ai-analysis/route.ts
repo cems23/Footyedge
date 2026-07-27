@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { getFootyStatsToday, findFootyStatsMatch } from '@/lib/api/footystats'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -26,30 +27,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'No pagado', paid: false }, { status: 402 })
   }
 
-  // Ya generado antes — devolver cache, no volver a llamar a la IA
   if (record.status === 'generated' && record.content) {
     return NextResponse.json({ content: record.content, cached: true })
   }
 
-  // Ya hay una generación en curso (otra pestaña, un reload del usuario, etc.) —
-  // NO disparar una segunda llamada pagada a la IA. Avisar al frontend que espere.
   if (record.status === 'generating' && record.generation_started_at) {
     const secondsSinceStart = (Date.now() - new Date(record.generation_started_at).getTime()) / 1000
     if (secondsSinceStart < 90) {
       return NextResponse.json({ generating: true }, { status: 202 })
     }
-    // Han pasado más de 90s — probablemente el intento anterior murió sin terminar.
-    // Se permite reintentar (sigue el flujo normal más abajo).
   }
 
-  // Marcar como "generando" ANTES de llamar a la IA — esto es el candado que evita
-  // llamadas duplicadas si el usuario recarga o reintenta mientras se genera.
   await supabaseAdmin.from('ai_analyses').update({
     status: 'generating',
     generation_started_at: new Date().toISOString(),
   }).eq('id', record.id)
 
-  // Pagado pero aún no generado — generar ahora
   const { data: match } = await supabaseAdmin
     .from('matches')
     .select(`
@@ -67,50 +60,73 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const pred = Array.isArray(match.model_predictions) ? match.model_predictions[0] : match.model_predictions
 
-  // Las probabilidades del modelo se muestran en una cuadrícula aparte en el frontend
-  // (sin costo de IA) — el prompt solo pide contexto cualitativo, no que repita números.
-  // Esto reduce tokens de salida y por tanto el costo por análisis.
   const favored = pred
     ? (pred.prob_home_win > pred.prob_away_win ? match.home_team_name : match.away_team_name)
     : null
 
+  // Datos de córners de FootyStats para este partido específico, si están disponibles
+  let cornersLine = ''
+  try {
+    const fsMatches = await getFootyStatsToday()
+    const fs = findFootyStatsMatch(fsMatches, match.home_team_name, match.away_team_name)
+    if (fs?.corners_potential) {
+      cornersLine = lang === 'en'
+        ? `\nCorner data (FootyStats): expected corners ${fs.corners_potential}.`
+        : `\nDatos de córners (FootyStats): córners esperados ${fs.corners_potential}.`
+    }
+  } catch {
+    // si falla FootyStats, seguimos sin ese dato — no bloquea el análisis
+  }
+
+  const statsContext = pred
+    ? (lang === 'en'
+        ? `Model numbers (for you to REASON about, not just repeat): home win ${(pred.prob_home_win * 100).toFixed(0)}%, draw ${(pred.prob_draw * 100).toFixed(0)}%, away win ${(pred.prob_away_win * 100).toFixed(0)}%, Over 2.5 ${(pred.prob_over25 * 100).toFixed(0)}%, BTTS ${(pred.prob_btts * 100).toFixed(0)}%, expected goals ${pred.expected_goals_home?.toFixed(2)} vs ${pred.expected_goals_away?.toFixed(2)}.${cornersLine}`
+        : `Números del modelo (para que RAZONES sobre ellos, no solo los repitas): victoria local ${(pred.prob_home_win * 100).toFixed(0)}%, empate ${(pred.prob_draw * 100).toFixed(0)}%, victoria visitante ${(pred.prob_away_win * 100).toFixed(0)}%, Over 2.5 ${(pred.prob_over25 * 100).toFixed(0)}%, BTTS ${(pred.prob_btts * 100).toFixed(0)}%, goles esperados ${pred.expected_goals_home?.toFixed(2)} vs ${pred.expected_goals_away?.toFixed(2)}.${cornersLine}`)
+    : ''
+
   const prompt = lang === 'en'
-    ? `You are a football analyst for FootyEdge, a betting analytics platform using a Poisson + Dixon-Coles statistical model.
+    ? `You are a senior football analyst for FootyEdge, a betting analytics platform using a Poisson + Dixon-Coles statistical model.
 
 MATCH: ${match.home_team_name} vs ${match.away_team_name}
 COMPETITION: ${match.league_name}
 DATE: ${match.kickoff_at}
 ${favored ? `The statistical model favors: ${favored}` : ''}
+${statsContext}
 
-Search the web for CURRENT news specific to this match: confirmed injuries/suspensions, expected lineup changes, table context/motivation, recent form of both teams. Do NOT restate the model's probabilities or expected goals — those are already shown separately. Focus only on qualitative context the model can't see.
+Search the web for CURRENT news specific to this match: confirmed injuries/suspensions, expected lineup changes, table context/motivation, recent form of both teams, head-to-head trends. The probability numbers above are already shown to the user in a separate grid — your job is to EXPLAIN and REASON about what's driving them (attacking form, defensive weaknesses, home advantage, tactical matchup), not just restate them, and to layer in the qualitative context the model can't see.
 
-Write in English, 150-220 words, using this exact markdown structure:
+Write in English, 220-320 words, using this exact markdown structure:
 ## Context
 (1-2 sentences: table situation, motivation, narrative stakes)
+## What the Numbers Say
+(2-3 sentences reasoning through WHY the model leans this way — reference the actual attacking/defensive form, goal expectation gap, and corner data if provided — in plain language, not just repeating percentages)
 ## Key Factors
 (3-5 short bullet points: confirmed injuries, suspensions, notable absences, lineup news — be specific with player names when found)
 ## Verdict
-(2-3 sentences: does this context reinforce or contradict the model's lean? Be honest — this is analysis to inform a decision, not a guaranteed prediction.)
+(2-3 sentences: take a CLEAR position. Say whether the qualitative context reinforces or weakens the model's lean, and be specific about which markets look strongest given everything above. Avoid vague hedging like "could go either way" — commit to a read while being honest this isn't a guarantee.)
 
-Use **bold** (double asterisks) for player names and key terms — never single asterisks for italics. Be concise — every sentence must add real information. Stay strictly within the 150-220 word count.`
-    : `Eres un analista de fútbol para FootyEdge, una plataforma de analítica de apuestas basada en un modelo estadístico Poisson + Dixon-Coles.
+Use **bold** (double asterisks) for player names and key terms — never single asterisks for italics. Be concise but substantive — every sentence must add real information. Stay strictly within the 220-320 word count.`
+    : `Eres un analista de fútbol senior para FootyEdge, una plataforma de analítica de apuestas basada en un modelo estadístico Poisson + Dixon-Coles.
 
 PARTIDO: ${match.home_team_name} vs ${match.away_team_name}
 COMPETICIÓN: ${match.league_name}
 FECHA: ${match.kickoff_at}
 ${favored ? `El modelo estadístico favorece a: ${favored}` : ''}
+${statsContext}
 
-Busca en la web noticias ACTUALES específicas de este partido: lesiones/sanciones confirmadas, cambios de alineación esperados, contexto de tabla/motivación, forma reciente de ambos equipos. NO repitas las probabilidades ni los goles esperados del modelo — ya se muestran aparte. Enfócate solo en el contexto cualitativo que el modelo no puede ver.
+Busca en la web noticias ACTUALES específicas de este partido: lesiones/sanciones confirmadas, cambios de alineación esperados, contexto de tabla/motivación, forma reciente de ambos equipos, tendencias del historial entre ambos. Los números de probabilidad de arriba ya se le muestran al usuario en una cuadrícula aparte — tu trabajo es EXPLICAR y RAZONAR qué los está impulsando (forma ofensiva, debilidades defensivas, ventaja de local, el enfrentamiento táctico), no solo repetirlos, y sumar el contexto cualitativo que el modelo no puede ver.
 
-Escribe en español, 150-220 palabras, usando exactamente esta estructura markdown:
+Escribe en español, 220-320 palabras, usando exactamente esta estructura markdown:
 ## Contexto
 (1-2 frases: situación en la tabla, motivación, contexto narrativo)
+## Qué Dicen Los Números
+(2-3 frases razonando POR QUÉ el modelo se inclina así — referencia la forma ofensiva/defensiva real, la brecha de goles esperados, y el dato de córners si se dio — en lenguaje llano, no solo repitiendo porcentajes)
 ## Factores Clave
 (3-5 viñetas cortas: lesiones confirmadas, sanciones, bajas notables, noticias de alineación — sé específico con nombres de jugadores si los encuentras)
 ## Veredicto
-(2-3 frases: ¿este contexto refuerza o contradice la inclinación del modelo? Sé honesto — esto es análisis para informar una decisión, no una predicción garantizada.)
+(2-3 frases: toma una posición CLARA. Di si el contexto cualitativo refuerza o debilita la inclinación del modelo, y sé específico sobre qué mercados se ven más fuertes dado todo lo anterior. Evita ambigüedad vaga tipo "podría ir para cualquier lado" — comprométete con una lectura siendo honesto de que esto no es una garantía.)
 
-Usa **negrita** (doble asterisco) para nombres de jugadores y términos clave — nunca asterisco simple para cursiva. Sé conciso — cada frase debe aportar información real. Respeta estrictamente el límite de 150-220 palabras.`
+Usa **negrita** (doble asterisco) para nombres de jugadores y términos clave — nunca asterisco simple para cursiva. Sé conciso pero sustancioso — cada frase debe aportar información real. Respeta estrictamente el límite de 220-320 palabras.`
 
   try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -122,9 +138,9 @@ Usa **negrita** (doble asterisco) para nombres de jugadores y términos clave �
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        max_tokens: 1400,
         messages: [{ role: 'user', content: prompt }],
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
       }),
     })
 
