@@ -863,7 +863,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             <div style={{ fontSize: 12, color: '#f6b93b', fontWeight: 700, marginTop: 4 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
                             {r.model_prob_raw != null && r.market_implied_prob != null && (
                               <div style={{ fontSize: 10, color: '#64b5f6', marginTop: 4 }}>
-                                📊 {lang === 'en' ? 'Diverges' : 'Diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts' : 'pts'}
+                                📊 {lang === 'en' ? 'Model diverges' : 'Modelo diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts from market' : 'pts del mercado'}
                               </div>
                             )}
                           </div>
