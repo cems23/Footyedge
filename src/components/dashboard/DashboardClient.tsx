@@ -720,6 +720,9 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
               <button onClick={() => router.push('/rankings')} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#ce93d8', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
                 🏆 Rankings
               </button>
+              <button onClick={() => router.push('/elo')} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#64b5f6', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
+                📈 Elo
+              </button>
 
               {/* Bankroll editable */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.25)', borderRadius: 6, padding: '4px 8px' }}>

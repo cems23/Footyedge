@@ -141,6 +141,8 @@ export async function GET(req: NextRequest) {
             eloHome, eloAway, result.homeGoals, result.awayGoals, playedHome, playedAway
           )
 
+          const matchDateForElo = match.kickoff_at.split('T')[0]
+
           await Promise.all([
             supabase.from('team_elo').upsert({
               team_id: match.home_team_id, team_name: match.home_team_name,
@@ -152,6 +154,15 @@ export async function GET(req: NextRequest) {
               elo_rating: newEloAway, matches_played: playedAway + 1,
               updated_at: new Date().toISOString(),
             }, { onConflict: 'team_id' }),
+            // Guardar también el historial de Elo (para el gráfico de evolución)
+            supabase.from('elo_history').insert({
+              team_id: match.home_team_id, team_name: match.home_team_name,
+              elo_rating: newEloHome, match_date: matchDateForElo,
+            }),
+            supabase.from('elo_history').insert({
+              team_id: match.away_team_id, team_name: match.away_team_name,
+              elo_rating: newEloAway, match_date: matchDateForElo,
+            }),
           ])
         } catch {
           // Si falla la actualización de Elo, no bloquea la liquidación del partido
