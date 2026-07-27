@@ -108,9 +108,13 @@ export default function EloPage() {
 
   const TeamRow = ({ t }: { t: TeamElo }) => (
     <div key={t.team_id} onClick={() => selectTeam(t)}
-      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #14243d', cursor: 'pointer', background: selected?.team_id === t.team_id ? 'rgba(0,200,120,0.08)' : 'transparent' }}>
+      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #14243d', cursor: 'pointer', background: selected?.team_id === t.team_id ? 'rgba(0,200,120,0.1)' : 'transparent', transition: 'background .15s ease' }}
+      onMouseEnter={e => { if (selected?.team_id !== t.team_id) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+      onMouseLeave={e => { if (selected?.team_id !== t.team_id) e.currentTarget.style.background = 'transparent' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <button onClick={e => toggleFavorite(e, t)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 0, color: favorites.has(t.team_id) ? GOLD : '#3a5578', flexShrink: 0 }}>
+        <button onClick={e => toggleFavorite(e, t)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 26, padding: 0, lineHeight: 1, color: favorites.has(t.team_id) ? GOLD : '#3a5578', flexShrink: 0, transition: 'transform .15s ease', textShadow: favorites.has(t.team_id) ? '0 0 12px rgba(255,180,0,0.6)' : 'none' }}
+          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.15)')}
+          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
           {favorites.has(t.team_id) ? '★' : '☆'}
         </button>
         {t.logo_url && <img src={t.logo_url} width={22} height={22} alt="" style={{ flexShrink: 0 }} />}
@@ -134,8 +138,9 @@ export default function EloPage() {
 
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 10, color: G, letterSpacing: 6, textTransform: 'uppercase', marginBottom: 6 }}>◆ FOOTYEDGE</div>
-          <h1 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.04em', color: 'white', margin: 0, textTransform: 'uppercase', transform: 'skewX(-4deg)' }}>
-            ELO <span style={{ color: G }}>RATINGS</span>
+          <h1 style={{ fontSize: 'clamp(42px, 8vw, 84px)', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.02em', color: 'white', margin: 0, textTransform: 'uppercase', lineHeight: 0.95 }}>
+            <span style={{ transform: 'skewX(-8deg)', display: 'inline-block' }}>ELO</span>{' '}
+            <span style={{ color: G, transform: 'skewX(-8deg)', display: 'inline-block', textShadow: '0 0 40px rgba(0,200,120,0.5)' }}>RATINGS</span>
           </h1>
           <p style={{ color: MUTE, fontSize: 12, marginTop: 6 }}>
             Fuerza real de cada equipo, calculada 100% con tus propios datos de partidos liquidados
@@ -154,7 +159,7 @@ export default function EloPage() {
             {favTeams.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ padding: '0 4px 8px' }}><SectionHeader>Favoritos</SectionHeader></div>
-                <div style={{ background: CARD, border: `1px solid ${GOLD}55`, borderRadius: 16, overflow: 'hidden' }}>
+                <div style={{ background: CARD, border: `1px solid ${GOLD}55`, borderRadius: 16, overflow: 'hidden', boxShadow: '0 14px 40px rgba(0,0,0,0.3), 0 0 30px rgba(255,180,0,0.06)' }}>
                   {favTeams.map(t => <TeamRow key={t.team_id} t={t} />)}
                 </div>
               </div>
@@ -169,7 +174,7 @@ export default function EloPage() {
             {Array.from(grouped.entries()).map(([league, list]) => (
               <div key={league} style={{ marginBottom: 16 }}>
                 <div style={{ padding: '0 4px 8px' }}><SectionHeader>{league}</SectionHeader></div>
-                <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden' }}>
+                <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden', boxShadow: '0 14px 40px rgba(0,0,0,0.3)' }}>
                   {list.map(t => <TeamRow key={t.team_id} t={t} />)}
                 </div>
               </div>
@@ -177,7 +182,7 @@ export default function EloPage() {
           </div>
 
           {selected && (
-            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20, alignSelf: 'flex-start' }}>
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20, alignSelf: 'flex-start', boxShadow: '0 14px 40px rgba(0,0,0,0.3), 0 0 30px rgba(0,200,120,0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 {selected.logo_url && <img src={selected.logo_url} width={32} height={32} alt="" />}
                 <div>
