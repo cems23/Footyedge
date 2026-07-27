@@ -861,6 +861,11 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 52, lineHeight: 1, color: '#00c878', textShadow: '0 0 24px rgba(0,200,120,0.55)' }}>{locked ? '🔒' : `EV +${(r.ev * 100).toFixed(0)}%`}</div>
                             </div>
                             <div style={{ fontSize: 12, color: '#f6b93b', fontWeight: 700, marginTop: 4 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
+                            {r.model_prob_raw != null && r.market_implied_prob != null && (
+                              <div style={{ fontSize: 10, color: '#64b5f6', marginTop: 4 }}>
+                                📊 {lang === 'en' ? 'Diverges' : 'Diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts' : 'pts'}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
