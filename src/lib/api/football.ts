@@ -91,6 +91,12 @@ async function apf<T>(endpoint: string, params: Record<string, string | number>)
   return json.response as T
 }
 
+import { getOddsApiConsensus, findConsensusMatch } from './oddsApiConsensus'
+
+// Ligas grandes/eficientes donde vale la pena pagar el costo de un consenso real
+// de varias casas de apuestas — misma lista que la mezcla modelo-mercado.
+const ODDS_API_LEAGUES = new Set([2, 39, 140, 135, 78, 61]) // Champions, PL, LaLiga, SerieA, Bundesliga, Ligue1
+
 async function oddsApi<T>(endpoint: string, params: Record<string, string>): Promise<T> {
   const key = process.env.ODDS_API_KEY
   if (!key) throw new Error('ODDS_API_KEY missing')
@@ -407,12 +413,24 @@ export async function buildMatchInput(
   const fsMatch = findFootyStatsMatch(footyStatsMatches, fixture.teams.home.name, fixture.teams.away.name)
   const fsData = fsMatch ? extractFootyStatsData(fsMatch) : null
 
-  // Merge: API-Football tiene prioridad en odds, FootyStats llena los huecos
+  // The Odds API: consenso real de varias casas, SOLO para ligas grandes y solo
+  // mientras haya presupuesto de créditos disponible este mes (ver oddsApiConsensus.ts).
+  // Si no aplica o se agotó el presupuesto, esto simplemente devuelve null y todo
+  // sigue funcionando igual que antes con API-Football/FootyStats.
+  let consensusOdds: ReturnType<typeof findConsensusMatch> = null
+  if (league && ODDS_API_LEAGUES.has(league.id) && league.sportKey) {
+    try {
+      const consensus = await getOddsApiConsensus(league.sportKey)
+      if (consensus) consensusOdds = findConsensusMatch(consensus, fixture.teams.home.name, fixture.teams.away.name)
+    } catch { /* si falla, seguimos sin este dato */ }
+  }
+
+  // Merge: The Odds API (consenso real, ligas grandes) > API-Football > FootyStats
   const mergedOdds = {
-    oddsHome:   apfOdds.oddsHome   ?? fsData?.oddsHome,
-    oddsDraw:   apfOdds.oddsDraw   ?? fsData?.oddsDraw,
-    oddsAway:   apfOdds.oddsAway   ?? fsData?.oddsAway,
-    oddsOver25: apfOdds.oddsOver25 ?? fsData?.oddsOver25,
+    oddsHome:   consensusOdds?.oddsHome   ?? apfOdds.oddsHome   ?? fsData?.oddsHome,
+    oddsDraw:   consensusOdds?.oddsDraw   ?? apfOdds.oddsDraw   ?? fsData?.oddsDraw,
+    oddsAway:   consensusOdds?.oddsAway   ?? apfOdds.oddsAway   ?? fsData?.oddsAway,
+    oddsOver25: consensusOdds?.oddsOver25 ?? apfOdds.oddsOver25 ?? fsData?.oddsOver25,
     oddsBtts:   apfOdds.oddsBtts   ?? fsData?.oddsBtts,
     oddsOver15: fsData?.oddsOver15,
   }
