@@ -257,7 +257,7 @@ export default function LandingClient({ lang }: { lang: Lang }) {
         <div id="preview" data-reveal className={`reveal ${isVisible('preview') ? 'visible' : ''}`} style={{ background: 'rgba(13,30,53,0.85)', border: '1px solid rgba(0,200,120,0.15)', borderRadius: 20, padding: 24, backdropFilter: 'blur(10px)', boxShadow: '0 40px 80px rgba(0,0,0,0.4)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #1a2e4a' }}>
             {['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
-            <span style={{ fontSize: 12, color: '#4a6785', marginLeft: 8 }}>footyedge.xyz/dashboard</span>
+            <span style={{ fontSize: 12, color: '#4a6785', marginLeft: 8 }}>footyedge.app/dashboard</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {[[counters[0], t.dashboard.matchesToday, '#00c878'], [counters[1], t.dashboard.hot, '#ff6b35'], [counters[2], t.dashboard.btts, '#00bfff'], [counters[3], t.dashboard.valueBets, '#ffd700']].map(([v, l, c]) => (

@@ -25,9 +25,9 @@ export async function generateMetadata({ params }: { params: { lang: string } })
       description: isEs
         ? 'Value bets diarias con modelo Poisson + Dixon-Coles. 40+ ligas analizadas cada día.'
         : 'Daily value bets with Poisson + Dixon-Coles model. 40+ leagues analyzed every day.',
-      url: `https://footyedge.xyz/${lang}`,
+      url: `https://footyedge.app/${lang}`,
       siteName: 'FootyEdge',
-      images: [{ url: 'https://footyedge.xyz/logo.png', width: 400, height: 120, alt: 'FootyEdge' }],
+      images: [{ url: 'https://footyedge.app/logo.png', width: 400, height: 120, alt: 'FootyEdge' }],
       locale: isEs ? 'es_ES' : 'en_US',
       type: 'website',
     },
@@ -37,14 +37,14 @@ export async function generateMetadata({ params }: { params: { lang: string } })
       description: isEs
         ? 'Value bets diarias con modelo Poisson + Dixon-Coles. 40+ ligas.'
         : 'Daily value bets with Poisson + Dixon-Coles model. 40+ leagues.',
-      images: ['https://footyedge.xyz/logo.png'],
+      images: ['https://footyedge.app/logo.png'],
     },
     alternates: {
-      canonical: `https://footyedge.xyz/${lang}`,
+      canonical: `https://footyedge.app/${lang}`,
       languages: {
-        'es': 'https://footyedge.xyz/es',
-        'en': 'https://footyedge.xyz/en',
-        'de': 'https://footyedge.xyz/en',
+        'es': 'https://footyedge.app/es',
+        'en': 'https://footyedge.app/en',
+        'de': 'https://footyedge.app/en',
       },
     },
     robots: {

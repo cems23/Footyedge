@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://footyedge.xyz'
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://footyedge.app'
 const SECRET = process.env.CRON_SECRET!
 const TOTAL_LEAGUES = 40
 

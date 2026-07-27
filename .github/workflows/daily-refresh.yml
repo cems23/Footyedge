@@ -17,7 +17,7 @@ jobs:
       - name: Analizar cada liga secuencialmente
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          BASE_URL: https://footyedge.xyz
+          BASE_URL: https://footyedge.app
         # No usar "bash -e" implícito para este step: un timeout de curl (exit 28) en
         # UNA liga (ej. Conference League con muchos fixtures el mismo día) no debe
         # tumbar el resto del loop ni saltarse consolidate/settle-results.
@@ -48,7 +48,7 @@ jobs:
         if: always()
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          BASE_URL: https://footyedge.xyz
+          BASE_URL: https://footyedge.app
         run: |
           curl -s -w "\nstatus: %{http_code}\n" \
             "$BASE_URL/api/matches/consolidate" \
@@ -59,7 +59,7 @@ jobs:
         if: always()
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          BASE_URL: https://footyedge.xyz
+          BASE_URL: https://footyedge.app
         run: |
           curl -s -w "\nstatus: %{http_code}\n" \
             "$BASE_URL/api/cron/snapshot-probability-picks" \
@@ -70,7 +70,7 @@ jobs:
         if: always()
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          BASE_URL: https://footyedge.xyz
+          BASE_URL: https://footyedge.app
         run: |
           curl -s -w "\nstatus: %{http_code}\n" \
             "$BASE_URL/api/cron/settle-results" \

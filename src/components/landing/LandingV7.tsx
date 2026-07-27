@@ -464,7 +464,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
             <div style={{ position: 'relative', border: `2px solid ${C.line}`, borderRadius: 20, background: C.navy, boxShadow: `0 0 0 6px rgba(0,200,120,0.05), 0 40px 80px rgba(0,0,0,0.5)`, overflow: 'hidden', aspectRatio: '16/10', transform: `perspective(1200px) rotateY(${tilt}deg) rotateX(${-tilt / 2}deg)`, transition: 'transform .15s ease-out' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: `1px solid ${C.line}`, background: 'rgba(7,13,26,0.6)' }}>
                 <span style={dot('#ff5f57')} /><span style={dot('#febc2e')} /><span style={dot(C.green)} />
-                <span style={{ ...mono, fontSize: 11, color: C.mute, marginLeft: 8 }}>footyedge.xyz — live board</span>
+                <span style={{ ...mono, fontSize: 11, color: C.mute, marginLeft: 8 }}>footyedge.app — live board</span>
               </div>
               {hasVideo ? (
                 <video ref={videoRef} src="/demo.mp4" muted playsInline preload="auto" style={{ width: '100%', height: 'calc(100% - 37px)', objectFit: 'cover', display: 'block' }} />

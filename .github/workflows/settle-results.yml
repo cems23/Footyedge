@@ -16,7 +16,7 @@ jobs:
         shell: bash --noprofile --norc {0}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          BASE_URL: https://footyedge.xyz
+          BASE_URL: https://footyedge.app
         run: |
           set +e
           # settle-results procesa máx 15 por corrida — iterar hasta 4 veces
