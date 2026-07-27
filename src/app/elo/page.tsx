@@ -26,14 +26,19 @@ export default function EloPage() {
   const [loading, setLoading] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string>('sin intentar todavía')
 
-  const loadTeams = useCallback(async (q: string) => {
+  const loadTeams = useCallback(async (q: string, attempt = 0) => {
     try {
-      setDebugInfo('haciendo fetch...')
-      const res = await fetch(`/api/stats/elo-teams?search=${encodeURIComponent(q)}`)
-      setDebugInfo(`status: ${res.status}`)
+      setDebugInfo(attempt === 0 ? 'haciendo fetch...' : `reintentando (${attempt})...`)
+      const res = await fetch(`/api/stats/elo-teams?search=${encodeURIComponent(q)}`, { cache: 'no-store' })
       const data = await res.json()
-      setDebugInfo(`status: ${res.status} — recibidos: ${data.teams?.length ?? 0} — raw: ${JSON.stringify(data).slice(0, 200)}`)
+      const count = data.teams?.length ?? 0
+      setDebugInfo(`status: ${res.status} — recibidos: ${count}`)
       setTeams(data.teams ?? [])
+      // Si viene vacío pero esperábamos datos, reintentar unas veces —
+      // puede ser una instancia de servidor recién iniciada con conexión desincronizada.
+      if (count === 0 && attempt < 3) {
+        setTimeout(() => loadTeams(q, attempt + 1), 2000)
+      }
     } catch (e: any) {
       setDebugInfo(`ERROR: ${e.message}`)
     }
