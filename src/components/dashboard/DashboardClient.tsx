@@ -463,6 +463,7 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   const [isMobile, setIsMobile] = useState(false)
   const [favoriteLeagues, setFavoriteLeagues] = useState<string[]>([])
   const [showFavorites, setShowFavorites] = useState(false)
+  const [showGlossary, setShowGlossary] = useState(false)
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
@@ -724,6 +725,9 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
               </button>
               <button onClick={() => router.push('/elo')} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#64b5f6', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
                 📈 Elo
+              </button>
+              <button onClick={() => setShowGlossary(true)} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#f6b93b', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
+                📖 {lang === 'en' ? 'Glossary' : 'Glosario'}
               </button>
 
               {/* Bankroll editable */}
@@ -1485,6 +1489,51 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
         <div style={{ borderTop: '1px solid #1a2e4a', padding: '12px 24px', textAlign: 'center', marginTop: 32 }}>
           <span style={{ fontSize: 10, color: '#2a3f5a' }}>FootyEdge 2.0 · Modelo Poisson + Dixon-Coles · Las probabilidades son estimaciones matemáticas, no garantía de resultado · Ningún modelo bate al mercado de forma consistente · Apuesta responsablemente · Solo mayores de 18 años</span>
         </div>
+
+        {/* Glossary modal */}
+        {showGlossary && (
+          <div onClick={() => setShowGlossary(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,10,20,0.75)', backdropFilter: 'blur(4px)', zIndex: 2000, display: 'flex', justifyContent: 'flex-end' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 92vw)', height: '100vh', background: '#0e1829', borderLeft: '1px solid #1a2e4a', overflowY: 'auto', padding: '24px 22px 60px', boxShadow: '-12px 0 40px rgba(0,0,0,0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 26, letterSpacing: '0.02em', color: '#f6b93b' }}>
+                  📖 {lang === 'en' ? 'Glossary' : 'Glosario'}
+                </span>
+                <button onClick={() => setShowGlossary(false)} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#8ba2c0', width: 30, height: 30, borderRadius: 8, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>✕</button>
+              </div>
+
+              <div style={{ display: 'grid', gap: 16 }}>
+                {(lang === 'en' ? [
+                  { t: 'Edge', d: 'The gap between the probability our model calculates for an outcome and the probability implied by the market\'s odds. A positive edge means the model thinks the real chance is higher than what the odds suggest.' },
+                  { t: 'EV (Expected Value)', d: 'The average return you\'d expect from a bet if you could repeat it many times, given the model\'s estimated probability and the odds offered. Positive EV means the bet is priced favorably over the long run — it does not guarantee winning any single bet.' },
+                  { t: 'Rating (1–10)', d: 'A simplified 0–10 score derived from the confidence score, meant to give a quick read on how reliable a pick is at a glance.' },
+                  { t: 'Confidence Score', d: 'An internal score that penalizes picks based on limited data — for example, teams with very few games played this season. Low-confidence picks are filtered out of Value Bets even if their raw EV looks high.' },
+                  { t: 'Model vs. Market Divergence', d: 'The gap in percentage points between the model\'s raw probability and the market-implied probability from the odds. A large divergence can mean real value — or it can mean the model is working with noisy data. Always read it alongside the rating.' },
+                  { t: 'Value Bet', d: 'A pick where the model\'s probability, blended with market prices for extra stability, exceeds the market\'s implied probability by at least the league\'s minimum edge threshold.' },
+                  { t: 'BTTS', d: 'Both Teams To Score — a market betting on whether both sides will score at least one goal in the match.' },
+                  { t: 'Over/Under 2.5', d: 'A market betting on whether the total goals in a match will be above (Over) or below (Under) 2.5 — since goals are whole numbers, there\'s no draw outcome for this line.' },
+                  { t: 'Dixon-Coles Model', d: 'The statistical engine behind FootyEdge: a Poisson-based model for predicting football scorelines, refined with a correction term (rho) for low-scoring matches and adjusted per league.' },
+                  { t: 'Elo Rating', d: 'A relative team-strength score that updates after every settled match based on the result and goal margin — higher Elo means a stronger team relative to its league.' },
+                ] : [
+                  { t: 'Edge', d: 'La diferencia entre la probabilidad que calcula nuestro modelo para un resultado y la probabilidad implícita en la cuota del mercado. Un edge positivo significa que el modelo cree que la chance real es mayor de lo que sugiere la cuota.' },
+                  { t: 'EV (Valor Esperado)', d: 'El retorno promedio que esperarías de una apuesta si pudieras repetirla muchas veces, dada la probabilidad estimada del modelo y la cuota ofrecida. Un EV positivo significa que la apuesta está bien pagada a largo plazo — no garantiza ganar una apuesta individual.' },
+                  { t: 'Rating (1–10)', d: 'Un puntaje simplificado de 0 a 10 derivado del confidence score, pensado para dar una lectura rápida de qué tan confiable es un pick de un vistazo.' },
+                  { t: 'Confidence Score', d: 'Un puntaje interno que penaliza los picks con datos limitados — por ejemplo, equipos con muy pocos partidos jugados esta temporada. Los picks de baja confianza se filtran de Value Bets aunque su EV crudo se vea alto.' },
+                  { t: 'Divergencia Modelo-Mercado', d: 'La diferencia en puntos porcentuales entre la probabilidad cruda del modelo y la probabilidad implícita del mercado según la cuota. Una divergencia grande puede significar valor real — o puede significar que el modelo está trabajando con datos con ruido. Léela siempre junto al rating.' },
+                  { t: 'Value Bet', d: 'Un pick donde la probabilidad del modelo, mezclada con precios de mercado para más estabilidad, supera la probabilidad implícita del mercado por al menos el umbral mínimo de edge de esa liga.' },
+                  { t: 'BTTS', d: 'Ambos equipos anotan (Both Teams To Score) — un mercado que apuesta a si ambos equipos marcarán al menos un gol en el partido.' },
+                  { t: 'Over/Under 2.5', d: 'Un mercado que apuesta a si el total de goles del partido será mayor (Over) o menor (Under) a 2.5 — como los goles son números enteros, esta línea no tiene resultado de empate.' },
+                  { t: 'Modelo Dixon-Coles', d: 'El motor estadístico detrás de FootyEdge: un modelo basado en Poisson para predecir marcadores de fútbol, refinado con un término de corrección (rho) para partidos de bajo marcador y ajustado por liga.' },
+                  { t: 'Rating Elo', d: 'Un puntaje relativo de fuerza de equipo que se actualiza después de cada partido liquidado según el resultado y el margen de goles — un Elo más alto significa un equipo más fuerte respecto a su liga.' },
+                ]).map((item, i) => (
+                  <div key={i} style={{ border: '1px solid #1a2e4a', borderRadius: 12, padding: '14px 16px', background: 'rgba(13,30,53,0.5)' }}>
+                    <div style={{ color: '#00c878', fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{item.t}</div>
+                    <div style={{ color: '#8ba2c0', fontSize: 13, lineHeight: 1.6 }}>{item.d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

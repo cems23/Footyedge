@@ -98,7 +98,7 @@ export const translations = {
     auth: {
       login: { title: 'Bienvenido', subtitle: 'Accede a tu cuenta', email: 'Email', password: 'Contraseña', submit: 'Entrar', forgot: '¿Olvidaste tu contraseña?', noAccount: '¿No tienes cuenta?', register: 'Regístrate' },
       register: { title: 'Crear cuenta', subtitle: 'Empieza gratis hoy', email: 'Email', password: 'Contraseña', submit: 'Crear cuenta', hasAccount: '¿Ya tienes cuenta?', login: 'Inicia sesión' },
-      reset: { title: 'Recuperar contraseña', subtitle: 'Te enviaremos un enlace', email: 'Email', submit: 'Enviar enlace', back: 'Volver al login' },
+      reset: { title: 'Recuperar contraseña', subtitle: 'Te enviaremos un enlace', email: 'Email', emailPlaceholder: 'tu@email.com', submit: 'Enviar enlace', sending: 'Enviando...', sent: 'Si existe una cuenta con ese email, te enviamos un link para restablecer tu contraseña.', back: 'Volver al login', newTitle: 'Nueva contraseña', newPassword: 'Nueva contraseña', confirmPassword: 'Confirmar contraseña', minChars: 'Mínimo 6 caracteres', noMatch: 'Las contraseñas no coinciden', verifying: 'Verificando...', invalidLink: 'Link inválido. Solicita un nuevo reset.', expiredLink: 'Link inválido o expirado. Solicita un nuevo reset.', updated: 'Contraseña actualizada', goDashboard: 'Ir al dashboard', saving: 'Guardando...', changePassword: 'Cambiar Contraseña' },
     },
   },
   en: {
@@ -198,7 +198,7 @@ export const translations = {
     auth: {
       login: { title: 'Welcome back', subtitle: 'Sign in to your account', email: 'Email', password: 'Password', submit: 'Sign in', forgot: 'Forgot your password?', noAccount: "Don't have an account?", register: 'Sign up' },
       register: { title: 'Create account', subtitle: 'Start for free today', email: 'Email', password: 'Password', submit: 'Create account', hasAccount: 'Already have an account?', login: 'Sign in' },
-      reset: { title: 'Reset password', subtitle: "We'll send you a link", email: 'Email', submit: 'Send link', back: 'Back to login' },
+      reset: { title: 'Reset password', subtitle: "We'll send you a link", email: 'Email', emailPlaceholder: 'you@email.com', submit: 'Send link', sending: 'Sending...', sent: "If an account exists with that email, we've sent a link to reset your password.", back: 'Back to login', newTitle: 'New password', newPassword: 'New password', confirmPassword: 'Confirm password', minChars: 'Minimum 6 characters', noMatch: "Passwords don't match", verifying: 'Verifying...', invalidLink: 'Invalid link. Request a new reset.', expiredLink: 'Invalid or expired link. Request a new reset.', updated: 'Password updated', goDashboard: 'Go to dashboard', saving: 'Saving...', changePassword: 'Change Password' },
     },
   },
 }

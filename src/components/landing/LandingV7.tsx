@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { animate, stagger } from 'animejs';
 
 const C = {
   ink: '#070d1a',
@@ -26,28 +27,28 @@ const mono: CSSProperties = { fontFamily: '"DM Mono", ui-monospace, monospace' }
 const slant: CSSProperties = { ...bebas, transform: 'skewX(-8deg)', display: 'inline-block' };
 
 const SCENES_EN = [
-  { tag: '01 · THE MODEL', title: 'Dixon-Coles under the hood', body: 'A Poisson goal model with dynamic home advantage, temporal decay and per-league calibration — tuned independently across 29 leagues.' },
+  { tag: '01 · THE MODEL', title: 'Dixon-Coles under the hood', body: 'A Poisson goal model with dynamic home advantage, temporal decay and per-league calibration — tuned independently across 30+ leagues.' },
   { tag: '02 · SIGNALS', title: 'Signal, not opinions', body: 'Every market is priced by the model and compared against live market prices. Only signals with positive expected value make the board.' },
   { tag: '03 · RANKINGS', title: 'Team markets, ranked', body: 'Over 0.5–3.5 and BTTS hit-rates for every team, with Total / Home / Away splits built from 12,000+ historical matches.' },
   { tag: '04 · AI ANALYSIS', title: 'A scout in the loop', body: 'On-demand AI match reports with live web context — injuries, news, form — layered on top of the numbers.' },
 ];
 const SCENES_ES = [
-  { tag: '01 · EL MODELO', title: 'Dixon-Coles por dentro', body: 'Un modelo Poisson de goles con ventaja local dinámica, decaimiento temporal y calibración por liga — ajustado de forma independiente en 29 ligas.' },
+  { tag: '01 · EL MODELO', title: 'Dixon-Coles por dentro', body: 'Un modelo Poisson de goles con ventaja local dinámica, decaimiento temporal y calibración por liga — ajustado de forma independiente en más de 30 ligas.' },
   { tag: '02 · SEÑALES', title: 'Señal, no opiniones', body: 'Cada mercado se calcula con el modelo y se compara contra los precios reales de las casas. Solo las señales con valor esperado positivo llegan al tablero.' },
   { tag: '03 · RANKINGS', title: 'Mercados por equipo, ordenados', body: 'Tasas de acierto de Over 0.5–3.5 y BTTS para cada equipo, con splits Total / Casa / Fuera construidos con más de 12,000 partidos históricos.' },
   { tag: '04 · ANÁLISIS IA', title: 'Un ojeador en el proceso', body: 'Informes de partido generados por IA bajo demanda, con contexto web en vivo — lesiones, noticias, forma — sobre los números del modelo.' },
 ];
 
 const FEATURES_EN = [
-  { k: 'MODEL', t: 'A pricing engine, not a tipster', d: 'FootyEdge prices every match itself. Dixon-Coles Poisson with per-league rho, decayed form and dynamic home advantage produce true probabilities for 1X2, Over/Under and BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'leagues calibrated' },
+  { k: 'MODEL', t: 'A pricing engine, not a tipster', d: 'FootyEdge prices every match itself. Dixon-Coles Poisson with per-league rho, decayed form and dynamic home advantage produce true probabilities for 1X2, Over/Under and BTTS.', stat: 30, statSuffix: '', statText: '', statLabel: 'leagues calibrated' },
   { k: 'SIGNAL', t: 'Signals surfaced daily', d: 'Model prices meet market prices every morning. Anything trading above its fair probability is flagged with its statistical edge — filtered by per-market thresholds so noise stays out.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'only positive-signal picks' },
-  { k: 'DATA', t: 'Rankings & filters', d: 'Per-team market stats across three seasons of history. Sort any league by Over 2.5 rate, BTTS, home splits — then filter fixtures that match your pattern.', stat: 12264, statSuffix: '', statText: '', statLabel: 'matches of history' },
+  { k: 'DATA', t: 'Rankings & filters', d: 'Per-team market stats across three seasons of history. Sort any league by Over 2.5 rate, BTTS, home splits — then filter fixtures that match your pattern.', stat: 12, statSuffix: 'k', statText: '', statLabel: 'matches of history' },
   { k: 'AI', t: 'AI match analysis', d: 'One tap unlocks a narrative report for any fixture: current injuries, tactical context and news pulled from the live web, reconciled with the model’s numbers.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'per report, cached forever', note: 'Optional — Pro and Elite plans include a few free reports each month.' },
 ];
 const FEATURES_ES = [
-  { k: 'MODELO', t: 'Un motor de precios, no un pronosticador', d: 'FootyEdge calcula cada partido por sí mismo. Poisson Dixon-Coles con rho por liga, forma con decaimiento y ventaja local dinámica generan probabilidades reales para 1X2, Over/Under y BTTS.', stat: 29, statSuffix: '', statText: '', statLabel: 'ligas calibradas' },
+  { k: 'MODELO', t: 'Un motor de precios, no un pronosticador', d: 'FootyEdge calcula cada partido por sí mismo. Poisson Dixon-Coles con rho por liga, forma con decaimiento y ventaja local dinámica generan probabilidades reales para 1X2, Over/Under y BTTS.', stat: 30, statSuffix: '', statText: '', statLabel: 'ligas calibradas' },
   { k: 'SEÑAL', t: 'Señales detectadas cada día', d: 'Los precios del modelo se comparan cada mañana contra los precios del mercado. Todo lo que cotiza por encima de su probabilidad justa se marca con su ventaja estadística — filtrado por umbrales de cada mercado para que no entre ruido.', stat: null, statSuffix: '', statText: 'EV+', statLabel: 'solo señales positivas' },
-  { k: 'DATOS', t: 'Rankings y filtros', d: 'Estadísticas de mercado por equipo en tres temporadas de historial. Ordena cualquier liga por tasa de Over 2.5, BTTS, splits en casa — y filtra los partidos que calzan con tu patrón.', stat: 12264, statSuffix: '', statText: '', statLabel: 'partidos de historial' },
+  { k: 'DATOS', t: 'Rankings y filtros', d: 'Estadísticas de mercado por equipo en tres temporadas de historial. Ordena cualquier liga por tasa de Over 2.5, BTTS, splits en casa — y filtra los partidos que calzan con tu patrón.', stat: 12, statSuffix: 'k', statText: '', statLabel: 'partidos de historial' },
   { k: 'IA', t: 'Análisis de partido con IA', d: 'Un clic desbloquea un informe narrativo para cualquier partido: lesiones actuales, contexto táctico y noticias sacadas de la web en vivo, cruzadas con los números del modelo.', stat: null, statSuffix: '', statText: '$1.39', statLabel: 'por informe, guardado para siempre', note: 'Opcional — los planes Pro y Elite incluyen algunos informes gratis cada mes.' },
 ];
 
@@ -178,10 +179,135 @@ function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
   return <span ref={ref}>{v.toLocaleString('en-US')}{suffix}</span>;
 }
 
+const FAQS_EN = [
+  { q: 'What is FootyEdge?', a: "FootyEdge is a statistical pricing engine for football matches. It runs a Dixon-Coles Poisson model across 30+ leagues and compares its own probabilities against live market odds, surfacing only the matches where a real statistical edge exists." },
+  { q: 'Which leagues are covered?', a: 'Over 30 leagues across Europe, the Americas and Asia, including Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Brasileirão, MLS, Liga MX, Saudi Pro League and more.' },
+  { q: 'How is the edge / EV calculated?', a: 'The model prices every match independently using per-league calibration, decayed team form and dynamic home advantage, then compares that probability to the market-implied probability from live odds. Only markets trading above their fair price are flagged.' },
+  { q: 'How often is the data updated?', a: 'The full pipeline runs automatically several times a day, and results are settled continuously as matches finish — no manual refresh needed.' },
+  { q: "What's included in each plan?", a: 'Free gives you a limited daily view of signals. Pro and Elite unlock the full board, rankings history, and a set of free AI match reports each month. See the pricing above for the full breakdown.' },
+  { q: 'Is this gambling advice?', a: "No. FootyEdge surfaces statistical signals, not guaranteed outcomes — no model can predict individual match results with certainty. It's a decision-support tool, not a promise of profit. You must be 18+ and should always gamble responsibly." },
+];
+const FAQS_ES = [
+  { q: '¿Qué es FootyEdge?', a: 'FootyEdge es un motor estadístico de precios para partidos de fútbol. Corre un modelo Poisson Dixon-Coles en más de 30 ligas y compara sus propias probabilidades contra las cuotas reales del mercado, mostrando solo los partidos donde existe una ventaja estadística real.' },
+  { q: '¿Qué ligas cubre?', a: 'Más de 30 ligas de Europa, América y Asia, incluyendo Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Brasileirão, MLS, Liga MX, Saudi Pro League y más.' },
+  { q: '¿Cómo se calcula el edge / EV?', a: 'El modelo calcula cada partido de forma independiente usando calibración por liga, forma de equipo con decaimiento y ventaja local dinámica, y compara esa probabilidad contra la probabilidad implícita del mercado en las cuotas reales. Solo se marcan los mercados que cotizan por encima de su precio justo.' },
+  { q: '¿Cada cuánto se actualizan los datos?', a: 'El pipeline completo corre automáticamente varias veces al día, y los resultados se liquidan de forma continua conforme terminan los partidos — no necesitas actualizar manualmente.' },
+  { q: '¿Qué incluye cada plan?', a: 'Free te da una vista diaria limitada de señales. Pro y Elite desbloquean el tablero completo, historial de rankings, y algunos informes de IA gratis cada mes. Mira los precios arriba para el detalle completo.' },
+  { q: '¿Esto es una recomendación de apuesta?', a: 'No. FootyEdge muestra señales estadísticas, no resultados garantizados — ningún modelo puede predecir con certeza el resultado de un partido individual. Es una herramienta de apoyo a la decisión, no una promesa de ganancia. Debes ser mayor de 18 años y apostar siempre con responsabilidad.' },
+];
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, background: C.card, overflow: 'hidden' }}>
+      <button onClick={() => setOpen(!open)} style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: C.white, padding: '18px 22px', fontSize: 16, fontWeight: 600, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <span>{q}</span>
+        <span style={{ ...mono, color: C.green, fontSize: 18, flexShrink: 0, transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}>+</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 22px 20px', color: C.mute, fontSize: 14.5, lineHeight: 1.65 }}>{a}</div>
+      )}
+    </div>
+  );
+}
+
+function Particles() {
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const COUNT = 34;
+    const dots: HTMLDivElement[] = [];
+    for (let i = 0; i < COUNT; i++) {
+      const d = document.createElement('div');
+      const size = 2 + Math.random() * 3;
+      d.style.position = 'absolute';
+      d.style.left = `${Math.random() * 100}%`;
+      d.style.top = `${Math.random() * 100}%`;
+      d.style.width = `${size}px`;
+      d.style.height = `${size}px`;
+      d.style.borderRadius = '50%';
+      d.style.background = Math.random() > 0.6 ? 'rgba(0,200,120,0.55)' : 'rgba(0,200,120,0.22)';
+      d.style.pointerEvents = 'none';
+      wrap.appendChild(d);
+      dots.push(d);
+    }
+
+    animate(dots, {
+      translateY: () => [0, -18 - Math.random() * 40],
+      translateX: () => [0, (Math.random() - 0.5) * 30],
+      opacity: [
+        { to: 0.9, duration: 1200 },
+        { to: 0.1, duration: 1800 },
+      ],
+      scale: [
+        { to: 1.2, duration: 1200 },
+        { to: 0.6, duration: 1800 },
+      ],
+      duration: 3000,
+      delay: stagger(90, { start: 0 }),
+      loop: true,
+      ease: 'inOutSine',
+    });
+
+    return () => { dots.forEach((d) => d.remove()); };
+  }, []);
+
+  return (
+    <div ref={wrapRef} aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }} />
+  );
+}
+
+const BIG_LEAGUES = [
+  { flag: '🇪🇸', name: 'LaLiga', date: new Date('2026-08-15T00:00:00Z') },
+  { flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', name: 'Premier League', date: new Date('2026-08-21T00:00:00Z') },
+  { flag: '🇮🇹🇫🇷', name: 'Serie A / Ligue 1', date: new Date('2026-08-21T00:00:00Z') },
+  { flag: '🇩🇪', name: 'Bundesliga', date: new Date('2026-08-28T00:00:00Z') },
+];
+
+function daysUntil(date: Date) {
+  const now = new Date();
+  const diff = date.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.max(0, Math.ceil(diff / 86400000));
+}
+
+function KickoffCard({ flag, name, date, lang }: { flag: string; name: string; date: Date; lang: string }) {
+  const [days, setDays] = useState(() => daysUntil(date));
+
+  useEffect(() => {
+    const id = setInterval(() => setDays(daysUntil(date)), 1000 * 60 * 60);
+    return () => clearInterval(id);
+  }, [date]);
+
+  const started = days === 0 && new Date() >= date;
+
+  return (
+    <div data-reveal style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: '24px 20px', textAlign: 'center' }}>
+      <div style={{ fontSize: 30, marginBottom: 10 }}>{flag}</div>
+      <div style={{ ...bebas, fontSize: 20, color: C.white, textTransform: 'uppercase', marginBottom: 10 }}>{name}</div>
+      {started ? (
+        <div style={{ ...mono, fontSize: 13, color: C.green, fontWeight: 700 }}>{lang === 'es' ? '¡EN JUEGO!' : 'LIVE NOW!'}</div>
+      ) : (
+        <>
+          <div style={{ ...bebas, fontSize: 44, color: C.green, lineHeight: 1 }}>{days}</div>
+          <div style={{ ...mono, fontSize: 11, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{lang === 'es' ? (days === 1 ? 'día restante' : 'días restantes') : (days === 1 ? 'day left' : 'days left')}</div>
+        </>
+      )}
+      <div style={{ ...mono, fontSize: 11, color: C.mute, marginTop: 10 }}>
+        {date.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-GB', { day: '2-digit', month: 'long', timeZone: 'UTC' })}
+      </div>
+    </div>
+  );
+}
+
 export default function LandingV7({ lang = 'en' }: { lang?: string }) {
   const SCENES = lang === 'es' ? SCENES_ES : SCENES_EN;
   const FEATURES = lang === 'es' ? FEATURES_ES : FEATURES_EN;
   const TIERS = lang === 'es' ? TIERS_ES : TIERS_EN;
+  const FAQS = lang === 'es' ? FAQS_ES : FAQS_EN;
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -232,6 +358,30 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
     return () => io.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cards = document.querySelectorAll('.fe-card');
+    if (!cards.length) return;
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const i = Array.from(cards).indexOf(entry.target as Element);
+        animate(entry.target, {
+          scale: [0.86, 1],
+          rotate: [i % 2 === 0 ? -2.5 : 2.5, 0],
+          duration: 800,
+          delay: i * 90,
+          ease: 'outExpo',
+        });
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.25 });
+
+    cards.forEach((c) => io.observe(c));
+    return () => io.disconnect();
+  }, []);
+
   const scene = Math.min(SCENES.length - 1, Math.floor(progress * SCENES.length));
   const sceneP = progress * SCENES.length - scene;
   const tilt = (progress - 0.5) * 6;
@@ -252,7 +402,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           transition: 'height .3s ease, background .3s ease, border-color .3s ease',
         }}
       >
-        <a href={`/${lang}`} style={{ textDecoration: 'none' }}><Logo size={scrolled ? 78 : 112} /></a>
+        <a href={`/${lang}`} style={{ textDecoration: 'none' }}><Logo size={scrolled ? 90 : 132} /></a>
 
         <nav className="fe-nav" style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
           {(lang === 'es'
@@ -319,6 +469,8 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           </svg>
         </div>
 
+        <Particles />
+
         <div className="fe-halftone" aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
 
         {/* elementos de producto flotando */}
@@ -364,7 +516,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           {/* chips */}
           <span className="fe-chip fe-chip-a" style={{ ...mono }}>BTTS 67% HR</span>
           <span className="fe-chip fe-chip-b" style={{ ...mono }}>ρ −0.08</span>
-          <span className="fe-chip fe-chip-c" style={{ ...mono }}>29 LEAGUES</span>
+          <span className="fe-chip fe-chip-c" style={{ ...mono }}>30+ LEAGUES</span>
         </div>
 
         <p className="fe-up" style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 18, animationDelay: '0.05s', position: 'relative' }}>{lang === 'es' ? '▮ ANALÍTICA DE FÚTBOL' : '▮ FOOTBALL ANALYTICS'}</p>
@@ -377,8 +529,8 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
 
         <p className="fe-up" style={{ maxWidth: 560, fontSize: 'clamp(16px,1.4vw,19px)', color: C.mute, lineHeight: 1.6, margin: '30px 0 38px', animationDelay: '0.45s', position: 'relative' }}>
           {lang === 'es'
-            ? 'FootyEdge calcula cada partido con su propio motor estadístico y detecta señales estadísticas relevantes — todos los días, en 29 ligas.'
-            : 'FootyEdge prices every match with its own statistical engine and surfaces the signals that matter — every day, across 29 leagues.'}
+            ? 'FootyEdge calcula cada partido con su propio motor estadístico y detecta señales estadísticas relevantes — todos los días, en más de 30 ligas.'
+            : 'FootyEdge prices every match with its own statistical engine and surfaces the signals that matter — every day, across 30+ leagues.'}
         </p>
 
         <div className="fe-up" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', animationDelay: '0.6s', position: 'relative' }}>
@@ -396,6 +548,34 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           <div className="fe-ticker" style={{ ...mono, fontSize: 12, color: C.mute, whiteSpace: 'nowrap', padding: '10px 0', display: 'inline-block' }}>
             {ticker(lang)}{ticker(lang)}
           </div>
+        </div>
+      </section>
+
+      {/* como funciona en 3 pasos */}
+      <section style={{ padding: 'clamp(48px,6vw,80px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}` }}>
+        <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center' }}>
+          {lang === 'es' ? '▮ CÓMO FUNCIONA' : '▮ HOW IT WORKS'}
+        </p>
+        <h2 data-reveal style={{ textAlign: 'center', margin: '0 0 44px', textTransform: 'uppercase', lineHeight: 0.95 }}>
+          <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Tres modelos, ' : 'Three models, '}</span>
+          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'una señal' : 'one signal'}</span>
+        </h2>
+        <div className="fe-grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 20, maxWidth: 1000, margin: '0 auto' }}>
+          {(lang === 'es' ? [
+            { n: '01', t: 'Precio base con Dixon-Coles', d: 'Un modelo Poisson bivariado calcula la probabilidad de cada marcador posible, calibrado de forma independiente por liga y con decaimiento temporal de la forma reciente.' },
+            { n: '02', t: 'Ajuste con rating Elo', d: 'La fuerza relativa de cada equipo, actualizada tras cada partido liquidado según resultado y margen de gol, refina la probabilidad base del modelo.' },
+            { n: '03', t: 'Mezcla con el mercado', d: 'El resultado se combina con las cuotas reales de las casas de apuestas para reducir ruido — solo se muestran los partidos donde queda una ventaja estadística real.' },
+          ] : [
+            { n: '01', t: 'Base pricing with Dixon-Coles', d: 'A bivariate Poisson model prices every possible scoreline, calibrated independently per league with temporal decay on recent form.' },
+            { n: '02', t: 'Elo rating adjustment', d: "Each team's relative strength, updated after every settled match based on result and goal margin, refines the model's base probability." },
+            { n: '03', t: 'Blended with the market', d: 'The result is combined with live bookmaker odds to reduce noise — only matches with a real statistical edge left over make the board.' },
+          ]).map((s) => (
+            <div key={s.n} data-reveal style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 'clamp(22px,3vw,32px)' }}>
+              <div style={{ ...bebas, fontSize: 40, color: C.green, opacity: 0.5, lineHeight: 1, marginBottom: 14 }}>{s.n}</div>
+              <h3 style={{ ...bebas, fontSize: 22, margin: '0 0 10px', textTransform: 'uppercase' }}>{s.t}</h3>
+              <p style={{ color: C.mute, lineHeight: 1.6, fontSize: 14, margin: 0 }}>{s.d}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -441,6 +621,33 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           </div>
         </section>
       )}
+
+      {/* cuenta regresiva — arranque de las grandes ligas */}
+      <section style={{ padding: 'clamp(48px,6vw,80px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}`, position: 'relative', overflow: 'hidden' }}>
+        <div className="fe-glow" aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 'min(80vw,900px)', aspectRatio: '2', background: `radial-gradient(ellipse, ${C.greenDim}, transparent 70%)`, pointerEvents: 'none' }} />
+        <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center', position: 'relative' }}>
+          {lang === 'es' ? '▮ TEMPORADA 2026/27' : '▮ 2026/27 SEASON'}
+        </p>
+        <h2 data-reveal style={{ textAlign: 'center', margin: '0 0 16px', textTransform: 'uppercase', lineHeight: 0.95, position: 'relative' }}>
+          <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Las grandes ligas ' : 'The big leagues '}</span>
+          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'están por arrancar' : 'are about to kick off'}</span>
+        </h2>
+        <p data-reveal style={{ textAlign: 'center', color: C.mute, fontSize: 15, maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.6, position: 'relative' }}>
+          {lang === 'es'
+            ? 'El modelo se vuelve más fuerte con cada partido acumulado. Crea tu cuenta ahora y llega listo para el arranque de LaLiga, Premier League, Serie A, Ligue 1 y Bundesliga.'
+            : 'The model gets sharper with every match it sees. Create your account now and be ready when LaLiga, Premier League, Serie A, Ligue 1 and Bundesliga kick off.'}
+        </p>
+        <div className="fe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 16, maxWidth: 900, margin: '0 auto', position: 'relative' }}>
+          {BIG_LEAGUES.map((l) => (
+            <KickoffCard key={l.name} flag={l.flag} name={l.name} date={l.date} lang={lang} />
+          ))}
+        </div>
+        <div data-reveal style={{ textAlign: 'center', marginTop: 36, position: 'relative' }}>
+          <a className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={btnStyle(true, 'md')}>
+            {lang === 'es' ? 'Crear mi cuenta gratis →' : 'Create my free account →'}
+          </a>
+        </div>
+      </section>
 
       {/* scroll-scrub rig (compacto 180vh) */}
       <section id="engine" ref={rigRef} style={{ position: 'relative', height: '180vh' }}>
@@ -501,7 +708,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
             <article key={f.k} data-reveal className="fe-card" style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 'clamp(22px,3vw,36px)', position: 'relative', overflow: 'hidden', transitionDelay: `${i * 0.08}s` }}>
               <span style={{ ...mono, position: 'absolute', top: 18, right: 20, fontSize: 11, color: C.green, border: `2px solid ${C.green}`, borderRadius: 999, padding: '4px 12px', background: 'rgba(0,200,120,0.08)' }}>{f.k}</span>
               <div style={{ ...bebas, fontSize: 54, color: C.green, lineHeight: 1 }}>
-                {f.stat !== null ? <CountUp to={f.stat} suffix={f.statSuffix} /> : f.statText}
+                {f.stat !== null ? <>+<CountUp to={f.stat} suffix={f.statSuffix} /></> : f.statText}
               </div>
               <div style={{ ...mono, fontSize: 11, color: C.mute, marginBottom: 18 }}>{f.statLabel}</div>
               <h3 style={{ ...bebas, fontSize: 30, margin: '0 0 10px', textTransform: 'uppercase' }}>{f.t}</h3>
@@ -545,17 +752,28 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section id="faq" style={{ padding: 'clamp(64px,8vw,110px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}` }}>
+        <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>{lang === 'es' ? '▮ PREGUNTAS FRECUENTES' : '▮ FAQ'}</p>
+        <h2 data-reveal style={{ ...slant, fontSize: 'clamp(40px,6vw,80px)', lineHeight: 0.95, margin: '0 0 40px', textTransform: 'uppercase' }}>{lang === 'es' ? 'Preguntas frecuentes' : 'Frequently asked'}</h2>
+        <div style={{ display: 'grid', gap: 12, maxWidth: 820 }}>
+          {FAQS.map((item, i) => (
+            <FaqItem key={i} q={item.q} a={item.a} />
+          ))}
+        </div>
+      </section>
+
       {/* final CTA */}
       <section style={{ padding: 'clamp(80px,10vw,140px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}`, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div className="fe-glow" aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 'min(80vw,900px)', aspectRatio: '2', background: `radial-gradient(ellipse, ${C.greenDim}, transparent 70%)` }} />
         <h2 data-reveal style={{ margin: '0 0 28px', textTransform: 'uppercase', lineHeight: 0.88, position: 'relative' }}>
-          <span style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>{lang === 'es' ? 'El tablero se reinicia' : 'The board resets'}</span><br />
-          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>{lang === 'es' ? 'cada mañana.' : 'every morning.'}</span>
+          <span style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>{lang === 'es' ? 'El tablero se actualiza' : 'The board updates'}</span><br />
+          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(56px,9vw,136px)' }}>{lang === 'es' ? 'a toda hora.' : 'around the clock.'}</span>
         </h2>
         <p data-reveal style={{ color: C.mute, fontSize: 17, maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.6, position: 'relative' }}>
           {lang === 'es'
-            ? 'Señales nuevas en 29 ligas, calculadas antes de tu café. Gratis para empezar.'
-            : "Fresh signals across 29 leagues, priced before you've had coffee. Free to start."}
+            ? 'Señales nuevas en más de 30 ligas, calculadas antes de tu café. Gratis para empezar.'
+            : "Fresh signals across 30+ leagues, priced before you've had coffee. Free to start."}
         </p>
         <a data-reveal className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={{ ...btnStyle(true, 'lg'), position: 'relative' }}>{lang === 'es' ? 'Empezar gratis — sin tarjeta' : 'Start free — no card needed'}</a>
       </section>

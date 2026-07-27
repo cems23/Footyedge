@@ -85,7 +85,7 @@ export default function LoginPage({ params }: { params: { lang: string } }) {
         </button>
 
         <p style={{ textAlign: "center", marginTop: 16, fontSize: 13 }}>
-          <a href={`/${lang}/auth/reset-password`} style={{ color: "#4a6785", textDecoration: "none" }}>{t.forgot}</a>
+          <a href={`/${lang}/auth/forgot-password`} style={{ color: "#4a6785", textDecoration: "none" }}>{t.forgot}</a>
         </p>
 
         <p style={{ textAlign: "center", marginTop: 12, color: "#6b7fa3", fontSize: 13 }}>
