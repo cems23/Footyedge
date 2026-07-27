@@ -118,6 +118,12 @@ export async function GET(req: NextRequest) {
         updated_at: new Date().toISOString(),
       }).eq('id', match.id)
 
+      // Liquidar también los "probability picks" (ej. Mejores BTTS del día) de este partido
+      await supabase.from('probability_picks').update({
+        result: result.btts ? 'win' : 'loss',
+        settled_at: new Date().toISOString(),
+      }).eq('match_id', match.id).eq('market', 'btts').is('result', null)
+
       // Actualizar ratings Elo de ambos equipos con el resultado real
       if (match.home_team_id && match.away_team_id) {
         try {

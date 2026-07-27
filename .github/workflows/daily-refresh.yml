@@ -55,6 +55,17 @@ jobs:
             -H "Authorization: Bearer $CRON_SECRET" \
             --max-time 55
 
+      - name: Guardar foto de probability picks (BTTS del día, etc.)
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: https://footyedge.xyz
+        run: |
+          curl -s -w "\nstatus: %{http_code}\n" \
+            "$BASE_URL/api/cron/snapshot-probability-picks" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --max-time 55
+
       - name: Settle resultados de partidos pasados
         if: always()
         env:

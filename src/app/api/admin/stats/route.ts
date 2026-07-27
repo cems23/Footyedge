@@ -87,7 +87,21 @@ export async function GET() {
   const aiRevenueEstimate = aiPaidStripe * 1.39
   const aiThisMonth = (aiAll ?? []).filter(a => a.created_at >= startOfMonth).length
 
+  // ── PROBABILITY PICKS (ej. "Mejores BTTS del día", no son value bets con cuotas) ──
+  const { data: probPicks } = await admin.from('probability_picks').select('market, result')
+  const probByMarket: Record<string, { wins: number; total: number }> = {}
+  for (const p of probPicks ?? []) {
+    if (p.result === null) continue // aún sin liquidar
+    probByMarket[p.market] ??= { wins: 0, total: 0 }
+    probByMarket[p.market].total++
+    if (p.result === 'win') probByMarket[p.market].wins++
+  }
+  const probabilityPicksPerformance = Object.entries(probByMarket).map(([market, s]) => ({
+    market, ...s, hr: s.total ? s.wins / s.total : 0,
+  }))
+
   return NextResponse.json({
+    probabilityPicksPerformance,
     users: {
       total: allUsers?.length ?? 0,
       byPlan,

@@ -67,7 +67,7 @@ export default function AdminPage() {
     return <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5555', fontFamily: "'DM Mono', monospace" }}>{error}</div>
   }
 
-  const { users, modelPerformance, pipeline, aiAnalysis } = data
+  const { users, modelPerformance, pipeline, aiAnalysis, probabilityPicksPerformance } = data
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: 'white', fontFamily: "'DM Mono', monospace", padding: '32px clamp(16px,4vw,48px)' }}>
@@ -143,6 +143,27 @@ export default function AdminPage() {
               ))}
             </div>
           </Card>
+        )}
+
+        {/* ── PROBABILITY PICKS (Mejores BTTS del día, etc.) ── */}
+        {probabilityPicksPerformance && probabilityPicksPerformance.length > 0 && (
+          <>
+            <SectionTitle>🎯 Picks de Probabilidad (no son Value Bets con cuotas)</SectionTitle>
+            <Card>
+              <div style={{ fontSize: 11, color: MUTE, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Ej. "Mejores BTTS del día" — basado solo en probabilidad del modelo, sin cuotas reales de mercado
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {probabilityPicksPerformance.map((m: any, i: number) => (
+                  <div key={m.market} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px', gap: 10, fontSize: 13, borderBottom: i < probabilityPicksPerformance.length - 1 ? `1px solid ${BORDER}` : 'none', paddingBottom: 6 }}>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 700 }}>{m.market}</span>
+                    <span>{m.wins}/{m.total}</span>
+                    <span style={{ color: hrColor(m.hr), fontWeight: 700 }}>{pct(m.hr)}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
         )}
 
         {/* ── SALUD DEL PIPELINE ── */}
