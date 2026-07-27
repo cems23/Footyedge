@@ -15,18 +15,29 @@ interface Profile {
   form: number
 }
 
-const LABELS: Record<keyof Profile, string> = {
-  elo: 'Elo (percentil)',
-  attack: 'Ataque',
-  defense: 'Defensa',
-  btts: 'BTTS',
-  over25: 'Over 2.5',
-  form: 'Forma (victorias)',
+const LABELS: Record<string, Record<keyof Profile, string>> = {
+  es: {
+    elo: 'Elo (percentil)',
+    attack: 'Ataque',
+    defense: 'Defensa',
+    btts: 'BTTS',
+    over25: 'Over 2.5',
+    form: 'Forma (victorias)',
+  },
+  en: {
+    elo: 'Elo (percentile)',
+    attack: 'Attack',
+    defense: 'Defense',
+    btts: 'BTTS',
+    over25: 'Over 2.5',
+    form: 'Form (wins)',
+  },
 }
 
-export default function TeamRadar({ profile }: { profile: Profile }) {
-  const data = (Object.keys(LABELS) as (keyof Profile)[]).map(key => ({
-    metric: LABELS[key],
+export default function TeamRadar({ profile, lang = 'es' }: { profile: Profile; lang?: 'es' | 'en' }) {
+  const labels = LABELS[lang] ?? LABELS.es
+  const data = (Object.keys(labels) as (keyof Profile)[]).map(key => ({
+    metric: labels[key],
     value: profile[key],
   }))
 
