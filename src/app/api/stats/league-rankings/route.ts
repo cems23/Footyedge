@@ -20,6 +20,21 @@ export async function GET(req: NextRequest) {
     return data?.plan === 'pro' || data?.plan === 'elite'
   })() : false
 
+  // Usar solo la temporada MÁS RECIENTE de esta liga (no mezclar con temporadas
+  // anteriores ya terminadas — ej. no mostrar la 2025-26 como si fuera "forma actual"
+  // cuando la 2026-27 todavía no empieza). Se detecta dinámicamente por liga.
+  const { data: seasonRow } = await supabase
+    .from('matches')
+    .select('season')
+    .eq('league_id', parseInt(leagueId))
+    .eq('status', 'FT')
+    .not('season', 'is', null)
+    .order('season', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const latestSeason = seasonRow?.season
+
   let query = supabase
     .from('matches')
     .select('home_team_name, away_team_name, home_goals, away_goals, result, over25_result, btts_result, kickoff_at')
@@ -28,6 +43,10 @@ export async function GET(req: NextRequest) {
     .not('home_goals', 'is', null)
     .order('kickoff_at', { ascending: false })
     .limit(2000)
+
+  if (latestSeason != null) {
+    query = query.eq('season', latestSeason)
+  }
 
   if (!isPro) {
     const cutoff = new Date()
@@ -45,6 +64,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     leagueId: parseInt(leagueId),
+    season: latestSeason,
     matchLimit,
     isPro,
     teamCount: rankings.length,

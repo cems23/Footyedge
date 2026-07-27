@@ -94,6 +94,7 @@ export default function RankingsClient() {
   const [rankings, setRankings] = useState<TeamRanking[]>([])
   const [loading, setLoading] = useState(false)
   const [isPro, setIsPro] = useState(false)
+  const [season, setSeason] = useState<number | null>(null)
   const t = T[lang]
 
   const load = useCallback(async (id: number) => {
@@ -103,6 +104,7 @@ export default function RankingsClient() {
       const data = await res.json()
       setRankings(data.rankings ?? [])
       setIsPro(data.isPro ?? false)
+      setSeason(data.season ?? null)
     } catch (e) {
       console.error(e)
       setRankings([])
@@ -130,6 +132,11 @@ export default function RankingsClient() {
             {t.title1} <span style={{ color: G }}>{t.title2}</span>
           </h1>
           <p style={{ color: MUTE, fontSize: 12, marginTop: 6 }}>{t.subtitle(isPro)}</p>
+          {season != null && (
+            <p style={{ color: G, fontSize: 11, marginTop: 4 }}>
+              {lang === 'es' ? `Temporada ${season}/${(season + 1).toString().slice(-2)}` : `${season}/${(season + 1).toString().slice(-2)} season`}
+            </p>
+          )}
         </div>
 
         <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '14px 18px', marginBottom: 20, fontSize: 12, color: MUTE, lineHeight: 1.6 }}>
