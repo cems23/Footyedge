@@ -24,11 +24,19 @@ export default function EloPage() {
   const [selected, setSelected] = useState<TeamElo | null>(null)
   const [history, setHistory] = useState<{ elo_rating: number; match_date: string }[]>([])
   const [loading, setLoading] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>('sin intentar todavía')
 
   const loadTeams = useCallback(async (q: string) => {
-    const res = await fetch(`/api/stats/elo-teams?search=${encodeURIComponent(q)}`)
-    const data = await res.json()
-    setTeams(data.teams ?? [])
+    try {
+      setDebugInfo('haciendo fetch...')
+      const res = await fetch(`/api/stats/elo-teams?search=${encodeURIComponent(q)}`)
+      setDebugInfo(`status: ${res.status}`)
+      const data = await res.json()
+      setDebugInfo(`status: ${res.status} — recibidos: ${data.teams?.length ?? 0} — raw: ${JSON.stringify(data).slice(0, 200)}`)
+      setTeams(data.teams ?? [])
+    } catch (e: any) {
+      setDebugInfo(`ERROR: ${e.message}`)
+    }
   }, [])
 
   useEffect(() => { loadTeams(search) }, [search, loadTeams])
@@ -61,6 +69,10 @@ export default function EloPage() {
           <p style={{ color: MUTE, fontSize: 12, marginTop: 6 }}>
             Fuerza real de cada equipo, calculada 100% con tus propios datos de partidos liquidados — sin depender de fuentes externas
           </p>
+        </div>
+
+        <div style={{ background: 'rgba(255,180,0,0.1)', border: '1px solid #ffb400', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#ffb400', fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+          DEBUG: {debugInfo}
         </div>
 
         <input
