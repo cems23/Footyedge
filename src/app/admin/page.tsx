@@ -67,7 +67,7 @@ export default function AdminPage() {
     return <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5555', fontFamily: "'DM Mono', monospace" }}>{error}</div>
   }
 
-  const { users, modelPerformance, pipeline, aiAnalysis, probabilityPicksPerformance } = data
+  const { users, modelPerformance, pipeline, aiAnalysis, probabilityPicksPerformance, aiSignalCheck } = data
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: 'white', fontFamily: "'DM Mono', monospace", padding: '32px clamp(16px,4vw,48px)' }}>
@@ -81,6 +81,68 @@ export default function AdminPage() {
             ← Volver al Dashboard
           </button>
         </div>
+
+        {/* ── AI SIGNAL CHECK (modo observar) ── */}
+        {aiSignalCheck && (
+          <>
+            <SectionTitle>🤖 AI Signal Check — modo observar</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 14, marginBottom: 14 }}>
+              <Card>
+                <Stat
+                  label="Gasto este mes"
+                  value={`$${aiSignalCheck.budgetSpentUsd.toFixed(2)}`}
+                  color={aiSignalCheck.budgetSpentUsd >= aiSignalCheck.budgetLimitUsd ? '#ff5555' : G}
+                  sub={`límite $${aiSignalCheck.budgetLimitUsd}`}
+                />
+              </Card>
+              <Card><Stat label="Llamadas este mes" value={aiSignalCheck.callsThisMonth} /></Card>
+              <Card><Stat label="Total checks histórico" value={aiSignalCheck.totalChecks} color={MUTE} /></Card>
+            </div>
+
+            <Card style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: MUTE, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Comparativo hit rate — ¿la IA detecta algo real?
+              </div>
+              {aiSignalCheck.hitRateComparison ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#ff8888', marginBottom: 4 }}>⚠️ IA marcó riesgo (penalty &gt;15)</div>
+                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: '#ff8888' }}>
+                      {aiSignalCheck.hitRateComparison.flagged.hr != null ? `${(aiSignalCheck.hitRateComparison.flagged.hr * 100).toFixed(1)}%` : '—'}
+                    </div>
+                    <div style={{ fontSize: 11, color: MUTE }}>{aiSignalCheck.hitRateComparison.flagged.won}/{aiSignalCheck.hitRateComparison.flagged.total} liquidados</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: G, marginBottom: 4 }}>✅ IA sin alertas</div>
+                    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: G }}>
+                      {aiSignalCheck.hitRateComparison.clean.hr != null ? `${(aiSignalCheck.hitRateComparison.clean.hr * 100).toFixed(1)}%` : '—'}
+                    </div>
+                    <div style={{ fontSize: 11, color: MUTE }}>{aiSignalCheck.hitRateComparison.clean.won}/{aiSignalCheck.hitRateComparison.clean.total} liquidados</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: MUTE }}>Aún no hay suficientes picks liquidados para comparar — vuelve en 1-2 semanas.</div>
+              )}
+            </Card>
+
+            {aiSignalCheck.recentChecks?.length > 0 && (
+              <Card style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 11, color: MUTE, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Checks recientes</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {aiSignalCheck.recentChecks.map((c: any, i: number) => (
+                    <div key={i} style={{ fontSize: 12, borderBottom: i < aiSignalCheck.recentChecks.length - 1 ? `1px solid ${BORDER}` : 'none', paddingBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ color: MUTE }}>{c.market}</span>
+                      <span style={{ flex: 1, color: c.confidence_penalty > 15 ? '#ff8888' : 'white' }}>{c.reason || '—'}</span>
+                      <span style={{ color: c.confidence_penalty > 15 ? '#ff8888' : G, fontWeight: 700 }}>
+                        {c.adjustment > 0 ? '+' : ''}{c.adjustment} / penalty {c.confidence_penalty}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </>
+        )}
 
         {/* ── USUARIOS ── */}
         <SectionTitle>👥 Usuarios</SectionTitle>

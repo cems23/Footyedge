@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { runSignalCheck } from '@/lib/ai/signalCheck'
+import { apf } from '@/lib/api/football'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -38,12 +40,13 @@ export async function GET(req: NextRequest) {
   const [{ data: preds }, { data: snaps }, { data: todayMatches }] = await Promise.all([
     supabase.from('model_predictions').select('match_id,prob_home_win,prob_draw,prob_away_win,prob_over25,prob_btts').in('match_id', matchIds),
     supabase.from('odds_snapshots').select('match_id,odds_home,odds_draw,odds_away,odds_over25').in('match_id', matchIds),
-    supabase.from('matches').select('id,kickoff_at,league_id').in('id', matchIds)
+    supabase.from('matches').select('id,kickoff_at,league_id,home_team_id,away_team_id,home_team_name,away_team_name,season,external_id').in('id', matchIds)
       .gte('kickoff_at', today + 'T00:00:00.000Z')
       .lt('kickoff_at', new Date(new Date(today).getTime() + 86400000).toISOString().split('T')[0] + 'T00:00:00.000Z'),
   ])
   const todayMatchIds = new Set((todayMatches ?? []).map((m: any) => m.id))
   const leagueIdByMatch = Object.fromEntries((todayMatches ?? []).map((m: any) => [m.id, m.league_id]))
+  const matchDataById = Object.fromEntries((todayMatches ?? []).map((m: any) => [m.id, m]))
 
   // Ligas grandes con mercados más eficientes/líquidos — el mercado merece más peso
   // ahí. Ligas chicas suelen tener menos dinero circulando y odds menos afinadas,
@@ -136,6 +139,60 @@ export async function GET(req: NextRequest) {
       model_prob_raw:      r.modelProb,
       market_implied_prob: r.marketImpliedProb,
     })
+  }
+
+  // AI signal check — modo observar: corre en paralelo con limite de concurrencia,
+  // nunca bloquea ni afecta el resultado del consolidate si falla.
+  const AI_CONCURRENCY = 3
+  for (let i = 0; i < top30.length; i += AI_CONCURRENCY) {
+    const batch = top30.slice(i, i + AI_CONCURRENCY)
+    await Promise.allSettled(batch.map(async (r: any) => {
+      try {
+        const m = matchDataById[r.match_id]
+        if (!m || !m.external_id) return
+
+        const [injuriesRes, formHomeRes, formAwayRes] = await Promise.all([
+          apf<any[]>('/injuries', { fixture: m.external_id }).catch(() => []),
+          apf<any[]>('/fixtures', { team: m.home_team_id, league: m.league_id, season: m.season, last: 5 }).catch(() => []),
+          apf<any[]>('/fixtures', { team: m.away_team_id, league: m.league_id, season: m.season, last: 5 }).catch(() => []),
+        ])
+
+        const summarizeForm = (fixtures: any[], teamId: number) => {
+          return (fixtures || []).map((f: any) => {
+            const isHome = f.teams?.home?.id === teamId
+            const won = isHome ? f.teams?.home?.winner : f.teams?.away?.winner
+            if (won === true) return 'V'
+            if (won === false) return 'D'
+            return 'E'
+          }).join('')
+        }
+
+        const injuriesText = (list: any[]) =>
+          (list || []).slice(0, 5).map((inj: any) => `${inj.player?.name ?? '?'} (${inj.player?.reason ?? 'baja'})`).join(', ')
+
+        const homeInjuries = (injuriesRes || []).filter((inj: any) => inj.team?.id === m.home_team_id)
+        const awayInjuries = (injuriesRes || []).filter((inj: any) => inj.team?.id === m.away_team_id)
+
+        await runSignalCheck({
+          matchId: r.match_id,
+          market: r.market,
+          modelProb: r.modelProb,
+          homeTeam: m.home_team_name,
+          awayTeam: m.away_team_name,
+          formHome: summarizeForm(formHomeRes, m.home_team_id),
+          formAway: summarizeForm(formAwayRes, m.away_team_id),
+          goalsForHome: null,
+          goalsAgainstHome: null,
+          goalsForAway: null,
+          goalsAgainstAway: null,
+          injuriesHome: injuriesText(homeInjuries),
+          injuriesAway: injuriesText(awayInjuries),
+          h2hSummary: '',
+        })
+      } catch (e) {
+        console.error('signal check batch item failed (non-fatal):', e)
+      }
+    }))
   }
 
   return NextResponse.json({ success: true, top5: top30.length, rankings: top30.map((r, i) => ({

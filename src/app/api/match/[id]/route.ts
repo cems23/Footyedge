@@ -57,12 +57,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 
   let h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats
+  let fixturePlayers: any[] = []
 
   if (cachedData) {
-    ;({ h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats } = cachedData)
+    ;({ h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats, fixturePlayers } = cachedData)
   } else {
     await sleep(300)
-    ;[h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats] = await Promise.all([
+    ;[h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats, fixturePlayers] = await Promise.all([
       apf<any[]>('/fixtures/headtohead', { h2h: `${home_team_id}-${away_team_id}`, last: 10 }),
       apf<any[]>('/standings', { league: league_id, season }),
       apf<any[]>('/injuries', { fixture: external_id }),
@@ -72,13 +73,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       apf<any[]>('/fixtures/statistics', { fixture: external_id }),
       apf<any>('/teams/statistics', { team: home_team_id, league: league_id, season }),
       apf<any>('/teams/statistics', { team: away_team_id, league: league_id, season }),
+      apf<any[]>('/fixtures/players', { fixture: external_id }),
     ])
 
     // Save to cache
     if (cacheKey) {
       await supabase.from('match_cache').upsert({
         fixture_id: cacheKey,
-        data: { h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats },
+        data: { h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats, fixturePlayers },
         cached_at: new Date().toISOString(),
       }, { onConflict: 'fixture_id' })
     }
@@ -221,20 +223,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const homeLineup = (lineups || []).find((l: any) => l.team?.id === home_team_id)
   const awayLineup = (lineups || []).find((l: any) => l.team?.id === away_team_id)
 
-  const processLineup = (lineup: any) => {
+  const findPlayerStats = (teamId: number, playerId: number) => {
+    const teamEntry = (fixturePlayers || []).find((t: any) => t.team?.id === teamId)
+    const p = teamEntry?.players?.find((p: any) => p.player?.id === playerId)
+    const stats = p?.statistics?.[0]
+    if (!stats) return null
+    return {
+      rating: stats.games?.rating ? Number(stats.games.rating) : null,
+      minutes: stats.games?.minutes ?? null,
+      goals: stats.goals?.total ?? 0,
+      assists: stats.goals?.assists ?? 0,
+      shotsTotal: stats.shots?.total ?? null,
+      passesTotal: stats.passes?.total ?? null,
+      passesAccuracy: stats.passes?.accuracy ? Number(stats.passes.accuracy) : null,
+      photo: p?.player?.photo ?? null,
+    }
+  }
+
+  const processLineup = (lineup: any, teamId: number) => {
     if (!lineup) return null
     return {
       formation: lineup.formation,
       startXI: (lineup.startXI || []).map((p: any) => ({
+        id: p.player?.id,
         name: p.player?.name,
         number: p.player?.number,
         pos: p.player?.pos,
         grid: p.player?.grid,
+        stats: findPlayerStats(teamId, p.player?.id),
       })),
       substitutes: (lineup.substitutes || []).map((p: any) => ({
+        id: p.player?.id,
         name: p.player?.name,
         number: p.player?.number,
         pos: p.player?.pos,
+        stats: findPlayerStats(teamId, p.player?.id),
       })),
       coach: lineup.coach?.name,
     }
@@ -249,9 +272,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     plan,
     standings: table,
     lineups: {
-      home: processLineup(homeLineup),
-      away: processLineup(awayLineup),
+      home: processLineup(homeLineup, home_team_id),
+      away: processLineup(awayLineup, away_team_id),
       available: !!(homeLineup || awayLineup),
+      playerStatsAvailable: !!(fixturePlayers && fixturePlayers.length > 0),
     },
     scorePredictions: scorePredictions.slice(0, 6),
     fsData,

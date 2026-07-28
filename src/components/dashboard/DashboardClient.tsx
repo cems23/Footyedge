@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ComboGenerator } from './widgets/ComboGenerator'
 import AnimatedBackground from '@/components/AnimatedBackground'
 
 // ── TYPES ────────────────────────────────────────
@@ -454,7 +455,7 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   const [cornersOpen, setCornersOpen] = useState(true)
   const [firstHalfOpen, setFirstHalfOpen] = useState(true)
   const [dcOpen, setDcOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState<'matches'|'picks'|'analytics'|'radar'|'early'|'oddsRadar'>('matches')
+  const [activeTab, setActiveTab] = useState<'matches'|'picks'|'analytics'|'radar'|'early'|'oddsRadar'|'combo'>('matches')
 
   const [radarData, setRadarData] = useState<any[]>([])
   const [earlyLines, setEarlyLines] = useState<any[]>([])
@@ -741,6 +742,9 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                   📉 {lang === 'en' ? 'Dropping Odds' : 'Caída de Cuotas'}
                 </button>
               )}
+              <button onClick={() => setActiveTab('combo')} style={{ background: activeTab === 'combo' ? 'rgba(0,200,120,0.16)' : 'transparent', border: activeTab === 'combo' ? '1px solid #00c878' : '1px solid #1a2e4a', color: activeTab === 'combo' ? '#00c878' : '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: activeTab === 'combo' ? '0 0 18px rgba(0,200,120,0.28)' : 'none' }}>
+                🎰 {lang === 'en' ? 'Combo Generator' : 'Combinadas'}
+              </button>
               <button onClick={() => router.push('/rankings')} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#ce93d8', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
                 🏆 Rankings
               </button>
@@ -1438,6 +1442,10 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
             <div>
               <ValueRadarComponent data={radarData} lang={lang} />
             </div>
+          )}
+
+          {activeTab === 'combo' && (
+            <ComboGenerator lang={lang} />
           )}
 
           {activeTab === 'oddsRadar' && (

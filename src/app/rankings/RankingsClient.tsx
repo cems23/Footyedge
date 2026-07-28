@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRef } from 'react'
+import { animate, stagger } from 'animejs'
 
 const BG = '#070d1a'
 const CARD = 'rgba(13,30,53,0.6)'
@@ -95,6 +97,11 @@ export default function RankingsClient() {
   const [loading, setLoading] = useState(false)
   const [isPro, setIsPro] = useState(false)
   const [season, setSeason] = useState<number | null>(null)
+  const [presets, setPresets] = useState<any[]>([])
+  const [presetsLoaded, setPresetsLoaded] = useState(false)
+  const [savingPreset, setSavingPreset] = useState(false)
+  const [presetName, setPresetName] = useState('')
+  const presetsListRef = useRef<HTMLDivElement>(null)
   const t = T[lang]
 
   const load = useCallback(async (id: number) => {
@@ -114,6 +121,56 @@ export default function RankingsClient() {
   }, [])
 
   useEffect(() => { load(leagueId) }, [leagueId, load])
+
+  useEffect(() => {
+    fetch('/api/rankings-presets')
+      .then(r => r.json())
+      .then(d => { setPresets(d.presets ?? []); setPresetsLoaded(true) })
+      .catch(() => setPresetsLoaded(true))
+  }, [])
+
+  const animatePresetsIn = () => {
+    requestAnimationFrame(() => {
+      const items = presetsListRef.current?.querySelectorAll('.preset-chip')
+      if (!items || !items.length) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        items.forEach(el => { (el as HTMLElement).style.opacity = '1'; (el as HTMLElement).style.transform = 'none' })
+        return
+      }
+      animate(items, { opacity: [0, 1], scale: [0.85, 1], duration: 350, delay: stagger(60), ease: 'outBack' })
+    })
+  }
+
+  const savePreset = async () => {
+    if (!presetName.trim()) return
+    setSavingPreset(true)
+    try {
+      const res = await fetch('/api/rankings-presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: presetName.trim(), leagueId, scope, sortBy }),
+      })
+      const data = await res.json()
+      if (data.preset) {
+        setPresets(prev => [data.preset, ...prev])
+        setPresetName('')
+        animatePresetsIn()
+      }
+    } finally {
+      setSavingPreset(false)
+    }
+  }
+
+  const applyPreset = (p: any) => {
+    setLeagueId(p.league_id)
+    setScope(p.scope)
+    setSortBy(p.sort_by)
+  }
+
+  const deletePreset = async (id: number) => {
+    setPresets(prev => prev.filter(p => p.id !== id))
+    await fetch(`/api/rankings-presets?id=${id}`, { method: 'DELETE' })
+  }
 
   const sorted = [...rankings].sort((a, b) => (b[scope][sortBy] ?? 0) - (a[scope][sortBy] ?? 0))
 
@@ -158,6 +215,39 @@ export default function RankingsClient() {
             {MARKETS.map(m => <option key={m.key} value={m.key}>{t.sortBy}: {m.label}</option>)}
           </select>
         </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 20 }}>
+          <input
+            type="text"
+            value={presetName}
+            onChange={e => setPresetName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && savePreset()}
+            placeholder={lang === 'es' ? 'Nombre del preset...' : 'Preset name...'}
+            style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '8px 12px', color: 'white', fontSize: 12, outline: 'none', width: 180 }}
+          />
+          <button
+            onClick={savePreset}
+            disabled={savingPreset || !presetName.trim()}
+            style={{ background: 'rgba(0,200,120,0.14)', border: `1px solid ${G}`, color: G, padding: '8px 14px', borderRadius: 8, fontSize: 12, cursor: savingPreset || !presetName.trim() ? 'not-allowed' : 'pointer', opacity: savingPreset || !presetName.trim() ? 0.5 : 1 }}
+          >
+            💾 {lang === 'es' ? 'Guardar' : 'Save'}
+          </button>
+        </div>
+
+        {presetsLoaded && presets.length > 0 && (
+          <div ref={presetsListRef} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 20 }}>
+            {presets.map((p) => (
+              <div key={p.id} className="preset-chip" style={{ display: 'flex', alignItems: 'center', gap: 6, background: CARD, border: `1px solid ${BORDER}`, borderRadius: 999, padding: '4px 6px 4px 12px' }}>
+                <button onClick={() => applyPreset(p)} style={{ background: 'transparent', border: 'none', color: MUTE, fontSize: 12, cursor: 'pointer' }}>
+                  ⭐ {p.name}
+                </button>
+                <button onClick={() => deletePreset(p.id)} style={{ background: 'transparent', border: 'none', color: '#ff4d4d', fontSize: 11, cursor: 'pointer', padding: '2px 6px' }}>
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60, color: MUTE }}>{t.loading}</div>

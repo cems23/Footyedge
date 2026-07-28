@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import AnimatedBackground from "@/components/AnimatedBackground"
+import { PlayerPitch } from "@/components/match/PlayerPitch"
 import { createClient } from "@/lib/supabase/client"
 
 const G = '#00c878'
@@ -69,6 +70,7 @@ export default function MatchPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'analysis'|'compare'|'h2h'|'injuries'|'standings'|'form'|'lineups'|'stats'|'ai'>('analysis')
+  const [lineupView, setLineupView] = useState<'list' | 'pitch'>('pitch')
   const [userPlan, setUserPlan] = useState<string>('free')
   const isElite = userPlan === 'elite'
   const isPro = userPlan === 'pro' || userPlan === 'elite'
@@ -782,6 +784,28 @@ export default function MatchPage() {
                   <div style={{ fontSize: 11, color: '#3a5578', marginTop: 8 }}>El entrenador confirma el XI oficial poco antes del kickoff</div>
                 </div>
               ) : (
+                <>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, justifyContent: 'center' }}>
+                  <button onClick={() => setLineupView('pitch')} style={{ background: lineupView === 'pitch' ? 'rgba(0,200,120,0.16)' : 'transparent', border: lineupView === 'pitch' ? '1px solid #00c878' : '1px solid #1a2e4a', color: lineupView === 'pitch' ? '#00c878' : '#8ba2c0', padding: '6px 16px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}>
+                    ⚽ {lang === 'en' ? 'Pitch' : 'Campo'}
+                  </button>
+                  <button onClick={() => setLineupView('list')} style={{ background: lineupView === 'list' ? 'rgba(0,200,120,0.16)' : 'transparent', border: lineupView === 'list' ? '1px solid #00c878' : '1px solid #1a2e4a', color: lineupView === 'list' ? '#00c878' : '#8ba2c0', padding: '6px 16px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}>
+                    📋 {lang === 'en' ? 'List' : 'Lista'}
+                  </button>
+                </div>
+
+                {lineupView === 'pitch' && (
+                  <PlayerPitch
+                    homeLineup={lineups.home}
+                    awayLineup={lineups.away}
+                    homeName={match.home_team_name}
+                    awayName={match.away_team_name}
+                    lang={lang}
+                    playerStatsAvailable={lineups.playerStatsAvailable}
+                  />
+                )}
+
+                {lineupView === 'list' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   {[{ side: 'home', lineup: lineups.home, name: match.home_team_name, logo: match.home_team_logo, color: '#00bfff' },
                     { side: 'away', lineup: lineups.away, name: match.away_team_name, logo: match.away_team_logo, color: '#ffd700' }
@@ -814,6 +838,8 @@ export default function MatchPage() {
                     </div>
                   ))}
                 </div>
+                )}
+                </>
               )}
             </div>
           )}

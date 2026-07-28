@@ -72,7 +72,7 @@ export const ACTIVE_LEAGUES = [
 
 // ── HTTP HELPERS ────────────────────────────────────────────
 
-async function apf<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
+export async function apf<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
   const key = process.env.API_FOOTBALL_KEY
   if (!key) throw new Error('API_FOOTBALL_KEY missing')
 

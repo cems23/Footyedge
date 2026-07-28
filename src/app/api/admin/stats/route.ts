@@ -100,8 +100,72 @@ export async function GET() {
     market, ...s, hr: s.total ? s.wins / s.total : 0,
   }))
 
+  // AI Signal Check — presupuesto del mes + comparativo hit rate (modo observar)
+  const currentMonthKey = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })()
+
+  const { data: budgetRow } = await admin
+    .from('ai_signal_budget')
+    .select('spent_usd, calls_count')
+    .eq('month', currentMonthKey)
+    .maybeSingle()
+
+  const { data: signalChecks } = await admin
+    .from('ai_signal_checks')
+    .select('match_id, market, confidence_penalty, adjustment, reason, created_at')
+    .order('created_at', { ascending: false })
+    .limit(500)
+
+  let aiSignalHitRateComparison: any = null
+  if (signalChecks && signalChecks.length > 0) {
+    const matchIds = Array.from(new Set(signalChecks.map((s: any) => s.match_id)))
+    const { data: results } = await admin
+      .from('daily_rankings')
+      .select('match_id, market, matches(status, home_goals, away_goals, prob_home_win, prob_draw, prob_away_win, prob_over25, prob_btts)')
+      .in('match_id', matchIds)
+
+    // simplificado: cruzamos por match_id+market contra picks liquidados via probability_picks
+    const { data: settledPicks } = await admin
+      .from('probability_picks')
+      .select('match_id, market, result')
+      .in('match_id', matchIds)
+      .not('result', 'is', null)
+
+    const settledMap = new Map((settledPicks ?? []).map((p: any) => [`${p.match_id}_${p.market}`, p.result]))
+
+    let flaggedTotal = 0, flaggedWon = 0, cleanTotal = 0, cleanWon = 0
+    for (const check of signalChecks as any[]) {
+      const key = `${check.match_id}_${check.market}`
+      const result = settledMap.get(key)
+      if (result === undefined) continue
+      const won = result === 'won' || result === 'W'
+      if (check.confidence_penalty > 15) {
+        flaggedTotal++
+        if (won) flaggedWon++
+      } else {
+        cleanTotal++
+        if (won) cleanWon++
+      }
+    }
+
+    aiSignalHitRateComparison = {
+      flagged: { total: flaggedTotal, won: flaggedWon, hr: flaggedTotal ? flaggedWon / flaggedTotal : null },
+      clean: { total: cleanTotal, won: cleanWon, hr: cleanTotal ? cleanWon / cleanTotal : null },
+    }
+  }
+
   return NextResponse.json({
     probabilityPicksPerformance,
+    aiSignalCheck: {
+      budgetSpentUsd: Number(budgetRow?.spent_usd ?? 0),
+      budgetLimitUsd: 9,
+      callsThisMonth: budgetRow?.calls_count ?? 0,
+      totalChecks: signalChecks?.length ?? 0,
+      recentChecks: (signalChecks ?? []).slice(0, 15),
+      hitRateComparison: aiSignalHitRateComparison,
+    },
     users: {
       total: allUsers?.length ?? 0,
       byPlan,
