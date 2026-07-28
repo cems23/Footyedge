@@ -2,10 +2,14 @@ name: Settle Results (hourly)
 
 on:
   schedule:
-    # Cada hora al minuto 15 — liquida partidos terminados (kickoff hace >2h)
-    # sin esperar al cron principal de 4x/día. Así los resultados aparecen
-    # máximo ~1h después de que el partido sea liquidable.
-    - cron: '15 * * * *'
+    # GitHub Actions no garantiza que un cron corra exactamente cuando debería
+    # ("best-effort", puede saltearse bajo carga sin reintento — documentado
+    # por GitHub). Para compensar, disparamos el mismo job idempotente 3 veces
+    # por hora en minutos separados en vez de depender de una sola corrida.
+    # Si una se saltea, las otras dos igual liquidan los partidos pendientes.
+    - cron: '7 * * * *'
+    - cron: '27 * * * *'
+    - cron: '47 * * * *'
   workflow_dispatch: {}
 
 jobs:
