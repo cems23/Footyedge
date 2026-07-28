@@ -8,10 +8,18 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: records } = await supabase
+  // 25/07/2026: fix del bug de doble conteo de ventaja local en Home. Los datos
+  // de antes mezclan errores ya corregidos con el modelo actual — no es
+  // comparable, así que el widget de cara al usuario solo cuenta desde acá.
+  // El histórico completo sigue disponible en /admin para análisis interno.
+  const MODEL_CUTOFF = '2026-07-25'
+
+  const { data: allRecords } = await supabase
     .from('model_performance')
     .select('*')
     .order('match_date', { ascending: false })
+
+  const records = (allRecords ?? []).filter(r => r.match_date >= MODEL_CUTOFF)
 
   // BTTS "señal del día" (probability_picks) — no pasan por el filtro de edge/EV,
   // asi que no tienen cuota guardada. Se miden aparte por winRate, sin ROI.
@@ -19,6 +27,7 @@ export async function GET() {
     .from('probability_picks')
     .select('result')
     .eq('market', 'btts')
+    .gte('date', MODEL_CUTOFF)
     .not('result', 'is', null)
 
   const probTotal = probRecords?.length ?? 0

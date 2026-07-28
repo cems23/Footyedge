@@ -9,6 +9,7 @@ type Metrics = {
   byMarket: MarketStat[]
   last10: ('win' | 'loss')[]
   probabilityPicks: { market: string; total: number; wins: number; winRate: number } | null
+  equityCurve: { date: string; profit: number }[]
 }
 
 const MARKET_LABELS: Record<string, { es: string; en: string }> = {
@@ -80,6 +81,19 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
         duration: 380,
         ease: 'outBack',
       })
+
+      const path = rootRef.current?.querySelector('[data-equity-path]') as SVGPathElement | null
+      if (path) {
+        const len = path.getTotalLength()
+        path.style.strokeDasharray = `${len}`
+        path.style.strokeDashoffset = `${len}`
+        animate(path, {
+          strokeDashoffset: [{ from: len, to: 0 }],
+          duration: 1400,
+          delay: 300,
+          ease: 'outExpo',
+        })
+      }
     })
 
     return () => scope.revert()
@@ -104,6 +118,43 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#4a6785' }}>{T.subtitle}</span>
       </div>
 
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 18, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 10, color: '#8ba2c0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+            {lang === 'en' ? 'Profit (units staked)' : 'Ganancia (unidades apostadas)'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, lineHeight: 1, color: metrics.profit >= 0 ? '#00c878' : '#ff6b6b', textShadow: metrics.profit >= 0 ? '0 0 20px rgba(0,200,120,0.4)' : 'none' }}>
+              {metrics.profit >= 0 ? '+' : ''}{metrics.profit.toFixed(1)}u
+            </span>
+            <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: metrics.roi >= 0 ? '#00c878' : '#ff6b6b' }}>
+              ROI {metrics.roi >= 0 ? '+' : ''}{metrics.roi.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+        {metrics.equityCurve.length >= 2 && (() => {
+          const w = 260, h = 60, pad = 4
+          const profits = metrics.equityCurve.map(e => e.profit)
+          const min = Math.min(0, ...profits)
+          const max = Math.max(0, ...profits)
+          const range = (max - min) || 1
+          const stepX = (w - pad * 2) / (metrics.equityCurve.length - 1)
+          const toY = (p: number) => h - pad - ((p - min) / range) * (h - pad * 2)
+          const points = metrics.equityCurve.map((e, i) => `${pad + i * stepX},${toY(e.profit)}`)
+          const d = `M ${points.join(' L ')}`
+          const lineColor = metrics.profit >= 0 ? '#00c878' : '#ff6b6b'
+          return (
+            <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ flexShrink: 0 }}>
+              <line x1={pad} y1={toY(0)} x2={w - pad} y2={toY(0)} stroke="#1a2e4a" strokeWidth={1} strokeDasharray="3,3" />
+              <path data-equity-path d={d} fill="none" stroke={lineColor} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )
+        })()}
+      </div>
+
+      <div style={{ fontSize: 10, color: '#4a6785', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+        {lang === 'en' ? 'Hit rate by market' : 'Hit rate por mercado'}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 16 }}>
         {allMarkets.map(m => {
           const color = heatColor(m.winRate)
