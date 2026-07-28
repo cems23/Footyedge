@@ -23,6 +23,7 @@ const MARKET_LABELS: Record<string, { es: string; en: string }> = {
 }
 
 const MIN_SAMPLE_SIZE = 100
+const MIN_SAMPLE_SIZE_MARKETS = 50
 
 function heatColor(winRate: number) {
   if (winRate >= 60) return '#00c878'
@@ -120,17 +121,17 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#4a6785' }}>{T.subtitle}</span>
       </div>
 
-      {metrics.total < MIN_SAMPLE_SIZE ? (() => {
+      {metrics.total < MIN_SAMPLE_SIZE_MARKETS && (() => {
         const over25 = allMarkets.find(m => m.market === 'over25')
         return (
-          <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+          <div style={{ textAlign: 'center', padding: '16px 10px' }}>
             <div style={{ fontSize: 13, color: '#8ba2c0', marginBottom: 10 }}>
               {lang === 'en'
-                ? `Accumulating data: ${metrics.total}/${MIN_SAMPLE_SIZE} settled bets since the model recalibration.`
-                : `Acumulando datos: ${metrics.total}/${MIN_SAMPLE_SIZE} apuestas liquidadas desde la recalibración del modelo.`}
+                ? `Accumulating data: ${metrics.total}/${MIN_SAMPLE_SIZE_MARKETS} settled bets since the model recalibration.`
+                : `Acumulando datos: ${metrics.total}/${MIN_SAMPLE_SIZE_MARKETS} apuestas liquidadas desde la recalibración del modelo.`}
             </div>
             <div style={{ height: 4, background: '#0d1e35', borderRadius: 2, overflow: 'hidden', maxWidth: 320, margin: '0 auto 14px' }}>
-              <div style={{ height: '100%', width: `${Math.min(100, (metrics.total / MIN_SAMPLE_SIZE) * 100)}%`, background: '#00c878', borderRadius: 2 }} />
+              <div style={{ height: '100%', width: `${Math.min(100, (metrics.total / MIN_SAMPLE_SIZE_MARKETS) * 100)}%`, background: '#00c878', borderRadius: 2 }} />
             </div>
             {over25 && (
               <div style={{ fontSize: 12, color: '#8ba2c0' }}>
@@ -141,42 +142,46 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
             )}
           </div>
         )
-      })() : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 18, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: 10, color: '#8ba2c0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-                {lang === 'en' ? 'Profit (units staked)' : 'Ganancia (unidades apostadas)'}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, lineHeight: 1, color: metrics.profit >= 0 ? '#00c878' : '#ff6b6b', textShadow: metrics.profit >= 0 ? '0 0 20px rgba(0,200,120,0.4)' : 'none' }}>
-                  {metrics.profit >= 0 ? '+' : ''}{metrics.profit.toFixed(1)}u
-                </span>
-                <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: metrics.roi >= 0 ? '#00c878' : '#ff6b6b' }}>
-                  ROI {metrics.roi >= 0 ? '+' : ''}{metrics.roi.toFixed(1)}%
-                </span>
-              </div>
-            </div>
-            {metrics.equityCurve.length >= 2 && (() => {
-              const w = 260, h = 60, pad = 4
-              const profits = metrics.equityCurve.map(e => e.profit)
-              const min = Math.min(0, ...profits)
-              const max = Math.max(0, ...profits)
-              const range = (max - min) || 1
-              const stepX = (w - pad * 2) / (metrics.equityCurve.length - 1)
-              const toY = (p: number) => h - pad - ((p - min) / range) * (h - pad * 2)
-              const points = metrics.equityCurve.map((e, i) => `${pad + i * stepX},${toY(e.profit)}`)
-              const d = `M ${points.join(' L ')}`
-              const lineColor = metrics.profit >= 0 ? '#00c878' : '#ff6b6b'
-              return (
-                <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ flexShrink: 0 }}>
-                  <line x1={pad} y1={toY(0)} x2={w - pad} y2={toY(0)} stroke="#1a2e4a" strokeWidth={1} strokeDasharray="3,3" />
-                  <path data-equity-path d={d} fill="none" stroke={lineColor} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )
-            })()}
-          </div>
+      })()}
 
+      {metrics.total >= MIN_SAMPLE_SIZE && (
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 18, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 10, color: '#8ba2c0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              {lang === 'en' ? 'Profit (units staked)' : 'Ganancia (unidades apostadas)'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, lineHeight: 1, color: metrics.profit >= 0 ? '#00c878' : '#ff6b6b', textShadow: metrics.profit >= 0 ? '0 0 20px rgba(0,200,120,0.4)' : 'none' }}>
+                {metrics.profit >= 0 ? '+' : ''}{metrics.profit.toFixed(1)}u
+              </span>
+              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: metrics.roi >= 0 ? '#00c878' : '#ff6b6b' }}>
+                ROI {metrics.roi >= 0 ? '+' : ''}{metrics.roi.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+          {metrics.equityCurve.length >= 2 && (() => {
+            const w = 260, h = 60, pad = 4
+            const profits = metrics.equityCurve.map(e => e.profit)
+            const min = Math.min(0, ...profits)
+            const max = Math.max(0, ...profits)
+            const range = (max - min) || 1
+            const stepX = (w - pad * 2) / (metrics.equityCurve.length - 1)
+            const toY = (p: number) => h - pad - ((p - min) / range) * (h - pad * 2)
+            const points = metrics.equityCurve.map((e, i) => `${pad + i * stepX},${toY(e.profit)}`)
+            const d = `M ${points.join(' L ')}`
+            const lineColor = metrics.profit >= 0 ? '#00c878' : '#ff6b6b'
+            return (
+              <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ flexShrink: 0 }}>
+                <line x1={pad} y1={toY(0)} x2={w - pad} y2={toY(0)} stroke="#1a2e4a" strokeWidth={1} strokeDasharray="3,3" />
+                <path data-equity-path d={d} fill="none" stroke={lineColor} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )
+          })()}
+        </div>
+      )}
+
+      {metrics.total >= MIN_SAMPLE_SIZE_MARKETS && (
+        <>
           <div style={{ fontSize: 10, color: '#4a6785', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
             {lang === 'en' ? 'Hit rate by market' : 'Hit rate por mercado'}
           </div>
