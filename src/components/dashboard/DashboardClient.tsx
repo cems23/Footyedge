@@ -716,11 +716,16 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
     const active = container.querySelector(`[data-league-key="${selectedLeague}"]`) as HTMLElement | null
     const highlight = container.querySelector('[data-highlight]') as HTMLElement | null
     if (!active || !highlight) return
+    // getBoundingClientRect en vez de offsetLeft/offsetTop: evita que los wrappers
+    // con position:relative (para el zIndex de las estrellas) rompan el calculo,
+    // porque offsetLeft/offsetTop dependen del ancestro posicionado mas cercano.
+    const containerRect = container.getBoundingClientRect()
+    const activeRect = active.getBoundingClientRect()
     animate(highlight, {
-      left: active.offsetLeft,
-      top: active.offsetTop,
-      width: active.offsetWidth,
-      height: active.offsetHeight,
+      left: activeRect.left - containerRect.left + container.scrollLeft,
+      top: activeRect.top - containerRect.top + container.scrollTop,
+      width: activeRect.width,
+      height: activeRect.height,
       duration: 550,
       ease: 'outElastic',
     })
@@ -1071,30 +1076,28 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const pct = Math.round(m.prob_btts * 100)
                       const color = pct >= 70 ? '#00c878' : pct >= 60 ? '#ffb400' : '#6b7fa3'
                       const isHot = pct >= 65
-                      const circ = 2 * Math.PI * 26
                       return (
                         <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                          style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 14, borderRadius: 14, border: '1px solid #1a2e4a', background: 'rgba(13,30,53,0.75)', padding: '14px 16px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
-                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = `${color}99`; el.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
-                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
-                          {isHot && <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 12, zIndex: 1 }}>🔥</span>}
-                          <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0, marginTop: 2 }}>
-                            <circle cx="29" cy="29" r="24" stroke="#0a1628" strokeWidth="6" fill="none" />
-                            <circle data-ring cx="29" cy="29" r="24" stroke={color} strokeWidth="6" fill="none" strokeLinecap="round"
-                              strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * (1 - pct / 100)}`} transform="rotate(-90 29 29)"
-                              style={{ filter: pct >= 70 ? 'drop-shadow(0 0 6px rgba(0,200,120,0.55))' : 'none' }} />
-                            <text data-pct={pct} x="29" y="35" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="16">0%</text>
+                          style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 18, borderRadius: 16, border: `1px solid ${color}45`, background: 'rgba(13,30,53,0.75)', padding: '20px 22px', cursor: 'pointer', boxShadow: `0 0 22px ${color}1a`, transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = `${color}99`; el.style.boxShadow = `0 14px 34px rgba(0,0,0,0.45), 0 0 32px ${color}33` }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = `${color}45`; el.style.boxShadow = `0 0 22px ${color}1a` }}>
+                          {isHot && <span style={{ position: 'absolute', top: 10, right: 12, fontSize: 14, zIndex: 1 }}>🔥</span>}
+                          <svg width="70" height="70" viewBox="0 0 70 70" style={{ flexShrink: 0, marginTop: 2 }}>
+                            <circle cx="35" cy="35" r="29" stroke="#0a1628" strokeWidth="7" fill="none" />
+                            <circle data-ring cx="35" cy="35" r="29" stroke={color} strokeWidth="7" fill="none" strokeLinecap="round"
+                              strokeDasharray={`${2 * Math.PI * 29}`} strokeDashoffset={`${2 * Math.PI * 29 * (1 - pct / 100)}`} transform="rotate(-90 35 35)"
+                              style={{ filter: pct >= 70 ? 'drop-shadow(0 0 7px rgba(0,200,120,0.55))' : 'none' }} />
+                            <text data-pct={pct} x="35" y="41" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="19">0%</text>
                           </svg>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-                              {m.home_team_logo && <img src={m.home_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
-                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
+                          <div style={{ minWidth: 0, flex: 1, paddingTop: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 6 }}>
+                              {m.home_team_logo && <img src={m.home_team_logo} width={20} height={20} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
                               <span style={{ fontSize: 12, color: '#00c878' }}>vs</span>
-                              {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
-                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
+                              {m.away_team_logo && <img src={m.away_team_logo} width={20} height={20} alt="" style={{ borderRadius: 3 }} />}
+                              <span style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
                             </div>
-                            <div style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
-                            <div style={{ fontSize: 10, color: '#6b7fa3', marginTop: 4 }}>λ {m.expected_goals_home?.toFixed(2)}+{m.expected_goals_away?.toFixed(2)}</div>
+                            <div style={{ fontSize: 11, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
                           </div>
                         </div>
                       )
