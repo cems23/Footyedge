@@ -8,15 +8,17 @@ type Metrics = {
   total: number; wins: number; losses: number; winRate: number; roi: number; profit: number
   byMarket: MarketStat[]
   last10: ('win' | 'loss')[]
+  probabilityPicks: { market: string; total: number; wins: number; winRate: number } | null
 }
 
 const MARKET_LABELS: Record<string, { es: string; en: string }> = {
-  btts: { es: 'BTTS', en: 'BTTS' },
+  btts: { es: 'BTTS (value bet)', en: 'BTTS (value bet)' },
   over25: { es: 'Over 2.5', en: 'Over 2.5' },
   over15: { es: 'Over 1.5', en: 'Over 1.5' },
   home: { es: 'Local', en: 'Home' },
   away: { es: 'Visitante', en: 'Away' },
   draw: { es: 'Empate', en: 'Draw' },
+  btts_signal: { es: 'BTTS (señal del día)', en: 'BTTS (daily signal)' },
 }
 
 function heatColor(winRate: number) {
@@ -51,7 +53,7 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
         },
       })
 
-      metrics.byMarket.forEach((m, i) => {
+      allMarkets.forEach((m, i) => {
         const c = { val: 0 }
         animate(c, {
           val: m.winRate,
@@ -85,6 +87,10 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
 
   if (!metrics) return null
 
+  const allMarkets = metrics.probabilityPicks
+    ? [...metrics.byMarket, { market: metrics.probabilityPicks.market, total: metrics.probabilityPicks.total, wins: metrics.probabilityPicks.wins, winRate: metrics.probabilityPicks.winRate, roi: 0, profit: 0 }]
+    : metrics.byMarket
+
   const T = {
     title: lang === 'en' ? '// AI MODEL PERFORMANCE' : '// RENDIMIENTO DEL MODELO',
     subtitle: lang === 'en' ? `Based on ${metrics.total} settled bets` : `Basado en ${metrics.total} apuestas liquidadas`,
@@ -99,7 +105,7 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 16 }}>
-        {metrics.byMarket.map(m => {
+        {allMarkets.map(m => {
           const color = heatColor(m.winRate)
           const label = MARKET_LABELS[m.market]?.[lang === 'en' ? 'en' : 'es'] ?? m.market
           return (

@@ -13,8 +13,22 @@ export async function GET() {
     .select('*')
     .order('match_date', { ascending: false })
 
+  // BTTS "señal del día" (probability_picks) — no pasan por el filtro de edge/EV,
+  // asi que no tienen cuota guardada. Se miden aparte por winRate, sin ROI.
+  const { data: probRecords } = await supabase
+    .from('probability_picks')
+    .select('result')
+    .eq('market', 'btts')
+    .not('result', 'is', null)
+
+  const probTotal = probRecords?.length ?? 0
+  const probWins = probRecords?.filter(r => r.result === 'win').length ?? 0
+  const probabilityPicks = probTotal > 0
+    ? { market: 'btts_signal', total: probTotal, wins: probWins, winRate: +((probWins / probTotal) * 100).toFixed(1) }
+    : null
+
   if (!records?.length) {
-    return NextResponse.json({ hasData: false, metrics: null })
+    return NextResponse.json({ hasData: !!probabilityPicks, metrics: probabilityPicks ? { total: 0, wins: 0, losses: 0, winRate: 0, roi: 0, profit: 0, avgOdds: 0, avgEv: 0, byMarket: [], byLeague: [], equityCurve: [], last10: [], probabilityPicks } : null })
   }
 
   const total = records.length
@@ -86,6 +100,7 @@ export async function GET() {
       byLeague,
       equityCurve,
       last10,
+      probabilityPicks,
     }
   })
 }
