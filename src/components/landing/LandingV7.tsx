@@ -404,6 +404,10 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
       >
         <a href={`/${lang}`} style={{ textDecoration: 'none' }}><Logo size={scrolled ? 90 : 132} /></a>
 
+        <a href="https://theresanaiforthat.com/ai/footyedge/?ref=featured&v=525272" target="_blank" rel="nofollow" className="fe-taaft-badge" style={{ display: 'flex', alignItems: 'center' }}>
+          <img width={170} src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" alt="Featured on There's An AI For That" style={{ display: 'block' }} />
+        </a>
+
         <nav className="fe-nav" style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
           {(lang === 'es'
             ? [['#engine', 'Motor'], ['#features', 'Producto'], ['#pricing', 'Precios']]
@@ -778,9 +782,16 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         <a data-reveal className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={{ ...btnStyle(true, 'lg'), position: 'relative' }}>{lang === 'es' ? 'Empezar gratis — sin tarjeta' : 'Start free — no card needed'}</a>
       </section>
 
-      <footer style={{ borderTop: `1px solid ${C.line}`, padding: '32px clamp(16px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
+      <footer style={{ borderTop: `1px solid ${C.line}`, padding: '32px clamp(16px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-between', alignItems: 'center' }}>
         <Logo size={80} />
-        <span style={{ ...mono, fontSize: 12, color: C.mute }}>© {new Date().getFullYear()} FootyEdge · 18+ · {lang === 'es' ? 'Apuesta con responsabilidad' : 'Bet responsibly'}</span>
+        <a href="https://theresanaiforthat.com/ai/footyedge/?ref=featured&v=525272" target="_blank" rel="nofollow">
+          <img width={200} src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" alt="Featured on There's An AI For That" style={{ display: 'block' }} />
+        </a>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
+          <a href="/privacy" style={{ ...mono, fontSize: 12, color: C.mute, textDecoration: 'none' }}>{lang === 'es' ? 'Privacidad' : 'Privacy'}</a>
+          <a href="/terms" style={{ ...mono, fontSize: 12, color: C.mute, textDecoration: 'none' }}>{lang === 'es' ? 'Términos' : 'Terms'}</a>
+          <span style={{ ...mono, fontSize: 12, color: C.mute }}>© {new Date().getFullYear()} FootyEdge · 18+ · {lang === 'es' ? 'Apuesta con responsabilidad' : 'Bet responsibly'}</span>
+        </div>
       </footer>
     </main>
   );
