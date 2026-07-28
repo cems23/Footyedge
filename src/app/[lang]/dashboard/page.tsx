@@ -12,7 +12,7 @@ export default function DashboardPage({ params }: { params: { lang: string } }) 
     over15: [],
     over25: [],
     performance: null,
-    user: { plan: "free", picks_today: 0, bankroll: 100 },
+    user: { plan: "free", picks_today: 0 },
     today: new Date().toISOString().split("T")[0],
   })
 

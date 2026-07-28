@@ -20,6 +20,7 @@ export async function GET() {
   const total = records.length
   const wins = records.filter(r => r.result === 'win').length
   const losses = records.filter(r => r.result === 'loss').length
+  const last10 = records.slice(0, 10).map(r => (r.result === 'win' ? 'win' : 'loss'))
   const profit = records.reduce((s, r) => s + (r.profit ?? 0), 0)
   const roi = total > 0 ? (profit / total) * 100 : 0
   const winRate = total > 0 ? (wins / total) * 100 : 0
@@ -84,6 +85,7 @@ export async function GET() {
       byMarket,
       byLeague,
       equityCurve,
+      last10,
     }
   })
 }

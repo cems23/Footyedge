@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ComboGenerator } from './widgets/ComboGenerator'
 import AnimatedBackground from '@/components/AnimatedBackground'
+import AIPerformanceWidget from './AIPerformanceWidget'
 
 // ── TYPES ────────────────────────────────────────
 interface Ranking {
@@ -99,7 +100,7 @@ interface Props {
   firsthalf?: MatchData[]
   doublechance?: MatchData[]
   performance: Performance | null
-  user: { plan: string; picks_today: number; bankroll: number; email?: string }
+  user: { plan: string; picks_today: number; email?: string }
   today: string
   lang?: string
 }
@@ -437,20 +438,6 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   const [filterBtts, setFilterBtts] = useState(0)
   const [filterOv25, setFilterOv25] = useState(0)
   const [valueBetsOpen, setValueBetsOpen] = useState(true)
-  const [bankroll, setBankroll] = useState<number>(user.bankroll || 1000)
-  const [editingBankroll, setEditingBankroll] = useState(false)
-
-  // Kelly Fraccionado (1/4 Kelly para menor volatilidad)
-  const calcKellyStake = (odds: number, ev: number, bankroll: number) => {
-    const p = ev / odds + 1 / odds  // prob implícita del modelo
-    const b = odds - 1
-    const q = 1 - p
-    const kelly = (b * p - q) / b
-    const fraction = Math.max(0, kelly / 4) // 1/4 Kelly
-    const stake = fraction * bankroll
-    return { pct: (fraction * 100).toFixed(1), amount: stake.toFixed(0) }
-  }
-
   const [bttsOpen, setBttsOpen] = useState(true)
   const [cornersOpen, setCornersOpen] = useState(true)
   const [firstHalfOpen, setFirstHalfOpen] = useState(true)
@@ -755,23 +742,6 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 📖 {lang === 'en' ? 'Glossary' : 'Glosario'}
               </button>
 
-              {/* Bankroll editable */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,180,0,0.08)', border: '1px solid rgba(255,180,0,0.25)', borderRadius: 6, padding: '4px 8px' }}>
-                <span style={{ fontSize: 12 }}>🪙</span>
-                {editingBankroll ? (
-                  <input
-                    type="number"
-                    defaultValue={bankroll}
-                    autoFocus
-                    onBlur={e => { setBankroll(Number(e.target.value) || 1000); setEditingBankroll(false) }}
-                    onKeyDown={e => { if (e.key === 'Enter') { setBankroll(Number((e.target as HTMLInputElement).value) || 1000); setEditingBankroll(false) } }}
-                    style={{ width: 60, background: 'transparent', border: 'none', color: '#ffb400', fontSize: 11, fontFamily: 'inherit', outline: 'none', textAlign: 'right' }}
-                  />
-                ) : (
-                  <span onClick={() => setEditingBankroll(true)} style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, letterSpacing: '0.03em', color: '#ffb400', cursor: 'pointer', minWidth: 40, textAlign: 'right' }} title={lang === 'en' ? 'Click to edit bankroll' : 'Click para editar bankroll'}>{bankroll.toLocaleString()}</span>
-                )}
-              </div>
-
               {isPro && (
                 <button onClick={openPortal} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
                   ⚙️ {lang === 'en' ? 'Manage Plan' : 'Gestionar Plan'}
@@ -830,6 +800,8 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 </div>
               )}
 
+              <AIPerformanceWidget lang={lang} />
+
               {/* VALUE BETS SECTION */}
               <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
                 <div onClick={() => setValueBetsOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', cursor: 'pointer', borderBottom: valueBetsOpen ? '1px solid #1a2e4a' : 'none' }}>
@@ -875,7 +847,6 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const r = visibleRankings[0]
                       const locked = r.is_pro_only && !isPro
                       const badge = mktBadge(r.market, lang)
-                      const k = calcKellyStake(r.odds, r.ev, bankroll)
                       const rating = Math.max(1, Math.min(10, Math.round((r.confidence_score ?? 50) / 10)))
                       return (
                         <div onClick={() => !locked && router.push(`/${lang || 'es'}/match/${r.match_id}`)}
@@ -904,7 +875,6 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: '#f6b93b' }}>{rating}<span style={{ fontSize: 11, color: '#8ba2c0' }}>/10</span></span>
                               <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 52, lineHeight: 1, color: '#00c878', textShadow: '0 0 24px rgba(0,200,120,0.55)' }}>{locked ? '🔒' : `EV +${(r.ev * 100).toFixed(0)}%`}</div>
                             </div>
-                            <div style={{ fontSize: 12, color: '#f6b93b', fontWeight: 700, marginTop: 4 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
                             {r.model_prob_raw != null && r.market_implied_prob != null && (
                               <div style={{ fontSize: 10, color: '#64b5f6', marginTop: 4 }}>
                                 📊 {lang === 'en' ? 'Model diverges' : 'Modelo diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts from market' : 'pts del mercado'}
@@ -918,7 +888,6 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       {visibleRankings.slice(1).map((r) => {
                         const locked = r.is_pro_only && !isPro
                         const badge = mktBadge(r.market, lang)
-                        const k = calcKellyStake(r.odds, r.ev, bankroll)
                         const rating = Math.max(1, Math.min(10, Math.round((r.confidence_score ?? 50) / 10)))
 
                         if (locked) {
@@ -977,7 +946,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                                 <div style={{ height: '100%', width: `${Math.min(100, (r.ev / 0.2) * 100)}%`, background: 'linear-gradient(90deg, #00c878, #4dffb0)', borderRadius: 2 }} />
                               </div>
                             </div>
-                            <div style={{ fontSize: 11, color: '#f6b93b', fontWeight: 700 }}>🎯 Kelly {k.pct}% · {k.amount} 🪙</div>
+
                             {r.model_prob_raw != null && r.market_implied_prob != null && (
                               <div style={{ fontSize: 10, color: '#64b5f6', marginTop: 6, borderTop: '1px solid #1a2e4a', paddingTop: 6 }}>
                                 📊 {lang === 'en' ? 'Model diverges' : 'Modelo diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts from market' : 'pts del mercado'}
