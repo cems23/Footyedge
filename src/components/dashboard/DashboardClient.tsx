@@ -212,7 +212,7 @@ function ProbCell({ v }: { v: number }) {
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 17, letterSpacing: '0.03em', color: c, lineHeight: 1, textShadow: v >= 0.7 ? `0 0 12px ${c}66` : 'none' }}>{pct}%</div>
       <div style={{ height: 3, background: '#0a1628', borderRadius: 2, marginTop: 3, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: c, borderRadius: 2 }} />
+        <div data-probbar data-bar-target={pct} style={{ height: '100%', width: 0, background: c, borderRadius: 2 }} />
       </div>
     </div>
   )
@@ -467,6 +467,8 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   }, [btts])
   const [cornersOpen, setCornersOpen] = useState(true)
   const cornersGridRef = useRef<HTMLDivElement>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
+  const leagueTabsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!cornersGridRef.current) return
@@ -685,6 +687,44 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
       if (sortBy === 'hot') return ((b.prob_btts + b.prob_over25) / 2) - ((a.prob_btts + a.prob_over25) / 2)
       return 0
     })
+
+  const edgeMatchIds = new Set(rankings.filter(r => r.ev > 0).map(r => String(r.match_id)))
+
+  useEffect(() => {
+    if (!tableRef.current) return
+    const scope = createScope({ root: tableRef }).add(() => {
+      animate('[data-row]', {
+        opacity: [{ from: 0, to: 1 }],
+        translateY: [{ from: -10, to: 0 }],
+        delay: stagger(30),
+        duration: 350,
+        ease: 'outQuad',
+      })
+      animate('[data-probbar]', {
+        width: (el: any) => `${el.getAttribute('data-bar-target')}%`,
+        duration: 700,
+        delay: stagger(15),
+        ease: 'outExpo',
+      })
+    })
+    return () => scope.revert()
+  }, [selectedLeague, sortBy, filterBtts, filterOv25, showFavorites, allMatches.length])
+
+  useEffect(() => {
+    if (!leagueTabsRef.current) return
+    const container = leagueTabsRef.current
+    const active = container.querySelector(`[data-league-key="${selectedLeague}"]`) as HTMLElement | null
+    const highlight = container.querySelector('[data-highlight]') as HTMLElement | null
+    if (!active || !highlight) return
+    animate(highlight, {
+      left: active.offsetLeft,
+      top: active.offsetTop,
+      width: active.offsetWidth,
+      height: active.offsetHeight,
+      duration: 550,
+      ease: 'outElastic',
+    })
+  }, [selectedLeague, leagues.length])
 
   const freeRankings = rankings
     .filter(r => r.market === 'over15')
@@ -1243,19 +1283,20 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
               </div>
 
               {/* LEAGUE FILTERS */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
-                <button onClick={() => setSelectedLeague('all')} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap', background: selectedLeague === 'all' ? 'rgba(0,200,120,0.15)' : 'transparent', border: `1px solid ${selectedLeague === 'all' ? '#00c878' : '#1a2e4a'}`, color: selectedLeague === 'all' ? '#00c878' : '#6b7fa3' }}>
+              <div ref={leagueTabsRef} style={{ position: 'relative', display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
+                <div data-highlight style={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0, background: 'rgba(0,200,120,0.15)', border: '1px solid #00c878', borderRadius: 20, pointerEvents: 'none', zIndex: 0 }} />
+                <button data-league-key="all" onClick={() => setSelectedLeague('all')} style={{ position: 'relative', zIndex: 1, padding: '3px 10px', borderRadius: 20, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap', background: selectedLeague === 'all' ? 'rgba(0,200,120,0.15)' : 'transparent', border: `1px solid ${selectedLeague === 'all' ? '#00c878' : '#1a2e4a'}`, color: selectedLeague === 'all' ? '#00c878' : '#6b7fa3' }}>
                   {T.allLeagues} ({allMatches.length})
                 </button>
                 {leagues.map((lg) => (
-                  <div key={String(lg.id || lg.name)} style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                  <div key={String(lg.id || lg.name)} style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, position: 'relative', zIndex: 1 }}>
                     {isElite && (
                       <button onClick={() => toggleFavorite(lg.name)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, padding: '0 2px', opacity: favoriteLeagues.includes(lg.name) ? 1 : 0.3, lineHeight: 1 }}>
                         ⭐
                       </button>
                     )}
-                    <button onClick={() => setSelectedLeague(lg.name)} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap', background: selectedLeague === lg.name ? 'rgba(0,200,120,0.15)' : 'transparent', border: `1px solid ${selectedLeague === lg.name ? '#00c878' : '#1a2e4a'}`, color: selectedLeague === lg.name ? '#00c878' : '#6b7fa3' }}>
+                    <button data-league-key={lg.name} onClick={() => setSelectedLeague(lg.name)} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap', background: selectedLeague === lg.name ? 'rgba(0,200,120,0.15)' : 'transparent', border: `1px solid ${selectedLeague === lg.name ? '#00c878' : '#1a2e4a'}`, color: selectedLeague === lg.name ? '#00c878' : '#6b7fa3' }}>
                       {getFlag(lg.name, lg.id)} {lg.name} ({lg.count})
                     </button>
                   </div>
@@ -1271,7 +1312,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
               )}
 
               {/* MAIN MATCHES TABLE */}
-              <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+              <div ref={tableRef} style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
                 {filteredMatches.length === 0 && (
                   <div style={{ padding: 48, textAlign: 'center', color: '#8ba2c0', fontSize: 13, letterSpacing: '0.04em' }}>
                     {T.noMatches}
@@ -1293,13 +1334,14 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
                       const isDone = ['FT','AET','PEN','AWD','WO'].includes(m.status ?? '')
                       return (
-                        <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
+                        <div key={m.id} data-row onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
                           style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, alignItems: 'center', padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', transition: 'background 0.1s', background: isLive ? 'rgba(255,50,50,0.03)' : 'transparent', opacity: isDone ? 0.55 : 1 }}
                           onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(0,200,120,0.06)'; el.style.transform = 'translateX(4px)'; el.style.transition = 'background 0.15s ease, transform 0.15s ease' }}
                           onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.transform = 'translateX(0px)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 28 }}>
                             <span style={{ fontSize: 12 }}>{getFlag(m.league_name, m.league_id)}</span>
                             {isHot && !isDone && <span style={{ fontSize: 9 }}>🔥</span>}
+                            {edgeMatchIds.has(String(m.id)) && !isDone && <span title="Value Edge" style={{ fontSize: 9 }}>⚡</span>}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                             {m.home_team_logo && <img src={m.home_team_logo} width={14} height={14} alt="" style={{ flexShrink: 0 }} />}
@@ -1344,7 +1386,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
                       const isDone = ['FT','AET','PEN','AWD','WO'].includes(m.status ?? '')
                       return (
-                        <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
+                        <div key={m.id} data-row onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
                           style={{ padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', opacity: isDone ? 0.55 : 1 }}>
                           {/* Teams row */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -1359,6 +1401,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 8 }}>
                               {isLive && <span style={{ fontSize: 9, background: '#ff333320', border: '1px solid #ff3333', color: '#ff5555', padding: '1px 4px', borderRadius: 3 }}>LIVE</span>}
                               {isHot && !isDone && <span style={{ fontSize: 12 }}>🔥</span>}
+                              {edgeMatchIds.has(String(m.id)) && !isDone && <span title="Value Edge" style={{ fontSize: 12 }}>⚡</span>}
                               <span style={{ fontSize: 12, color: '#6b7fa3' }}>{isDone ? (lang === 'en' ? 'FT' : 'FIN') : timeStr(m.kickoff_at, lang)}</span>
                             </div>
                           </div>
