@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ComboGenerator } from './widgets/ComboGenerator'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import AIPerformanceWidget from './AIPerformanceWidget'
+import { animate, stagger, createScope } from 'animejs'
 
 // ── TYPES ────────────────────────────────────────
 interface Ranking {
@@ -439,6 +440,31 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   const [filterOv25, setFilterOv25] = useState(0)
   const [valueBetsOpen, setValueBetsOpen] = useState(true)
   const [bttsOpen, setBttsOpen] = useState(true)
+  const bttsGridRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!bttsGridRef.current) return
+    const scope = createScope({ root: bttsGridRef }).add(() => {
+      animate('[data-ring]', {
+        strokeDashoffset: { from: 2 * Math.PI * 24 },
+        duration: 900,
+        delay: stagger(70),
+        ease: 'outExpo',
+      })
+      bttsGridRef.current?.querySelectorAll('[data-pct]').forEach((el, i) => {
+        const target = Number(el.getAttribute('data-pct'))
+        const counter = { val: 0 }
+        animate(counter, {
+          val: target,
+          duration: 900,
+          delay: 70 * i,
+          ease: 'outExpo',
+          onUpdate: () => { el.textContent = Math.round(counter.val) + '%' },
+        })
+      })
+    })
+    return () => scope.revert()
+  }, [btts])
   const [cornersOpen, setCornersOpen] = useState(true)
   const [firstHalfOpen, setFirstHalfOpen] = useState(true)
   const [dcOpen, setDcOpen] = useState(true)
@@ -975,7 +1001,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                   <span style={{ color: '#4a6785', fontSize: 12 }}>{bttsOpen ? '▲' : '▼'}</span>
                 </div>
                 {bttsOpen && (
-                  <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
+                  <div ref={bttsGridRef} style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
                     {btts.filter(m => m.prob_btts >= 0.60).slice(0, isPro ? 10 : 3).map((m) => {
                       const pct = Math.round(m.prob_btts * 100)
                       const color = pct >= 70 ? '#00c878' : pct >= 60 ? '#ffb400' : '#6b7fa3'
@@ -989,10 +1015,10 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                           {isHot && <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 12, zIndex: 1 }}>🔥</span>}
                           <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0, marginTop: 2 }}>
                             <circle cx="29" cy="29" r="24" stroke="#0a1628" strokeWidth="6" fill="none" />
-                            <circle cx="29" cy="29" r="24" stroke={color} strokeWidth="6" fill="none" strokeLinecap="round"
+                            <circle data-ring cx="29" cy="29" r="24" stroke={color} strokeWidth="6" fill="none" strokeLinecap="round"
                               strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * (1 - pct / 100)}`} transform="rotate(-90 29 29)"
-                              style={{ filter: pct >= 70 ? 'drop-shadow(0 0 6px rgba(0,200,120,0.55))' : 'none', transition: 'stroke-dashoffset .6s ease' }} />
-                            <text x="29" y="35" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="16">{pct}%</text>
+                              style={{ filter: pct >= 70 ? 'drop-shadow(0 0 6px rgba(0,200,120,0.55))' : 'none' }} />
+                            <text data-pct={pct} x="29" y="35" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="16">0%</text>
                           </svg>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
