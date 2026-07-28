@@ -145,6 +145,20 @@ export async function GET(req: NextRequest) {
             }, { onConflict: 'match_id' })
           }
 
+          if ((matchInput as any).oddsHome || (matchInput as any).oddsOver25) {
+            try {
+              await supabase.from('odds_history').insert({
+                match_id:    savedMatch.id,
+                odds_home:   (matchInput as any).oddsHome,
+                odds_draw:   (matchInput as any).oddsDraw,
+                odds_away:   (matchInput as any).oddsAway,
+                odds_over25: (matchInput as any).oddsOver25,
+              })
+            } catch (e) {
+              console.error('odds_history insert failed (non-fatal):', e)
+            }
+          }
+
           const lw = LEAGUE_WEIGHTS[league.id] ?? 0.85
           for (const bet of analysis.valueBets) {
             allValueBets.push({

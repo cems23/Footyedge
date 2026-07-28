@@ -454,11 +454,14 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   const [cornersOpen, setCornersOpen] = useState(true)
   const [firstHalfOpen, setFirstHalfOpen] = useState(true)
   const [dcOpen, setDcOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState<'matches'|'picks'|'analytics'|'radar'|'early'>('matches')
+  const [activeTab, setActiveTab] = useState<'matches'|'picks'|'analytics'|'radar'|'early'|'oddsRadar'>('matches')
 
   const [radarData, setRadarData] = useState<any[]>([])
   const [earlyLines, setEarlyLines] = useState<any[]>([])
   const [earlyLoaded, setEarlyLoaded] = useState(false)
+  const [oddsMovers, setOddsMovers] = useState<any[]>([])
+  const [oddsRadarLoaded, setOddsRadarLoaded] = useState(false)
+  const [oddsFlash, setOddsFlash] = useState(false)
   const [refreshProgress, setRefreshProgress] = useState<{ active: boolean; current: number; total: number; label: string }>({ active: false, current: 0, total: 0, label: '' })
   const [isMobile, setIsMobile] = useState(false)
   const [favoriteLeagues, setFavoriteLeagues] = useState<string[]>([])
@@ -660,6 +663,15 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
         <style dangerouslySetInnerHTML={{ __html: `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+@keyframes scanner-sweep-move { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.scanner-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; height: 100%; width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(0,200,120,0.10), transparent);
+  animation: scanner-sweep-move 2.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .scanner-sweep::before { animation: none !important; } }
 button { transition: all .18s cubic-bezier(.2,.8,.2,1); font-family: inherit; }
 button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.18); }
 button:active:not(:disabled) { transform: translateY(0) scale(.97); }
@@ -718,6 +730,15 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
               {isElite && (
                 <button onClick={() => { setActiveTab('early'); if (!earlyLoaded) { fetch('/api/early-lines').then(r => r.json()).then(d => { setEarlyLines(d.bets ?? []); setEarlyLoaded(true) }) } }} style={{ background: activeTab === 'early' ? 'rgba(246,185,59,0.14)' : 'transparent', border: activeTab === 'early' ? '1px solid #f6b93b' : '1px solid #1a2e4a', color: activeTab === 'early' ? '#f6b93b' : '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: activeTab === 'early' ? '0 0 18px rgba(246,185,59,0.25)' : 'none' }}>
                   ⚡ Early Lines
+                </button>
+              )}
+              {isPro && (
+                <button onClick={() => {
+                  setActiveTab('oddsRadar')
+                  const load = () => fetch('/api/odds-radar').then(r => r.json()).then(d => { setOddsMovers(d.movers ?? []); setOddsRadarLoaded(true); setOddsFlash(true); setTimeout(() => setOddsFlash(false), 600) })
+                  load()
+                }} style={{ background: activeTab === 'oddsRadar' ? 'rgba(255,77,77,0.12)' : 'transparent', border: activeTab === 'oddsRadar' ? '1px solid #ff4d4d' : '1px solid #1a2e4a', color: activeTab === 'oddsRadar' ? '#ff4d4d' : '#8ba2c0', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', boxShadow: activeTab === 'oddsRadar' ? '0 0 18px rgba(255,77,77,0.22)' : 'none' }}>
+                  📉 {lang === 'en' ? 'Dropping Odds' : 'Caída de Cuotas'}
                 </button>
               )}
               <button onClick={() => router.push('/rankings')} style={{ background: 'transparent', border: '1px solid #1a2e4a', color: '#ce93d8', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer' }}>
@@ -816,21 +837,36 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 </div>
                 {valueBetsOpen && (
                   <div style={{ padding: 18 }}>
-                    {rankings.length === 0 && (
-                      <div style={{ textAlign: 'center', padding: '40px 20px', color: '#4a6785' }}>
-                        <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-                        <div style={{ fontSize: 14, color: '#8ba2c0', marginBottom: 6 }}>
-                          {lang === 'en'
-                            ? 'No value bets found for today'
-                            : 'No se encontraron apuestas de valor para hoy'}
+                    {rankings.length === 0 && (() => {
+                      const cronHoursUTC = [5, 11, 17, 23]
+                      const now = new Date()
+                      const nowUTCHour = now.getUTCHours()
+                      const nowUTCMin = now.getUTCMinutes()
+                      let nextHourUTC = cronHoursUTC.find(h => h > nowUTCHour || (h === nowUTCHour && nowUTCMin === 0))
+                      const next = new Date(now)
+                      if (nextHourUTC === undefined) {
+                        next.setUTCDate(next.getUTCDate() + 1)
+                        nextHourUTC = cronHoursUTC[0]
+                      }
+                      next.setUTCHours(nextHourUTC, 0, 0, 0)
+                      const nextLocal = next.toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' })
+                      return (
+                        <div style={{ position: 'relative', textAlign: 'center', padding: '40px 20px', color: '#4a6785', overflow: 'hidden', borderRadius: 12, border: '1px solid #1a2e4a' }}>
+                          <div className="scanner-sweep" aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }} />
+                          <div style={{ position: 'relative', fontSize: 32, marginBottom: 12 }}>🔍</div>
+                          <div style={{ position: 'relative', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#00c878', marginBottom: 8, letterSpacing: '0.02em' }}>
+                            {lang === 'en'
+                              ? `// SCANNING MARKETS... NEXT UPDATE: ${nextLocal}`
+                              : `// ESCANEANDO MERCADOS... PRÓXIMA ACTUALIZACIÓN: ${nextLocal}`}
+                          </div>
+                          <div style={{ position: 'relative', fontSize: 12, color: '#4a6785', maxWidth: 420, margin: '0 auto' }}>
+                            {lang === 'en'
+                              ? "The model analyzed today's matches and none met our quality thresholds. This is normal — we'd rather show zero bets than a bad one."
+                              : 'El modelo analizó los partidos de hoy y ninguno superó nuestros umbrales de calidad. Es normal — preferimos mostrar cero apuestas antes que una mala.'}
+                          </div>
                         </div>
-                        <div style={{ fontSize: 12, color: '#4a6785', maxWidth: 420, margin: '0 auto' }}>
-                          {lang === 'en'
-                            ? 'The model analyzed today\'s matches and none met our quality thresholds. This is normal — we\'d rather show zero bets than a bad one.'
-                            : 'El modelo analizó los partidos de hoy y ninguno superó nuestros umbrales de calidad. Es normal — preferimos mostrar cero apuestas antes que una mala.'}
-                        </div>
-                      </div>
-                    )}
+                      )
+                    })()}
                     {visibleRankings.length > 0 && (() => {
                       const r = visibleRankings[0]
                       const locked = r.is_pro_only && !isPro
@@ -1235,8 +1271,8 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       return (
                         <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
                           style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, alignItems: 'center', padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', transition: 'background 0.1s', background: isLive ? 'rgba(255,50,50,0.03)' : 'transparent', opacity: isDone ? 0.55 : 1 }}
-                          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,200,120,0.06)')}
-                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
+                          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(0,200,120,0.06)'; el.style.transform = 'translateX(4px)'; el.style.transition = 'background 0.15s ease, transform 0.15s ease' }}
+                          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.transform = 'translateX(0px)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 28 }}>
                             <span style={{ fontSize: 12 }}>{getFlag(m.league_name, m.league_id)}</span>
                             {isHot && !isDone && <span style={{ fontSize: 9 }}>🔥</span>}
@@ -1401,6 +1437,48 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
           {activeTab === 'radar' && (
             <div>
               <ValueRadarComponent data={radarData} lang={lang} />
+            </div>
+          )}
+
+          {activeTab === 'oddsRadar' && (
+            <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 16px' }}>
+              <div style={{ marginBottom: 16 }}>
+                <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, color: '#ff4d4d', letterSpacing: '0.02em', margin: 0 }}>
+                  📉 {lang === 'en' ? 'DROPPING ODDS RADAR' : 'RADAR DE CAÍDA DE CUOTAS'}
+                </h2>
+                <p style={{ fontSize: 12, color: '#4a6785', marginTop: 4 }}>
+                  {lang === 'en' ? 'Odds that moved 5%+ in the last hour — sharp money signal' : 'Cuotas que se movieron 5%+ en la última hora — señal de dinero inteligente'}
+                </p>
+              </div>
+
+              {!oddsRadarLoaded && (
+                <div style={{ textAlign: 'center', padding: 40, color: '#4a6785', fontFamily: "'DM Mono', monospace", fontSize: 13 }}>
+                  {lang === 'en' ? 'Loading...' : 'Cargando...'}
+                </div>
+              )}
+
+              {oddsRadarLoaded && oddsMovers.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 40, color: '#4a6785', fontFamily: "'DM Mono', monospace", fontSize: 13 }}>
+                  {lang === 'en' ? '// No significant odds movement detected in the last hour' : '// Sin movimientos significativos de cuotas en la última hora'}
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gap: 1, background: '#1a2e4a', borderRadius: 10, overflow: 'hidden', opacity: oddsFlash ? 0.7 : 1, transition: 'opacity 0.15s ease' }}>
+                {oddsMovers.map((mv, i) => {
+                  const isDrop = mv.pct_change < 0
+                  const color = isDrop ? '#00c878' : '#ff4d4d'
+                  const arrow = isDrop ? '▼' : '▲'
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#0a1626', fontFamily: "'DM Mono', monospace", fontSize: 12, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#4a6785', fontSize: 10, minWidth: 34 }}>{mv.league_name?.slice(0, 3).toUpperCase()}</span>
+                      <span style={{ color: '#f2f6ff', fontWeight: 700, flex: 1, minWidth: 160 }}>{mv.home_team_name} vs {mv.away_team_name}</span>
+                      <span style={{ color: '#8ba2c0', fontSize: 10, background: 'rgba(139,162,192,0.1)', padding: '2px 6px', borderRadius: 4 }}>{mv.market}</span>
+                      <span style={{ color: '#8ba2c0' }}>@ {mv.to.toFixed(2)}</span>
+                      <span style={{ color, fontWeight: 700 }}>{arrow} {Math.abs(mv.to - mv.from).toFixed(2)} ({mv.pct_change > 0 ? '+' : ''}{mv.pct_change}%)</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
 

@@ -78,6 +78,34 @@ export async function GET(req: NextRequest) {
           }, { onConflict: 'match_id' })
         }
 
+        if (league.hasOdds && ((odds as any).oddsHome || (odds as any).oddsOver25)) {
+          try {
+            await supabaseService.from('odds_history').insert({
+              match_id: savedMatch.id,
+              odds_home: (odds as any).oddsHome,
+              odds_draw: (odds as any).oddsDraw,
+              odds_away: (odds as any).oddsAway,
+              odds_over25: (odds as any).oddsOver25,
+            })
+          } catch (e) {
+            console.error('odds_history insert failed (non-fatal):', e)
+          }
+        }
+
+        if (league.hasOdds && ((odds as any).oddsHome || (odds as any).oddsOver25)) {
+          try {
+            await supabaseService.from('odds_history').insert({
+              match_id: savedMatch.id,
+              odds_home: (odds as any).oddsHome,
+              odds_draw: (odds as any).oddsDraw,
+              odds_away: (odds as any).oddsAway,
+              odds_over25: (odds as any).oddsOver25,
+            })
+          } catch (e) {
+            console.error('odds_history insert failed (non-fatal):', e)
+          }
+        }
+
         const lw = LEAGUE_WEIGHTS[league.id] ?? 0.85
         for (const bet of analysis.valueBets) {
           valueBets.push({

@@ -310,6 +310,12 @@ export default function MatchPage() {
   return (
     <div style={{ minHeight: '100vh', background: BG, color: 'white', fontFamily: "'DM Mono', monospace", position: 'relative' }}>
       <AnimatedBackground />
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes verdict-glow { 0%, 100% { box-shadow: 0 0 0 rgba(0,200,120,0.15); } 50% { box-shadow: 0 0 22px rgba(0,200,120,0.28); } }
+        .verdict-scan { animation: verdict-reveal 1s cubic-bezier(.2,.8,.2,1) forwards, verdict-glow 2.4s ease-in-out .8s infinite; }
+        @keyframes verdict-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+        @media (prefers-reduced-motion: reduce) { .verdict-scan { animation: none !important; clip-path: none !important; } }
+      ` }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* Header */}
@@ -619,7 +625,7 @@ export default function MatchPage() {
 
               {/* Veredicto */}
               {pred && (
-                <div style={{ background: '#0a1e10', border: `1px solid #00c87830`, borderRadius: 12, padding: 16, marginTop: 8 }}>
+                <div className="verdict-scan" style={{ background: '#0a1e10', border: `1px solid #00c87830`, borderRadius: 12, padding: 16, marginTop: 8 }}>
                   <div style={{ fontSize: 11, color: '#4a6785', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>{t.verdict}</div>
                   {(() => {
                     const insights = []

@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { animate, stagger } from 'animejs';
+import AnimatedPitch from './AnimatedPitch';
 
 const C = {
   ink: '#070d1a',
@@ -303,6 +304,176 @@ function KickoffCard({ flag, name, date, lang }: { flag: string; name: string; d
   );
 }
 
+function useTextScramble(text: string) {
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.innerText = text;
+      return;
+    }
+
+    const chars = "!<>-_\\/[]{}—=+*^?#________";
+    let frame = 0;
+    let rafId: number;
+    let queue: { from: string; to: string; start: number; end: number; char?: string }[] = [];
+
+    const update = () => {
+      let output = '';
+      let complete = 0;
+      for (let i = 0; i < queue.length; i++) {
+        const q = queue[i];
+        if (frame >= q.end) {
+          complete++;
+          output += q.to;
+        } else if (frame >= q.start) {
+          if (!q.char || Math.random() < 0.28) {
+            q.char = chars[Math.floor(Math.random() * chars.length)];
+          }
+          output += `<span style="color: rgba(255,255,255,0.5)">${q.char}</span>`;
+        } else {
+          output += q.from;
+        }
+      }
+      el.innerHTML = output;
+      if (complete < queue.length) {
+        rafId = requestAnimationFrame(update);
+        frame++;
+      }
+    };
+
+    const oldText = el.innerText;
+    const length = Math.max(oldText.length, text.length);
+    queue = [];
+    for (let i = 0; i < length; i++) {
+      const start = i * 3 + Math.floor(Math.random() * 20);
+      queue.push({ from: oldText[i] || '', to: text[i] || '', start, end: start + 30 + Math.floor(Math.random() * 30) });
+    }
+    frame = 0;
+    update();
+
+    return () => cancelAnimationFrame(rafId);
+  }, [text]);
+
+  return ref;
+}
+
+function useMagneticButton(strength: number = 0.3) {
+  const ref = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const handleMove = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      el.style.transform = `translate(${x * strength}px, ${y * strength}px)`;
+      el.style.transition = 'transform 0.1s ease-out';
+    };
+    const handleLeave = () => {
+      el.style.transform = 'translate(0px, 0px)';
+      el.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    };
+
+    el.addEventListener('mousemove', handleMove);
+    el.addEventListener('mouseleave', handleLeave);
+    return () => {
+      el.removeEventListener('mousemove', handleMove);
+      el.removeEventListener('mouseleave', handleLeave);
+    };
+  }, [strength]);
+
+  return ref;
+}
+
+function TierCard({ t, i, lang }: { t: Tier; i: number; lang: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    const list = listRef.current;
+    if (!card || !list) return;
+
+    const io = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      const items = list.querySelectorAll('.tier-feature');
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        items.forEach((el) => { (el as HTMLElement).style.opacity = '1'; (el as HTMLElement).style.transform = 'none'; });
+      } else {
+        animate(items, {
+          opacity: [0, 1],
+          translateY: [10, 0],
+          duration: 400,
+          delay: stagger(50, { start: 150 }),
+          ease: 'outQuad',
+        });
+      }
+      io.unobserve(card);
+    }, { threshold: 0.2 });
+
+    io.observe(card);
+    return () => io.disconnect();
+  }, []);
+
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rotateX = (rect.height / 2 - y) / 22;
+    const rotateY = (x - rect.width / 2) / 22;
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+    card.style.transition = 'transform 0.05s linear';
+  };
+
+  const handleLeave = () => {
+    const card = cardRef.current;
+    if (!card) return;
+    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+  };
+
+  return (
+    <article
+      ref={cardRef}
+      data-reveal
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+      className={t.hot ? 'fe-tier fe-tier-hot' : t.gold ? 'fe-tier fe-tier-gold' : 'fe-tier'}
+      style={{ borderRadius: 20, padding: 'clamp(26px,2.6vw,38px)', display: 'flex', flexDirection: 'column', gap: 18, position: 'relative', overflow: 'hidden', transitionDelay: `${i * 0.08}s`, willChange: 'transform' }}
+    >
+      {t.badge && (
+        <span className={t.hot ? 'tier-badge-live' : undefined} style={{ ...mono, alignSelf: 'flex-start', fontSize: 11, color: C.ink, background: t.gold ? `linear-gradient(90deg, ${C.gold}, #ffd66b)` : C.green, borderRadius: 999, padding: '5px 14px', fontWeight: 700, boxShadow: t.gold ? '0 0 24px rgba(246,185,59,0.55)' : '0 0 24px rgba(0,200,120,0.6)', position: 'relative' }}>{t.badge}</span>
+      )}
+      <h3 style={{ ...slant, fontSize: 44, margin: 0, color: t.gold ? C.gold : t.hot ? C.green : C.white, position: 'relative' }}>{t.name}</h3>
+      <div style={{ position: 'relative' }}>
+        <span style={{ ...slant, fontSize: 'clamp(58px,5vw,80px)', lineHeight: 1, color: t.gold ? C.gold : t.hot ? C.green : C.white, textShadow: t.gold ? '0 0 32px rgba(246,185,59,0.4)' : t.hot ? '0 0 32px rgba(0,200,120,0.45)' : 'none' }}>{t.price}</span>
+        <span style={{ ...mono, fontSize: 12, color: C.mute, marginLeft: 8 }}>{t.per}</span>
+      </div>
+      <ul ref={listRef} style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10, position: 'relative' }}>
+        {t.items.map((it) => (
+          <li key={it.t} className="tier-feature" style={{ opacity: 0, color: it.on ? C.white : 'rgba(139,162,192,0.45)', fontSize: 14, display: 'flex', gap: 11, alignItems: 'baseline' }}>
+            <span style={{ ...mono, color: it.on ? (t.gold ? C.gold : C.green) : 'rgba(139,162,192,0.4)', fontWeight: 700 }}>{it.on ? '✓' : '✗'}</span>
+            <span>{it.t}</span>
+          </li>
+        ))}
+      </ul>
+      <a className="fe-btn" href={`/${lang}/auth/register`} style={{ ...btnStyle(t.hot || t.gold, 'md'), marginTop: 'auto', textAlign: 'center', fontSize: 16, padding: '15px 22px', position: 'relative', ...(t.gold ? { background: `linear-gradient(90deg, ${C.gold}, #ffd66b)`, border: `2px solid ${C.gold}`, boxShadow: '0 8px 30px rgba(246,185,59,0.35)', color: C.ink } : {}) }}>{t.cta}</a>
+    </article>
+  );
+}
+
 export default function LandingV7({ lang = 'en' }: { lang?: string }) {
   const SCENES = lang === 'es' ? SCENES_ES : SCENES_EN;
   const FEATURES = lang === 'es' ? FEATURES_ES : FEATURES_EN;
@@ -314,6 +485,10 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
   const [hasVideo, setHasVideo] = useState(false);
   const [teasers, setTeasers] = useState<any[]>([]);
   const rigRef = useRef<HTMLDivElement>(null);
+  const heroLine1 = lang === 'es' ? 'Fútbol, impulsado' : 'Football, powered';
+  const heroLine2 = lang === 'es' ? 'por datos.' : 'by data.';
+  const scrambleRef = useTextScramble(heroLine1);
+  const magneticRef = useMagneticButton(0.25);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -525,10 +700,10 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
 
         <p className="fe-up" style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 18, animationDelay: '0.05s', position: 'relative' }}>{lang === 'es' ? '▮ ANALÍTICA DE FÚTBOL' : '▮ FOOTBALL ANALYTICS'}</p>
 
-        <h1 style={{ margin: 0, textTransform: 'uppercase', lineHeight: 0.88, position: 'relative' }}>
-          <span className="fe-up" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.15s' }}>{lang === 'es' ? 'Fútbol, impulsado' : 'Football, powered'}</span>
+        <h1 aria-label={`${heroLine1} ${heroLine2}`} style={{ margin: 0, textTransform: 'uppercase', lineHeight: 0.88, position: 'relative' }}>
+          <span ref={scrambleRef} aria-hidden="true" className="fe-up" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.15s' }}>{heroLine1}</span>
           <br />
-          <span className="fe-up fe-outline" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.3s' }}>{lang === 'es' ? 'por datos.' : 'by data.'}</span>
+          <span aria-hidden="true" className="fe-up fe-outline" style={{ ...slant, fontSize: 'clamp(64px, 12vw, 170px)', animationDelay: '0.3s' }}>{heroLine2}</span>
         </h1>
 
         <p className="fe-up" style={{ maxWidth: 560, fontSize: 'clamp(16px,1.4vw,19px)', color: C.mute, lineHeight: 1.6, margin: '30px 0 38px', animationDelay: '0.45s', position: 'relative' }}>
@@ -538,7 +713,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         </p>
 
         <div className="fe-up" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', animationDelay: '0.6s', position: 'relative' }}>
-          <a className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={btnStyle(true, 'lg')}>{lang === 'es' ? 'Ver las señales de hoy →' : "See today's signals →"}</a>
+          <a ref={magneticRef} className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={{ ...btnStyle(true, 'lg'), willChange: 'transform' }}>{lang === 'es' ? 'Ver las señales de hoy →' : "See today's signals →"}</a>
           <a className="fe-btn" href="#engine" style={btnStyle(false, 'lg')}>{lang === 'es' ? 'Cómo funciona el motor' : 'How the engine works'}</a>
         </div>
 
@@ -551,6 +726,35 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, borderTop: `1px solid ${C.line}`, background: 'rgba(10,22,38,0.7)', overflow: 'hidden', zIndex: 2 }}>
           <div className="fe-ticker" style={{ ...mono, fontSize: 12, color: C.mute, whiteSpace: 'nowrap', padding: '10px 0', display: 'inline-block' }}>
             {ticker(lang)}{ticker(lang)}
+          </div>
+        </div>
+      </section>
+
+      {/* analisis tactico — pitch animado */}
+      <section style={{ padding: 'clamp(56px,7vw,100px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}` }}>
+        <div className="fe-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,3fr)', gap: 'clamp(32px,5vw,64px)', alignItems: 'center', maxWidth: 1100, margin: '0 auto' }}>
+          <div data-reveal>
+            <p style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14 }}>{lang === 'es' ? '▮ ANÁLISIS TÁCTICO' : '▮ TACTICAL ANALYSIS'}</p>
+            <h2 style={{ margin: '0 0 18px', textTransform: 'uppercase', lineHeight: 0.95 }}>
+              <span style={{ ...slant, fontSize: 'clamp(30px,4vw,48px)' }}>{lang === 'es' ? 'Datos en tiempo real, ' : 'Real-time data, '}</span>
+              <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(30px,4vw,48px)' }}>{lang === 'es' ? 'partido a partido' : 'match by match'}</span>
+            </h2>
+            <p style={{ color: C.mute, fontSize: 15, lineHeight: 1.65, marginBottom: 20 }}>
+              {lang === 'es'
+                ? 'Cada señal se apoya en datos reales de rendimiento por equipo, no solo en la cuota. El modelo actualiza sus probabilidades a medida que llega nueva información.'
+                : "Every signal is backed by real per-team performance data, not just the odds. The model updates its probabilities as new information comes in."}
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }}>
+              {(lang === 'es' ? ['Forma con decaimiento temporal', 'xG y rendimiento por equipo', 'Rating Elo actualizado cada partido'] : ['Form with temporal decay', 'xG and per-team performance', 'Elo rating updated every match']).map((item) => (
+                <li key={item} style={{ color: C.white, fontSize: 14, display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                  <span style={{ ...mono, color: C.green, fontWeight: 700 }}>✓</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div data-reveal>
+            <AnimatedPitch />
           </div>
         </div>
       </section>
@@ -733,25 +937,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
 
         <div className="fe-grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 20, position: 'relative', alignItems: 'stretch' }}>
           {TIERS.map((t, i) => (
-            <article key={t.name} data-reveal className={t.hot ? 'fe-tier fe-tier-hot' : t.gold ? 'fe-tier fe-tier-gold' : 'fe-tier'} style={{ borderRadius: 20, padding: 'clamp(26px,2.6vw,38px)', display: 'flex', flexDirection: 'column', gap: 18, position: 'relative', overflow: 'hidden', transitionDelay: `${i * 0.08}s` }}>
-              {t.badge && (
-                <span style={{ ...mono, alignSelf: 'flex-start', fontSize: 11, color: C.ink, background: t.gold ? `linear-gradient(90deg, ${C.gold}, #ffd66b)` : C.green, borderRadius: 999, padding: '5px 14px', fontWeight: 700, boxShadow: t.gold ? '0 0 24px rgba(246,185,59,0.55)' : '0 0 24px rgba(0,200,120,0.6)', position: 'relative' }}>{t.badge}</span>
-              )}
-              <h3 style={{ ...slant, fontSize: 44, margin: 0, color: t.gold ? C.gold : t.hot ? C.green : C.white, position: 'relative' }}>{t.name}</h3>
-              <div style={{ position: 'relative' }}>
-                <span style={{ ...slant, fontSize: 'clamp(58px,5vw,80px)', lineHeight: 1, color: t.gold ? C.gold : t.hot ? C.green : C.white, textShadow: t.gold ? '0 0 32px rgba(246,185,59,0.4)' : t.hot ? '0 0 32px rgba(0,200,120,0.45)' : 'none' }}>{t.price}</span>
-                <span style={{ ...mono, fontSize: 12, color: C.mute, marginLeft: 8 }}>{t.per}</span>
-              </div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10, position: 'relative' }}>
-                {t.items.map((it) => (
-                  <li key={it.t} style={{ color: it.on ? C.white : 'rgba(139,162,192,0.45)', fontSize: 14, display: 'flex', gap: 11, alignItems: 'baseline' }}>
-                    <span style={{ ...mono, color: it.on ? (t.gold ? C.gold : C.green) : 'rgba(139,162,192,0.4)', fontWeight: 700 }}>{it.on ? '✓' : '✗'}</span>
-                    <span>{it.t}</span>
-                  </li>
-                ))}
-              </ul>
-              <a className="fe-btn" href={`/${lang}/auth/register`} style={{ ...btnStyle(t.hot || t.gold, 'md'), marginTop: 'auto', textAlign: 'center', fontSize: 16, padding: '15px 22px', position: 'relative', ...(t.gold ? { background: `linear-gradient(90deg, ${C.gold}, #ffd66b)`, border: `2px solid ${C.gold}`, boxShadow: '0 8px 30px rgba(246,185,59,0.35)', color: C.ink } : {}) }}>{t.cta}</a>
-            </article>
+            <TierCard key={t.name} t={t} i={i} lang={lang} />
           ))}
         </div>
       </section>
@@ -1054,6 +1240,9 @@ html { scroll-behavior: smooth; }
   box-shadow: 0 24px 70px rgba(246,185,59,0.18);
 }
 .fe-tier-gold:hover { border-color: transparent; box-shadow: 0 32px 90px rgba(246,185,59,0.32); }
+@keyframes tier-badge-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.tier-badge-live { animation: tier-badge-blink 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .tier-badge-live { animation: none !important; } }
 
 @media (max-width: 900px) {
   .fe-nav { display: none !important; }
