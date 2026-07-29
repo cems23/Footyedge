@@ -445,11 +445,17 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   useEffect(() => {
     if (!bttsGridRef.current) return
     const scope = createScope({ root: bttsGridRef }).add(() => {
-      animate('[data-ring]', {
-        strokeDashoffset: { from: 2 * Math.PI * 24 },
-        duration: 900,
-        delay: stagger(70),
-        ease: 'outExpo',
+      bttsGridRef.current?.querySelectorAll('[data-bar]').forEach((el, i) => {
+        // data-bar -> contenedor de la barra -> tarjeta -> [data-pct] esta ahi dentro
+        const card = el.parentElement?.parentElement
+        const pctEl = card?.querySelector('[data-pct]')
+        const target = pctEl ? Number(pctEl.getAttribute('data-pct')) : 0
+        animate(el, {
+          width: `${target}%`,
+          duration: 900,
+          delay: 70 * i,
+          ease: 'outExpo',
+        })
       })
       bttsGridRef.current?.querySelectorAll('[data-pct]').forEach((el, i) => {
         const target = Number(el.getAttribute('data-pct'))
@@ -1078,27 +1084,24 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                       const isHot = pct >= 65
                       return (
                         <div key={m.id} onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
-                          style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 18, borderRadius: 16, border: `1px solid ${color}45`, background: 'rgba(13,30,53,0.75)', padding: '20px 22px', cursor: 'pointer', boxShadow: `0 0 22px ${color}1a`, transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
+                          style={{ position: 'relative', borderRadius: 14, border: `1px solid ${color}45`, background: 'rgba(13,30,53,0.75)', padding: '16px 18px', cursor: 'pointer', boxShadow: `0 0 22px ${color}1a`, transition: 'transform .18s ease, border-color .18s ease, box-shadow .18s ease' }}
                           onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = `${color}99`; el.style.boxShadow = `0 14px 34px rgba(0,0,0,0.45), 0 0 32px ${color}33` }}
                           onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = `${color}45`; el.style.boxShadow = `0 0 22px ${color}1a` }}>
                           {isHot && <span style={{ position: 'absolute', top: 10, right: 12, fontSize: 14, zIndex: 1 }}>🔥</span>}
-                          <svg width="70" height="70" viewBox="0 0 70 70" style={{ flexShrink: 0, marginTop: 2 }}>
-                            <circle cx="35" cy="35" r="29" stroke="#0a1628" strokeWidth="7" fill="none" />
-                            <circle data-ring cx="35" cy="35" r="29" stroke={color} strokeWidth="7" fill="none" strokeLinecap="round"
-                              strokeDasharray={`${2 * Math.PI * 29}`} strokeDashoffset={`${2 * Math.PI * 29 * (1 - pct / 100)}`} transform="rotate(-90 35 35)"
-                              style={{ filter: pct >= 70 ? 'drop-shadow(0 0 7px rgba(0,200,120,0.55))' : 'none' }} />
-                            <text data-pct={pct} x="35" y="41" textAnchor="middle" fill={color} fontFamily='"Bebas Neue", sans-serif' fontSize="19">0%</text>
-                          </svg>
-                          <div style={{ minWidth: 0, flex: 1, paddingTop: 4 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 6 }}>
-                              {m.home_team_logo && <img src={m.home_team_logo} width={20} height={20} alt="" style={{ borderRadius: 3 }} />}
-                              <span style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flexWrap: 'wrap' }}>
+                              {m.home_team_logo && <img src={m.home_team_logo} width={20} height={20} alt="" style={{ borderRadius: 3, flexShrink: 0 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.home_team_name}</span>
                               <span style={{ fontSize: 12, color: '#00c878' }}>vs</span>
-                              {m.away_team_logo && <img src={m.away_team_logo} width={20} height={20} alt="" style={{ borderRadius: 3 }} />}
-                              <span style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
+                              {m.away_team_logo && <img src={m.away_team_logo} width={20} height={20} alt="" style={{ borderRadius: 3, flexShrink: 0 }} />}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
                             </div>
-                            <div style={{ fontSize: 11, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                            <span data-pct={pct} style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, color, flexShrink: 0, textShadow: pct >= 70 ? `0 0 10px ${color}88` : 'none' }}>0%</span>
                           </div>
+                          <div style={{ height: 5, background: '#0a1628', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
+                            <div data-bar style={{ height: '100%', width: 0, background: color, borderRadius: 3 }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
                         </div>
                       )
                     })}
