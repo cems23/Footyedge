@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   const today = new Date().toISOString().split('T')[0]
   const log: string[] = []
   const valueBets: any[] = []
+  const processedMatchIds: string[] = []  // TODOS los partidos analizados esta corrida, tengan o no value bets — necesario para poder borrar de staging_rankings un pick viejo que ya no califica (ej. filtro de lambda-al-techo bloqueandolo ahora)
 
   try {
     const [fixtures, oddsEvents] = await Promise.all([
@@ -82,6 +83,7 @@ export async function GET(req: NextRequest) {
           }, { onConflict: 'external_id' }).select('id').single()
 
         if (!savedMatch) continue
+        processedMatchIds.push(savedMatch.id)
 
         await supabase.from('model_predictions').upsert({
           match_id: savedMatch.id,
@@ -158,10 +160,15 @@ export async function GET(req: NextRequest) {
     const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().split('T')[0]
     await supabase.from('staging_rankings').delete().lt('date', today)
 
-    // Guardar en staging (sin rank constraint)
-    await supabase.from('staging_rankings').delete()
-      .eq('date', today)
-      .in('match_id', valueBets.map(b => b.matchId))
+    // Guardar en staging (sin rank constraint) — se borra por TODOS los partidos
+    // procesados esta corrida (no solo los que generaron value bets), para que un
+    // pick viejo que ya no califica (ej. bloqueado por el filtro de lambda-al-techo)
+    // se elimine en vez de quedar huérfano en staging_rankings para siempre.
+    if (processedMatchIds.length) {
+      await supabase.from('staging_rankings').delete()
+        .eq('date', today)
+        .in('match_id', processedMatchIds)
+    }
 
     for (const b of valueBets) {
       await supabase.from('staging_rankings').insert({
