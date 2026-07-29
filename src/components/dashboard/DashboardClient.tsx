@@ -180,6 +180,21 @@ const mktBadge = (market: string, lang: string = 'es') => {
 
 const probColor = (p: number) => p >= 0.70 ? '#00c878' : p >= 0.55 ? '#ffb400' : p >= 0.40 ? '#6b7fa3' : '#3a4a5a'
 const timeStr = (iso: string, lang: string = 'es') => new Date(iso).toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' })
+
+// Partidos aplazados/cancelados/suspendidos no tienen marcador real — mostrar
+// la razon en vez de un score falso o un simple "?" que parece un error de datos.
+const INACTIVE_LABELS: Record<string, { es: string; en: string }> = {
+  PST:  { es: 'Aplazado',     en: 'Postponed' },
+  CANC: { es: 'Cancelado',    en: 'Cancelled' },
+  SUSP: { es: 'Suspendido',   en: 'Suspended' },
+  ABD:  { es: 'Abandonado',   en: 'Abandoned' },
+  INT:  { es: 'Interrumpido', en: 'Interrupted' },
+}
+const doneLabel = (status: string | undefined, lang: string) => {
+  const found = INACTIVE_LABELS[status ?? '']
+  if (found) return lang === 'en' ? found.en : found.es
+  return lang === 'en' ? 'FT' : 'FIN'
+}
 const dateStr = (iso: string, lang: string = 'es') => new Date(iso).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES', { day: '2-digit', month: '2-digit' })
 
 // ── NOTIF ─────────────────────────────────────────
@@ -1345,7 +1360,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                     {filteredMatches.map((m, i) => {
                       const isHot = m.prob_btts >= 0.65 || m.prob_over25 >= 0.65
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
-                      const isDone = ['FT','AET','PEN','AWD','WO'].includes(m.status ?? '')
+                      const isDone = ['FT','AET','PEN','AWD','WO','PST','CANC','SUSP','ABD','INT'].includes(m.status ?? '')
                       return (
                         <div key={m.id} data-row onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
                           style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 60px 70px 70px 70px 70px 70px 60px 60px 60px', gap: 8, alignItems: 'center', padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', transition: 'background 0.1s', background: isLive ? 'rgba(255,50,50,0.03)' : 'transparent', opacity: isDone ? 0.55 : 1 }}
@@ -1365,13 +1380,13 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             <span style={{ fontSize: 9, color: '#3a5578', flexShrink: 0 }}>{m.league_name}</span>
                           </div>
                           {isDone ? (
-                            <span style={{ fontSize: 10, color: '#4a6785', letterSpacing: '0.04em', textAlign: 'center', fontWeight: 700 }}>{lang === 'en' ? 'FT' : 'FIN'}</span>
+                            <span style={{ fontSize: 10, color: '#4a6785', letterSpacing: '0.04em', textAlign: 'center', fontWeight: 700 }}>{doneLabel(m.status, lang)}</span>
                           ) : (
                             <span suppressHydrationWarning style={{ fontSize: 12, color: '#8ba2c0', letterSpacing: '0.04em', textAlign: 'center' }}>{timeStr(m.kickoff_at, lang)}</span>
                           )}
                           {isDone ? (
                             <span style={{ gridColumn: 'span 5', textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#c5d3e8', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
-                              {m.home_goals ?? '?'} — {m.away_goals ?? '?'}
+                              {m.home_goals != null ? `${m.home_goals} — ${m.away_goals}` : doneLabel(m.status, lang)}
                             </span>
                           ) : (
                             <>
@@ -1397,7 +1412,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                     {filteredMatches.map((m, i) => {
                       const isHot = m.prob_btts >= 0.65 || m.prob_over25 >= 0.65
                       const isLive = ['1H','2H','HT','ET','P'].includes(m.status ?? '')
-                      const isDone = ['FT','AET','PEN','AWD','WO'].includes(m.status ?? '')
+                      const isDone = ['FT','AET','PEN','AWD','WO','PST','CANC','SUSP','ABD','INT'].includes(m.status ?? '')
                       return (
                         <div key={m.id} data-row onClick={() => router.push(`/${lang || 'es'}/match/${m.id}`)}
                           style={{ padding: '12px 16px', borderBottom: i < filteredMatches.length - 1 ? '1px solid #0a1628' : 'none', cursor: 'pointer', opacity: isDone ? 0.55 : 1 }}>
@@ -1415,7 +1430,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               {isLive && <span style={{ fontSize: 9, background: '#ff333320', border: '1px solid #ff3333', color: '#ff5555', padding: '1px 4px', borderRadius: 3 }}>LIVE</span>}
                               {isHot && !isDone && <span style={{ fontSize: 12 }}>🔥</span>}
                               {edgeMatchIds.has(String(m.id)) && !isDone && <span title="Value Edge" style={{ fontSize: 12 }}>⚡</span>}
-                              <span suppressHydrationWarning style={{ fontSize: 12, color: '#6b7fa3' }}>{isDone ? (lang === 'en' ? 'FT' : 'FIN') : timeStr(m.kickoff_at, lang)}</span>
+                              <span suppressHydrationWarning style={{ fontSize: 12, color: '#6b7fa3' }}>{isDone ? doneLabel(m.status, lang) : timeStr(m.kickoff_at, lang)}</span>
                             </div>
                           </div>
                           {/* League */}
@@ -1424,7 +1439,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                           {isDone ? (
                             <div style={{ textAlign: 'center', padding: '6px 0' }}>
                               <span style={{ fontSize: 20, fontWeight: 700, color: '#c5d3e8', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
-                                {m.home_goals ?? '?'} — {m.away_goals ?? '?'}
+                                {m.home_goals != null ? `${m.home_goals} — ${m.away_goals}` : doneLabel(m.status, lang)}
                               </span>
                             </div>
                           ) : (

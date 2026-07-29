@@ -42,6 +42,11 @@ async function getFixtureResultFootyStats(homeName: string, awayName: string) {
   } catch { return null }
 }
 
+// Partidos que NO se van a jugar como estaba programado — no tienen marcador
+// real y jamás van a llegar a FT esperando indefinidamente. Hay que marcarlos
+// para que dejen de reintentarse cada hora y de aparecer como predicción activa.
+const INACTIVE_STATUSES = ['PST', 'CANC', 'SUSP', 'ABD', 'INT']
+
 async function getFixtureResultAPF(fixtureId: string) {
   const key = process.env.API_FOOTBALL_KEY
   if (!key) throw new Error('API_FOOTBALL_KEY missing')
@@ -53,6 +58,7 @@ async function getFixtureResultAPF(fixtureId: string) {
   const f = json.response?.[0]
   if (!f) return null
   const status = f.fixture?.status?.short
+  if (INACTIVE_STATUSES.includes(status)) return { inactive: true as const, statusCode: status as string }
   if (status !== 'FT' && status !== 'AET' && status !== 'PEN') return null
   const homeGoals = f.goals?.home ?? 0
   const awayGoals = f.goals?.away ?? 0
@@ -88,6 +94,7 @@ export async function GET(req: NextRequest) {
     .is('home_goals', null)
     .gte('kickoff_at', threeDaysAgo)
     .lte('kickoff_at', twoHoursAgo)
+    .not('status', 'in', '(PST,CANC,SUSP,ABD,INT)')
 
   if (!unsettledMatches?.length) {
     return NextResponse.json({ success: true, message: 'No unsettled matches', settled: 0 })
@@ -105,6 +112,16 @@ export async function GET(req: NextRequest) {
       const result = await getFixtureResult(match.external_id, match.home_team_name, match.away_team_name, match.kickoff_at)
       if (!result) {
         log.push(`⏳ ${match.home_team_name} vs ${match.away_team_name} — not finished yet`)
+        continue
+      }
+
+      if ('inactive' in result) {
+        await supabase.from('matches').update({
+          status: result.statusCode,
+          updated_at: new Date().toISOString(),
+        }).eq('id', match.id)
+        log.push(`⏸ ${match.home_team_name} vs ${match.away_team_name} — marcado como ${result.statusCode} (no se juega, no cuenta para Elo/rankings)`)
+        settled++
         continue
       }
 

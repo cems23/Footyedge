@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
   }).filter(Boolean)
 
   const liveStatuses = ['1H','2H','HT','ET','P','BT']
-  const doneStatuses = ['FT','AET','PEN','AWD','WO']
+  const doneStatuses = ['FT','AET','PEN','AWD','WO','PST','CANC','SUSP','ABD','INT']
 
   const sortByStatus = (arr: any[]) => {
     const live = arr.filter(m => liveStatuses.includes(m.status ?? ''))
