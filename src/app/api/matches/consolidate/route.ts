@@ -141,6 +141,26 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  // CLV tracking (solo ligas grandes con Odds API): guardar la cuota de
+  // "apertura" la primera vez que una value bet aparece — ignoreDuplicates
+  // evita pisarla en corridas posteriores del mismo día (consolidate corre
+  // 4x/día y reescribe daily_rankings completo, pero la apertura debe quedar
+  // fija en el primer momento en que se publicó).
+  const clvCandidates = top30
+    .filter(r => MAJOR_LEAGUES.has(matchDataById[r.match_id]?.league_id))
+    .map(r => ({
+      match_id: r.match_id,
+      market: r.market,
+      league_id: matchDataById[r.match_id]?.league_id,
+      kickoff_at: matchDataById[r.match_id]?.kickoff_at,
+      opening_odds: r.odds,
+    }))
+    .filter(c => c.kickoff_at && c.opening_odds)
+
+  if (clvCandidates.length) {
+    await supabase.from('clv_tracking').upsert(clvCandidates, { onConflict: 'match_id,market', ignoreDuplicates: true })
+  }
+
   // AI signal check — modo observar: corre en paralelo con limite de concurrencia,
   // nunca bloquea ni afecta el resultado del consolidate si falla.
   const AI_CONCURRENCY = 3

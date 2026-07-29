@@ -47,16 +47,22 @@ async function hasbudget(): Promise<boolean> {
  * Si ya se agotó el presupuesto del mes, o si algo falla, devuelve null — el
  * llamador debe caer de vuelta a API-Football/FootyStats sin romper nada.
  */
-export async function getOddsApiConsensus(sportKey: string): Promise<ConsensusOdds[] | null> {
+// Si no se pasa hourBucket, se usa la fecha sola como bucket — comportamiento
+// normal, 1 llamada por liga por día (usado por analyze-league para la mezcla
+// modelo-mercado). El cron de closing-odds pasa un bucket con fecha+hora para
+// forzar una consulta fresca cerca del kickoff, sin afectar el caché del resto
+// del día.
+export async function getOddsApiConsensus(sportKey: string, hourBucket?: string): Promise<ConsensusOdds[] | null> {
   const supabase = createServiceClient()
   const today = new Date().toISOString().split('T')[0]
+  const bucket = hourBucket ?? today
 
-  // 1. ¿Ya está en caché de hoy? No gastar otra llamada si es así.
+  // 1. ¿Ya está en caché de este bucket? No gastar otra llamada si es así.
   const { data: cached } = await supabase
     .from('odds_api_cache')
     .select('response')
     .eq('sport_key', sportKey)
-    .eq('date', today)
+    .eq('hour_bucket', bucket)
     .maybeSingle()
 
   if (cached?.response) {
@@ -83,10 +89,10 @@ export async function getOddsApiConsensus(sportKey: string): Promise<ConsensusOd
     const json = await res.json()
 
     await supabase.from('odds_api_cache').upsert({
-      sport_key: sportKey, date: today, response: json,
+      sport_key: sportKey, date: today, hour_bucket: bucket, response: json,
       requests_remaining: Number.isFinite(remaining) ? remaining : null,
       fetched_at: new Date().toISOString(),
-    }, { onConflict: 'sport_key,date' })
+    }, { onConflict: 'sport_key,hour_bucket' })
 
     return parseConsensus(json)
   } catch {

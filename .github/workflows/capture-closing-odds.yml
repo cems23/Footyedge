@@ -1,0 +1,24 @@
+name: Capture Closing Odds (CLV)
+
+on:
+  schedule:
+    # Cada ~20 min, en minutos separados por si alguna corrida se saltea
+    # (GitHub Actions cron es "best-effort", puede saltear sin aviso).
+    - cron: '3,23,43 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Capturar cuota de cierre para partidos por arrancar
+        shell: bash --noprofile --norc {0}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: https://footyedge.app
+        run: |
+          set +e
+          curl -s -w "\nstatus: %{http_code}\n" "$BASE_URL/api/cron/capture-closing-odds" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --max-time 55
+          exit 0
