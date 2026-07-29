@@ -789,7 +789,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
 
             {/* Center stats */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <span style={{ fontSize: 11, color: '#00c878', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{T.today ?? (lang === 'en' ? 'TODAY' : 'HOY')} · {new Date().toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+              <span suppressHydrationWarning style={{ fontSize: 11, color: '#00c878', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{T.today ?? (lang === 'en' ? 'TODAY' : 'HOY')} · {new Date().toLocaleTimeString(lang === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
               <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 30, lineHeight: 1, letterSpacing: '0.02em', color: 'white' }}>{allMatches.length}</div>
@@ -939,7 +939,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                         <div style={{ position: 'relative', textAlign: 'center', padding: '40px 20px', color: '#4a6785', overflow: 'hidden', borderRadius: 12, border: '1px solid #1a2e4a' }}>
                           <div className="scanner-sweep" aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }} />
                           <div style={{ position: 'relative', fontSize: 32, marginBottom: 12 }}>🔍</div>
-                          <div style={{ position: 'relative', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#00c878', marginBottom: 8, letterSpacing: '0.02em' }}>
+                          <div suppressHydrationWarning style={{ position: 'relative', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#00c878', marginBottom: 8, letterSpacing: '0.02em' }}>
                             {lang === 'en'
                               ? `// SCANNING MARKETS... NEXT UPDATE: ${nextLocal}`
                               : `// ESCANEANDO MERCADOS... PRÓXIMA ACTUALIZACIÓN: ${nextLocal}`}
@@ -970,7 +970,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               {r.matches?.home_team_name} <span style={{ color: '#00c878' }}>vs</span> {r.matches?.away_team_name}
                               {r.matches?.away_team_logo && <img src={r.matches.away_team_logo} width={28} height={28} alt="" style={{ flexShrink: 0 }} />}
                             </div>
-                            <div style={{ fontSize: 11, color: '#8ba2c0', marginTop: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
+                            <div suppressHydrationWarning style={{ fontSize: 11, color: '#8ba2c0', marginTop: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
                             <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 15, letterSpacing: '0.08em', padding: '5px 16px', borderRadius: 999, background: badge.bg, color: badge.color, border: `1px solid ${badge.color}66` }}>{badge.label}</span>
@@ -1008,7 +1008,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               style={{ position: 'relative', overflow: 'hidden', borderRadius: 14, border: '1px solid rgba(246,185,59,0.35)', background: 'linear-gradient(135deg, rgba(246,185,59,0.06), rgba(13,30,53,0.85))', padding: '16px 18px', cursor: 'pointer', transition: 'transform .18s ease, border-color .18s ease' }}
                               onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(246,185,59,0.6)' }}
                               onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = 'rgba(246,185,59,0.35)' }}>
-                              <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 10 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
+                              <div suppressHydrationWarning style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 10 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 14, filter: 'blur(6px)', opacity: 0.55, userSelect: 'none', marginBottom: 12 }}>
                                 <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#2a3a4a' }} />
                                 <span style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff' }}>Equipo A vs Equipo B</span>
@@ -1038,7 +1038,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.borderColor = 'rgba(0,200,120,0.6)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.45)' }}
                             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.borderColor = '#1a2e4a'; el.style.boxShadow = 'none' }}>
                             <span aria-hidden style={{ position: 'absolute', right: 2, top: -14, fontFamily: '"Bebas Neue", sans-serif', fontSize: 74, lineHeight: 1, color: 'transparent', WebkitTextStroke: '1.5px rgba(0,200,120,0.16)', pointerEvents: 'none', transform: 'skewX(-8deg)' }}>#{r.rank}</span>
-                            <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
+                            <div suppressHydrationWarning style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 6 }}>{getFlag(r.matches?.league_name ?? '', r.matches?.league_id)} {r.matches?.league_name} · {timeStr(r.matches?.kickoff_at ?? '', lang)}</div>
                             <div style={{ fontSize: 15, fontWeight: 700, color: '#f2f6ff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               {r.matches?.home_team_logo && <img src={r.matches.home_team_logo} width={18} height={18} alt="" style={{ flexShrink: 0 }} />}
                               {r.matches?.home_team_name} <span style={{ color: '#00c878', fontWeight: 400 }}>vs</span> {r.matches?.away_team_name}
@@ -1108,7 +1108,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                           <div style={{ height: 5, background: '#0a1628', borderRadius: 3, overflow: 'hidden', marginBottom: 8 }}>
                             <div data-bar style={{ height: '100%', width: 0, background: color, borderRadius: 3 }} />
                           </div>
-                          <div style={{ fontSize: 11, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                          <div suppressHydrationWarning style={{ fontSize: 11, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
                         </div>
                       )
                     })}
@@ -1163,7 +1163,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
                               <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
                             </div>
-                            <div style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                            <div suppressHydrationWarning style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
                             <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 10, color: '#6b7fa3' }}>
                               {m.odds_corners_over_85 && <span>O8.5: <b style={{ color: '#f2f6ff' }}>{m.odds_corners_over_85}</b></span>}
                               {m.odds_corners_over_95 && <span>O9.5: <b style={{ color: '#f2f6ff' }}>{m.odds_corners_over_95}</b></span>}
@@ -1214,7 +1214,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
                               <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
                             </div>
-                            <div style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                            <div suppressHydrationWarning style={{ fontSize: 10, color: '#8ba2c0' }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
                             <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 10, color: '#6b7fa3' }}>
                               {m.odds_1st_half_over05 && <span>O0.5: <b style={{ color: '#f2f6ff' }}>{m.odds_1st_half_over05}</b></span>}
                               {m.odds_1st_half_over15 && <span>O1.5: <b style={{ color: '#f2f6ff' }}>{m.odds_1st_half_over15}</b></span>}
@@ -1252,7 +1252,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                           {m.away_team_logo && <img src={m.away_team_logo} width={18} height={18} alt="" style={{ borderRadius: 3 }} />}
                           <span style={{ fontSize: 14, fontWeight: 700, color: '#f2f6ff' }}>{m.away_team_name}</span>
                         </div>
-                        <div style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 10 }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
+                        <div suppressHydrationWarning style={{ fontSize: 10, color: '#8ba2c0', marginBottom: 10 }}>{getFlag(m.league_name, m.league_id)} {m.league_name} · {timeStr(m.kickoff_at, lang)}</div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {m.odds_doublechance_1x && <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: '0.04em', background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.4)', color: '#ce93d8', borderRadius: 999, padding: '4px 12px' }}>1X {m.odds_doublechance_1x}</span>}
                           {m.odds_doublechance_x2 && <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: '0.04em', background: 'rgba(206,147,216,0.1)', border: '1px solid rgba(206,147,216,0.4)', color: '#ce93d8', borderRadius: 999, padding: '4px 12px' }}>X2 {m.odds_doublechance_x2}</span>}
@@ -1367,7 +1367,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                           {isDone ? (
                             <span style={{ fontSize: 10, color: '#4a6785', letterSpacing: '0.04em', textAlign: 'center', fontWeight: 700 }}>{lang === 'en' ? 'FT' : 'FIN'}</span>
                           ) : (
-                            <span style={{ fontSize: 12, color: '#8ba2c0', letterSpacing: '0.04em', textAlign: 'center' }}>{timeStr(m.kickoff_at, lang)}</span>
+                            <span suppressHydrationWarning style={{ fontSize: 12, color: '#8ba2c0', letterSpacing: '0.04em', textAlign: 'center' }}>{timeStr(m.kickoff_at, lang)}</span>
                           )}
                           {isDone ? (
                             <span style={{ gridColumn: 'span 5', textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#c5d3e8', fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>
@@ -1415,7 +1415,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                               {isLive && <span style={{ fontSize: 9, background: '#ff333320', border: '1px solid #ff3333', color: '#ff5555', padding: '1px 4px', borderRadius: 3 }}>LIVE</span>}
                               {isHot && !isDone && <span style={{ fontSize: 12 }}>🔥</span>}
                               {edgeMatchIds.has(String(m.id)) && !isDone && <span title="Value Edge" style={{ fontSize: 12 }}>⚡</span>}
-                              <span style={{ fontSize: 12, color: '#6b7fa3' }}>{isDone ? (lang === 'en' ? 'FT' : 'FIN') : timeStr(m.kickoff_at, lang)}</span>
+                              <span suppressHydrationWarning style={{ fontSize: 12, color: '#6b7fa3' }}>{isDone ? (lang === 'en' ? 'FT' : 'FIN') : timeStr(m.kickoff_at, lang)}</span>
                             </div>
                           </div>
                           {/* League */}
