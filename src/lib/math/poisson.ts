@@ -230,12 +230,22 @@ export function calcLambdas(input: MatchInput) {
     defenseWeakness(hConAvg,  league.avgAwayGoals) *
     league.avgAwayGoals * formAway
 
+  // Si la lambda CRUDA (antes de recortarla) ya superaba el techo de 3.5, es señal
+  // de que el dato de entrada está distorsionado (ej. fallback de temporada anterior
+  // trayendo un promedio de gol de un contexto muy distinto al partido actual) — no
+  // solo "alto pero real". El valor final ya queda recortado a 3.5 de todos modos,
+  // pero esta bandera permite bloquear el pick en vez de confiar en un número inflado.
+  const lambdaHomeCapped = rawLambdaHome > 3.5
+  const lambdaAwayCapped = rawLambdaAway > 3.5
+
   return {
     lambdaHome: Math.min(3.5, Math.max(0.3, rawLambdaHome)),
     lambdaAway: Math.min(3.5, Math.max(0.3, rawLambdaAway)),
     formHome,
     formAway,
     homeAdvantage: dynamicHomeAdv,
+    lambdaHomeCapped,
+    lambdaAwayCapped,
   }
 }
 
@@ -313,7 +323,7 @@ export function calcConfidence(edge: number, ev: number, fH: number, fA: number,
 }
 
 export function analyzeMatch(input: MatchInput): MatchAnalysis {
-  const { lambdaHome, lambdaAway, formHome, formAway } = calcLambdas(input)
+  const { lambdaHome, lambdaAway, formHome, formAway, lambdaHomeCapped, lambdaAwayCapped } = calcLambdas(input)
   const lid = input.leagueId
   const p1x2 = prob1X2DixonColes(lambdaHome, lambdaAway, 8, lid)
   const lT = lambdaHome + lambdaAway
@@ -359,6 +369,12 @@ export function analyzeMatch(input: MatchInput): MatchAnalysis {
     // Techo de seguridad absoluto — un edge/EV real sostenible casi nunca supera estos valores
     // en mercados eficientes; mejor descartar que arriesgar una mala recomendación.
     .filter(b => b.edge <= 0.45 && b.ev <= 1.5)
+    // Bloquear si la lambda cruda (antes del clamp) superó el techo — señal de dato de
+    // entrada distorsionado (típicamente el fallback de temporada anterior trayendo un
+    // promedio de gol no representativo). Caso real: FC Copenhagen vs Polessya, edge 33%
+    // y EV 56% pasaban todos los demás filtros, pero la lambda del visitante estaba en el
+    // techo exacto de 3.5 — no es un edge real, es un artefacto del dato de entrada.
+    .filter(() => !lambdaHomeCapped && !lambdaAwayCapped)
     .sort((a, b) => b.ev * b.confidence - a.ev * a.confidence)
 
   return {
