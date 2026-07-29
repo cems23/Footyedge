@@ -614,24 +614,31 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
 
   const runAnalysis = async () => {
     setLoading(true)
-    const total = LEAGUES.length + 1
-    setRefreshProgress({ active: true, current: 0, total, label: lang === 'en' ? 'Starting...' : 'Iniciando...' })
+    const MAX_POLLS = 40 // ~40 * 15s = 10 min tope de espera
+    setRefreshProgress({ active: true, current: 0, total: MAX_POLLS, label: lang === 'en' ? 'Starting workflow...' : 'Iniciando workflow...' })
     try {
-      // Disparar refresh en background
-      fetch('/api/admin/refresh-proxy').catch(() => null)
-      // Esperar progreso real — 3s por liga
-      for (let i = 0; i < LEAGUES.length; i++) {
-        const league = LEAGUES[i]
-        setRefreshProgress({ active: true, current: i + 1, total, label: league.name })
-        await new Promise(r => setTimeout(r, 3000))
+      const trig = await fetch('/api/admin/refresh-proxy')
+      const trigData = await trig.json()
+      if (!trig.ok) throw new Error(trigData.error || 'No se pudo iniciar')
+
+      const since = trigData.triggeredAt
+      let finished = false
+      for (let i = 0; i < MAX_POLLS && !finished; i++) {
+        await new Promise(r => setTimeout(r, 15000))
+        const statusRes = await fetch(`/api/admin/refresh-status?since=${encodeURIComponent(since)}`)
+        const statusData = await statusRes.json()
+        const label = statusData.found
+          ? (statusData.status === 'completed'
+              ? (lang === 'en' ? 'Finishing up...' : 'Terminando...')
+              : (lang === 'en' ? 'Analyzing leagues (GitHub Actions)...' : 'Analizando ligas (GitHub Actions)...'))
+          : (lang === 'en' ? 'Waiting for workflow to start...' : 'Esperando que arranque el workflow...')
+        setRefreshProgress({ active: true, current: i + 1, total: MAX_POLLS, label })
+        if (statusData.found && statusData.status === 'completed') finished = true
       }
-      // Esperar que el backend termine y consolidar desde el frontend
-      setRefreshProgress({ active: true, current: total, total, label: lang === 'en' ? 'Consolidating...' : 'Consolidando...' })
-      await new Promise(r => setTimeout(r, 15000))
-      await fetch('/api/matches/consolidate').catch(() => null)
-      await new Promise(r => setTimeout(r, 2000))
-      setRefreshProgress({ active: false, current: total, total, label: '' })
-      showNotif(lang === 'en' ? ('✓ ' + LEAGUES.length + ' leagues analyzed') : ('✓ ' + LEAGUES.length + ' ligas analizadas'))
+      setRefreshProgress({ active: false, current: MAX_POLLS, total: MAX_POLLS, label: '' })
+      showNotif(finished
+        ? (lang === 'en' ? '✓ Analysis completed' : '✓ Análisis completado')
+        : (lang === 'en' ? '⚠ Still running in background — check GitHub Actions' : '⚠ Sigue corriendo en segundo plano — revisá GitHub Actions'))
       setTimeout(() => window.location.reload(), 1000)
     } catch (e: any) {
       showNotif('Error: ' + e.message, 'err')

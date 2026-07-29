@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
 
 const ADMIN_EMAILS = ['admin@footyedge.com', 'carlosmartens8@gmail.com']
-const LEAGUES = [2,13,11,3,848,39,40,41,42,140,141,135,136,78,79,61,62,88,94,203,144,128,71,253,262,113,103,179,307,164,106,119,98,197,207,218,235,265,268,239,292,332]
+const REPO = 'cems23/Footyedge'
+const WORKFLOW_FILE = 'daily-refresh.yml'
 
+// Ya no hace el trabajo pesado dentro de una función serverless de Vercel — el
+// análisis completo de las ~41 ligas tarda 4-5 minutos reales, muy por encima de
+// cualquier límite de maxDuration razonable. En vez de eso, dispara el mismo
+// workflow de GitHub Actions que ya corre 4x/día por cron (que no tiene ese
+// límite de tiempo), vía la API de GitHub con un token de acceso acotado solo
+// a este repo con permiso de Actions.
 export async function GET(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -17,26 +23,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const secret = process.env.CRON_SECRET
-  const origin = req.nextUrl.origin
-  const headers = { Authorization: `Bearer ${secret}` }
+  const token = process.env.GITHUB_DISPATCH_TOKEN
+  if (!token) {
+    return NextResponse.json({ error: 'GITHUB_DISPATCH_TOKEN no configurado' }, { status: 500 })
+  }
 
-  // Run in background
-  ;(async () => {
-    for (let i = 0; i < LEAGUES.length; i += 3) {
-      const batch = LEAGUES.slice(i, i + 3)
-      await Promise.all(
-        batch.map(id =>
-          fetch(`${origin}/api/matches/analyze-league?leagueId=${id}`, { headers, signal: AbortSignal.timeout(55000) }).catch(() => null)
-        )
-      )
-      await new Promise(r => setTimeout(r, 3000))
+  const triggeredAt = new Date().toISOString()
+
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ref: 'main' }),
     }
-    // Consolidate twice to ensure all data is captured
-    await fetch(`${origin}/api/matches/consolidate`, { headers, signal: AbortSignal.timeout(30000) }).catch(() => null)
-    await new Promise(r => setTimeout(r, 5000))
-    await fetch(`${origin}/api/matches/consolidate`, { headers, signal: AbortSignal.timeout(30000) }).catch(() => null)
-  })()
+  )
 
-  return NextResponse.json({ ok: true, message: 'Refresh started' })
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    return NextResponse.json({ error: 'No se pudo disparar el workflow', detail }, { status: 502 })
+  }
+
+  return NextResponse.json({ ok: true, triggeredAt })
 }
