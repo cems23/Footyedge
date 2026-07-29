@@ -67,7 +67,6 @@ const TIERS_EN: Tier[] = [
       { t: 'Match table with probabilities', on: true },
       { t: 'H2H and team form', on: false },
       { t: 'Over 2.5 / BTTS / 1X2 signals', on: false },
-      { t: 'Bankroll Advisor', on: false },
       { t: 'AI match analyses', on: false },
     ],
   },
@@ -79,7 +78,6 @@ const TIERS_EN: Tier[] = [
       { t: 'Complete table with all %', on: true },
       { t: 'H2H, Form, Injuries, Lineups', on: true },
       { t: 'Team comparator', on: true },
-      { t: 'Bankroll Advisor', on: true },
       { t: 'Most likely scorelines', on: true },
       { t: 'Full live matches', on: true },
       { t: '3 AI match analyses / month', on: true },
@@ -113,7 +111,6 @@ const TIERS_ES: Tier[] = [
       { t: 'Tabla de partidos con probabilidades', on: true },
       { t: 'H2H y forma del equipo', on: false },
       { t: 'Señales de Over 2.5 / BTTS / 1X2', on: false },
-      { t: 'Asesor de Bankroll', on: false },
       { t: 'Análisis de partido con IA', on: false },
     ],
   },
@@ -125,7 +122,6 @@ const TIERS_ES: Tier[] = [
       { t: 'Tabla completa con todos los %', on: true },
       { t: 'H2H, Forma, Bajas, Alineaciones', on: true },
       { t: 'Comparador de equipos', on: true },
-      { t: 'Asesor de Bankroll', on: true },
       { t: 'Marcadores más probables', on: true },
       { t: 'Partidos en vivo completos', on: true },
       { t: '3 análisis de partido con IA / mes', on: true },
@@ -681,12 +677,15 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
             ))}
           </div>
 
-          {/* mini card: kelly */}
+          {/* mini card: true odd vs mercado */}
           <div className="fe-mini fe-mini-kelly" style={{ ...mono }}>
-            <div className="fe-mini-head">{lang === 'es' ? 'STAKE KELLY' : 'KELLY STAKE'}</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-              <span style={{ ...bebas, fontSize: 30, color: C.green, letterSpacing: '0.02em' }}>1.8u</span>
-              <span style={{ color: C.mute, fontSize: 11 }}>{lang === 'es' ? 'del bankroll' : 'of bankroll'}</span>
+            <div className="fe-mini-head">{lang === 'es' ? 'TRUE ODD VS MERCADO' : 'TRUE ODD VS MARKET'}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'baseline', marginTop: 4 }}>
+              <span style={{ color: C.mute, fontSize: 11 }}>{lang === 'es' ? 'cuota 1.85' : 'price 1.85'}</span>
+              <span style={{ ...bebas, fontSize: 22, color: C.white, letterSpacing: '0.02em' }}>true 1.63</span>
+            </div>
+            <div style={{ marginTop: 6 }}>
+              <span style={{ color: C.green, fontSize: 13, fontWeight: 700 }}>+13.5% edge</span>
             </div>
           </div>
 
