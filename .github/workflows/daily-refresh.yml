@@ -36,9 +36,7 @@ jobs:
               echo "  ⚠️ curl falló (exit $curl_exit, probablemente timeout) — sigue con la siguiente liga"
             else
               echo "  status: $code"
-              if [ "$code" != "200" ]; then
-                echo "  respuesta: $(cat /tmp/resp.json)"
-              fi
+              echo "  respuesta: $(cat /tmp/resp.json)"
             fi
             sleep 2
           done
