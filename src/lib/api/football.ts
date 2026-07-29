@@ -219,28 +219,60 @@ export async function getTeamStats(
   // clasificatorias continentales, pero activo en su liga doméstica) — buscar sus
   // últimos partidos reales en CUALQUIER competición esta temporada (sin filtro de liga),
   // en vez de un promedio genérico compartido. Preserva diferenciación real entre equipos.
+  // Agrega goles/concedidos de una lista de fixtures ya filtrados a "terminados".
+  // Reusado por los dos niveles de fallback (temporada actual y temporada anterior).
+  function aggregateFixtures(finished: any[], forTeamId: number) {
+    let gScored = 0, gConceded = 0
+    const recentScored: number[] = []
+    const recentConceded: number[] = []
+    for (const f of finished) {
+      const wasHome = f.teams?.home?.id === forTeamId
+      const scored   = wasHome ? (f.goals?.home ?? 0) : (f.goals?.away ?? 0)
+      const conceded = wasHome ? (f.goals?.away ?? 0) : (f.goals?.home ?? 0)
+      gScored += scored
+      gConceded += conceded
+      recentScored.push(scored)
+      recentConceded.push(conceded)
+    }
+    return { gScored, gConceded, recentScored, recentConceded }
+  }
+
   if (rawPlayed === 0 && !_isFallback) {
+    // Nivel 1: cualquier competición, temporada actual (ej. equipo en clasificatorias
+    // continentales pero sin partidos aún en la liga que estamos analizando).
     try {
       const anyCompFixtures = await apf<any[]>("/fixtures", { team: teamId, season, last: 10, status: 'FT' })
       const finished = (anyCompFixtures ?? []).filter(f => f.goals?.home !== null && f.goals?.away !== null)
       if (finished.length >= 3) {
-        let gScored = 0, gConceded = 0
-        const recentScored: number[] = []
-        const recentConceded: number[] = []
-        for (const f of finished) {
-          const wasHome = f.teams?.home?.id === teamId
-          const scored   = wasHome ? (f.goals?.home ?? 0) : (f.goals?.away ?? 0)
-          const conceded = wasHome ? (f.goals?.away ?? 0) : (f.goals?.home ?? 0)
-          gScored += scored
-          gConceded += conceded
-          recentScored.push(scored)
-          recentConceded.push(conceded)
-        }
+        const agg = aggregateFixtures(finished, teamId)
         const fallbackResult: TeamStats = {
-          goalsScored: gScored, goalsConceded: gConceded, matchesPlayed: finished.length,
+          goalsScored: agg.gScored, goalsConceded: agg.gConceded, matchesPlayed: finished.length,
           xgScored: undefined, xgConceded: undefined,
-          recentGoalsScored: recentScored, recentGoalsConceded: recentConceded,
+          recentGoalsScored: agg.recentScored, recentGoalsConceded: agg.recentConceded,
           recentXgScored: [], isHome, usedFallback: true,
+        }
+        await setCached(cacheKey, fallbackResult)
+        return fallbackResult
+      }
+    } catch {
+      // si falla, seguimos al nivel 2
+    }
+
+    // Nivel 2: cualquier competición, temporada ANTERIOR — solo cuando el nivel 1
+    // tampoco alcanzó los 3 partidos mínimos (típico en pretemporada/inicio de
+    // temporada nueva, cuando casi ningún equipo acumuló partidos todavía).
+    // Se marca usedPriorSeason para que calcConfidence lo penalice más que un
+    // fallback normal (dato más viejo, menos representativo del equipo hoy).
+    try {
+      const priorSeasonFixtures = await apf<any[]>("/fixtures", { team: teamId, season: season - 1, last: 10, status: 'FT' })
+      const finishedPrior = (priorSeasonFixtures ?? []).filter(f => f.goals?.home !== null && f.goals?.away !== null)
+      if (finishedPrior.length >= 3) {
+        const agg = aggregateFixtures(finishedPrior, teamId)
+        const fallbackResult: TeamStats = {
+          goalsScored: agg.gScored, goalsConceded: agg.gConceded, matchesPlayed: finishedPrior.length,
+          xgScored: undefined, xgConceded: undefined,
+          recentGoalsScored: agg.recentScored, recentGoalsConceded: agg.recentConceded,
+          recentXgScored: [], isHome, usedFallback: true, usedPriorSeason: true,
         }
         await setCached(cacheKey, fallbackResult)
         return fallbackResult

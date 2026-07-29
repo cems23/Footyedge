@@ -15,6 +15,7 @@ export interface TeamStats {
   xgConceded?: number
   isHome: boolean
   usedFallback?: boolean  // true si los datos vienen de "cualquier competición" (menos confiable)
+  usedPriorSeason?: boolean  // true si además son de la temporada ANTERIOR (aún menos confiable)
 }
 
 export interface LeagueStats {
@@ -293,7 +294,7 @@ export function valueMetrics(modelProb: number, odds: number) {
   return { impliedProb, edge: modelProb - impliedProb, ev: modelProb * odds - 1 }
 }
 
-export function calcConfidence(edge: number, ev: number, fH: number, fA: number, prob: number, matchesH = 10, matchesA = 10, homeUsedFallback = false, awayUsedFallback = false): number {
+export function calcConfidence(edge: number, ev: number, fH: number, fA: number, prob: number, matchesH = 10, matchesA = 10, homeUsedFallback = false, awayUsedFallback = false, homeUsedPriorSeason = false, awayUsedPriorSeason = false): number {
   const e = Math.min(1, Math.max(0, (edge - MIN_EDGE) / 0.20)) * 40
   const v = Math.min(1, Math.max(0, (ev   - MIN_EV)   / 0.40)) * 30
   const f = Math.min(1, Math.max(0, 1 - Math.abs((fH + fA) / 2 - 1) / 0.4)) * 20
@@ -304,7 +305,11 @@ export function calcConfidence(edge: number, ev: number, fH: number, fA: number,
   // Penalizar extra si alguno de los dos usó datos de "cualquier competición"
   // (menos comparable que datos de la misma competición — mayor incertidumbre real)
   const fallbackPenalty = (homeUsedFallback || awayUsedFallback) ? 0.7 : 1.0
-  return Math.round((e + v + f + s) * dataPenalty * fallbackPenalty)
+  // Penalizar más suave que el fallback normal — dato de temporada anterior es peor
+  // señal que "cualquier competición esta temporada", pero mejor que nada. Solo
+  // relevante en pretemporada/inicio de temporada, cuando casi no hay partidos nuevos.
+  const priorSeasonPenalty = (homeUsedPriorSeason || awayUsedPriorSeason) ? 0.8 : 1.0
+  return Math.round((e + v + f + s) * dataPenalty * fallbackPenalty * priorSeasonPenalty)
 }
 
 export function analyzeMatch(input: MatchInput): MatchAnalysis {
@@ -344,7 +349,7 @@ export function analyzeMatch(input: MatchInput): MatchAnalysis {
         market: m.market, label: m.label,
         modelProb: m.prob, impliedProb, edge, ev,
         odds: m.odds!,
-        confidence: calcConfidence(edge, ev, formHome, formAway, m.prob, input.home.matchesPlayed, input.away.matchesPlayed, input.home.usedFallback, input.away.usedFallback)
+        confidence: calcConfidence(edge, ev, formHome, formAway, m.prob, input.home.matchesPlayed, input.away.matchesPlayed, input.home.usedFallback, input.away.usedFallback, input.home.usedPriorSeason, input.away.usedPriorSeason)
       }
     })
     .filter(b => b.edge > (MARKET_MIN_EDGE[b.market] ?? MIN_EDGE) && b.ev > (MARKET_MIN_EV[b.market] ?? MIN_EV))
