@@ -29,19 +29,36 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // No mostrar en las tarjetas de picks (Value Bets, BTTS) partidos ya finalizados —
-  // el resultado se sigue mostrando en la lista de partidos, pero no tiene sentido
-  // ofrecer una "apuesta de valor" sobre algo que ya terminó.
-  const notFinished = (rankings ?? []).filter((r: any) => r.matches?.status !== 'FT')
+  // No mostrar en las tarjetas de picks (Value Bets, BTTS) partidos ya finalizados,
+  // aplazados, cancelados o suspendidos — el resultado/estado se sigue mostrando en
+  // la lista de partidos, pero no tiene sentido ofrecer una "apuesta de valor" sobre
+  // algo que ya terminó o que no se va a jugar como estaba programado.
+  const INACTIVE_STATUSES = ['FT', 'AET', 'PEN', 'AWD', 'WO', 'PST', 'CANC', 'SUSP', 'ABD', 'INT']
+  const notFinished = (rankings ?? []).filter((r: any) => !INACTIVE_STATUSES.includes(r.matches?.status ?? ''))
 
-  const visible = isPro ? notFinished : notFinished.filter((r: { is_pro_only: boolean }) => !r.is_pro_only)
+  // AI Signal Check (modo observar) — se muestra como badge informativo cuando el
+  // ajuste sugerido es fuerte, sin bloquear ni filtrar el pick. Umbral: penalización
+  // de confianza >= 15 (ajustar si hace falta con más datos acumulados).
+  const matchIds = Array.from(new Set(notFinished.map((r: any) => r.match_id)))
+  const { data: signalChecks } = matchIds.length
+    ? await supabase.from('ai_signal_checks').select('match_id, market, adjustment, confidence_penalty, reason').in('match_id', matchIds)
+    : { data: [] }
+  const signalMap: Record<string, any> = {}
+  for (const s of signalChecks ?? []) signalMap[`${s.match_id}_${s.market}`] = s
+
+  const withSignal = notFinished.map((r: any) => {
+    const signal = signalMap[`${r.match_id}_${r.market}`]
+    return { ...r, ai_signal: signal ? { ...signal, risky: (signal.confidence_penalty ?? 0) >= 15 } : null }
+  })
+
+  const visible = isPro ? withSignal : withSignal.filter((r: { is_pro_only: boolean }) => !r.is_pro_only)
 
   return NextResponse.json({
     date:        today,
     rankings:    visible ?? [],
-    total:       notFinished.length,
+    total:       withSignal.length,
     visible:     visible?.length ?? 0,
     isPro,
-    lockedCount: notFinished.length - (visible?.length ?? 0),
+    lockedCount: withSignal.length - (visible?.length ?? 0),
   })
 }

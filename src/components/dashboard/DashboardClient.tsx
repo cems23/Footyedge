@@ -20,6 +20,7 @@ interface Ranking {
   rank_score: number
   is_pro_only: boolean
   model_prob_raw?: number | null
+  ai_signal?: { adjustment: number; confidence_penalty: number; reason: string; risky: boolean } | null
   market_implied_prob?: number | null
   matches?: {
     id: string
@@ -1004,6 +1005,11 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                                 📊 {lang === 'en' ? 'Model diverges' : 'Modelo diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts from market' : 'pts del mercado'}
                               </div>
                             )}
+                            {r.ai_signal?.risky && (
+                              <div title={r.ai_signal.reason} style={{ fontSize: 10, color: '#ffb400', marginTop: 4, cursor: 'help' }}>
+                                ⚠️ {lang === 'en' ? 'AI flagged this pick as lower confidence' : 'La IA marcó este pick como de menor confianza'}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
@@ -1074,6 +1080,11 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                             {r.model_prob_raw != null && r.market_implied_prob != null && (
                               <div style={{ fontSize: 10, color: '#64b5f6', marginTop: 6, borderTop: '1px solid #1a2e4a', paddingTop: 6 }}>
                                 📊 {lang === 'en' ? 'Model diverges' : 'Modelo diverge'} {Math.abs((r.model_prob_raw - r.market_implied_prob) * 100).toFixed(0)}{lang === 'en' ? 'pts from market' : 'pts del mercado'}
+                              </div>
+                            )}
+                            {r.ai_signal?.risky && (
+                              <div title={r.ai_signal.reason} style={{ fontSize: 10, color: '#ffb400', marginTop: 6, cursor: 'help' }}>
+                                ⚠️ {lang === 'en' ? 'AI flagged lower confidence' : 'IA marcó menor confianza'}
                               </div>
                             )}
                           </div>
