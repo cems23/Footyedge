@@ -339,8 +339,17 @@ export async function getTeamStats(
 // ── UPCOMING FIXTURES ───────────────────────────────────────
 
 export async function getUpcomingFixtures(leagueId: number, season: number, _next = 5): Promise<APIFixture[]> {
-  const today  = new Date().toISOString().split('T')[0]
-  return apf<APIFixture[]>('/fixtures', { league: leagueId, season, from: today, to: today })
+  // from/to = solo "hoy" perdía partidos que arrancan entre 23:00-05:00 UTC (muy
+  // comun en futbol latinoamericano — 20:30 Argentina = 23:30 UTC, 21:00 Colombia =
+  // 02:00 UTC del dia siguiente): la corrida de las 23:00 UTC calcula "hoy" y no
+  // llega a cubrir un partido que ya es, en UTC, "mañana". Se amplia a today+tomorrow
+  // para que SIEMPRE se analice a tiempo, sin importar en que momento del reloj corra
+  // el cron. consolidate tiene su propia ventana ampliada para lo mismo (ver ahi).
+  const today = new Date()
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
+  const from = today.toISOString().split('T')[0]
+  const to = tomorrow.toISOString().split('T')[0]
+  return apf<APIFixture[]>('/fixtures', { league: leagueId, season, from, to })
 }
 
 // ── ODDS (API-Football) ─────────────────────────────────────

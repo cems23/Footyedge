@@ -40,9 +40,14 @@ export async function GET(req: NextRequest) {
   const [{ data: preds }, { data: snaps }, { data: todayMatches }] = await Promise.all([
     supabase.from('model_predictions').select('match_id,prob_home_win,prob_draw,prob_away_win,prob_over25,prob_btts').in('match_id', matchIds),
     supabase.from('odds_snapshots').select('match_id,odds_home,odds_draw,odds_away,odds_over25').in('match_id', matchIds),
+    // Ventana ampliada hasta las 06:00 UTC del dia siguiente (no el dia completo) —
+    // cubre partidos que arrancan entre 23:00-05:00 UTC, muy comunes en futbol
+    // latinoamericano, que con el corte exacto a medianoche UTC nunca llegaban a
+    // tiempo a convertirse en Value Bet antes del kickoff. No se amplia mas que eso
+    // para no adelantar partidos de mañana a la tarde como si fueran "de hoy".
     supabase.from('matches').select('id,kickoff_at,league_id,home_team_id,away_team_id,home_team_name,away_team_name,season,external_id').in('id', matchIds)
       .gte('kickoff_at', today + 'T00:00:00.000Z')
-      .lt('kickoff_at', new Date(new Date(today).getTime() + 86400000).toISOString().split('T')[0] + 'T00:00:00.000Z'),
+      .lt('kickoff_at', new Date(new Date(today).getTime() + 86400000).toISOString().split('T')[0] + 'T06:00:00.000Z'),
   ])
   const todayMatchIds = new Set((todayMatches ?? []).map((m: any) => m.id))
   const leagueIdByMatch = Object.fromEntries((todayMatches ?? []).map((m: any) => [m.id, m.league_id]))
