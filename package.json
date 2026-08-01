@@ -13,6 +13,7 @@
     "analyze": "node scripts/run-analysis.js"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.69.0",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
     "@upstash/ratelimit": "^2.0.8",
