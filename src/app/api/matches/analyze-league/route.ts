@@ -98,6 +98,10 @@ export async function GET(req: NextRequest) {
           prob_btts: analysis.poisson.probBtts,
           league_avg_home_goals: leagueStats.avgHomeGoals,
           league_avg_away_goals: leagueStats.avgAwayGoals,
+          raw_lambda_home: analysis.poisson.rawLambdaHome,
+          raw_lambda_away: analysis.poisson.rawLambdaAway,
+          lambda_home_capped: analysis.poisson.lambdaHomeCapped,
+          lambda_away_capped: analysis.poisson.lambdaAwayCapped,
         }, { onConflict: 'match_id,model_version' })
 
         // Guardar odds en snapshots

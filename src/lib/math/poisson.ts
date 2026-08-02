@@ -48,6 +48,10 @@ export interface PoissonResult {
   probAwayWin: number
   formFactorHome: number
   formFactorAway: number
+  rawLambdaHome: number
+  rawLambdaAway: number
+  lambdaHomeCapped: boolean
+  lambdaAwayCapped: boolean
 }
 
 export interface ValueBet {
@@ -70,6 +74,12 @@ export interface MatchAnalysis {
 
 const MIN_EDGE = 0.12
 const MIN_EV   = 0.10
+
+// Techo de lambda — subido de 3.5 a 3.7 (30/07/2026) mientras se acumula evidencia
+// real (raw_lambda_home/away en model_predictions) para elegir un valor definitivo
+// con datos en vez de a ciegas. Un valor crudo por encima de esto es señal de dato
+// de entrada distorsionado, no de un equipo genuinamente muy ofensivo.
+const LAMBDA_CEILING = 3.7
 
 // Umbrales más estrictos por mercado
 const MARKET_MIN_EDGE: Record<string, number> = {
@@ -235,17 +245,19 @@ export function calcLambdas(input: MatchInput) {
   // trayendo un promedio de gol de un contexto muy distinto al partido actual) — no
   // solo "alto pero real". El valor final ya queda recortado a 3.5 de todos modos,
   // pero esta bandera permite bloquear el pick en vez de confiar en un número inflado.
-  const lambdaHomeCapped = rawLambdaHome > 3.5
-  const lambdaAwayCapped = rawLambdaAway > 3.5
+  const lambdaHomeCapped = rawLambdaHome > LAMBDA_CEILING
+  const lambdaAwayCapped = rawLambdaAway > LAMBDA_CEILING
 
   return {
-    lambdaHome: Math.min(3.5, Math.max(0.3, rawLambdaHome)),
-    lambdaAway: Math.min(3.5, Math.max(0.3, rawLambdaAway)),
+    lambdaHome: Math.min(LAMBDA_CEILING, Math.max(0.3, rawLambdaHome)),
+    lambdaAway: Math.min(LAMBDA_CEILING, Math.max(0.3, rawLambdaAway)),
     formHome,
     formAway,
     homeAdvantage: dynamicHomeAdv,
     lambdaHomeCapped,
     lambdaAwayCapped,
+    rawLambdaHome,
+    rawLambdaAway,
   }
 }
 
@@ -323,7 +335,7 @@ export function calcConfidence(edge: number, ev: number, fH: number, fA: number,
 }
 
 export function analyzeMatch(input: MatchInput): MatchAnalysis {
-  const { lambdaHome, lambdaAway, formHome, formAway, lambdaHomeCapped, lambdaAwayCapped } = calcLambdas(input)
+  const { lambdaHome, lambdaAway, formHome, formAway, lambdaHomeCapped, lambdaAwayCapped, rawLambdaHome, rawLambdaAway } = calcLambdas(input)
   const lid = input.leagueId
   const p1x2 = prob1X2DixonColes(lambdaHome, lambdaAway, 8, lid)
   const lT = lambdaHome + lambdaAway
@@ -339,6 +351,10 @@ export function analyzeMatch(input: MatchInput): MatchAnalysis {
     probAwayWin: p1x2.away,
     formFactorHome: formHome,
     formFactorAway: formAway,
+    rawLambdaHome,
+    rawLambdaAway,
+    lambdaHomeCapped,
+    lambdaAwayCapped,
   }
 
   const markets: Array<{ market: ValueBet['market']; label: string; prob: number; odds?: number }> = [

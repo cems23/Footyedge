@@ -39,6 +39,11 @@ export async function GET(req: NextRequest) {
     const lA = pred.expected_goals_away ?? 0
     const lT = lH + lA
     const prob_over15 = 1 - Math.exp(-lT) * (1 + lT)
+    // Si la lambda cruda del modelo superó el techo (dato de entrada probablemente
+    // distorsionado — ver poisson.ts LAMBDA_CEILING), no ofrecer este partido como
+    // señal de BTTS/Over — mismo criterio que ya se aplica a las Value Bets.
+    if (pred.lambda_home_capped || pred.lambda_away_capped) return null
+
     return {
       id: m.id,
       home_team_name: m.home_team_name,
