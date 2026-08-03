@@ -113,7 +113,7 @@ const LEAGUE_FLAG_BY_ID: Record<number, string> = {
   39: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', // Premier League
   40: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', // Championship
   41: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', // League One
-  169: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', // Scottish PL
+  179: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', // Scottish Premiership (id corregido 25/07, era 169 por error)
   140: '🇪🇸', // La Liga
   141: '🇪🇸', // Segunda División
   78: '🇩🇪',  // Bundesliga
@@ -139,9 +139,9 @@ const LEAGUE_FLAG_BY_ID: Record<number, string> = {
   218: '🇦🇹', // Austria BL
   197: '🇬🇷', // Super League 1
   207: '🇨🇭', // Swiss SL
-  283: '🇨🇴', // Liga BetPlay
-  239: '🇨🇱', // Primera Chile
-  242: '🇺🇾', // Primera Uruguay
+  239: '🇨🇴', // Liga BetPlay (id corregido 25/07, era 283 por error)
+  265: '🇨🇱', // Primera Chile (id corregido 25/07, era 239 por error)
+  268: '🇺🇾', // Primera Uruguay (id corregido 25/07, era 242 por error)
   332: '🇮🇷', // Persian Gulf
   188: '🇦🇺', // A-League
   292: '🇰🇷', // K League 1
@@ -151,7 +151,7 @@ const LEAGUE_FLAG_BY_ID: Record<number, string> = {
 // Fallback por nombre para compatibilidad
 const LEAGUE_FLAGS: Record<string, string> = {
   'Premier League': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Championship': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'League One': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'Scottish PL': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'La Liga': '🇪🇸', 'Segunda División': '🇪🇸',
+  'Premiership': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Scottish PL': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'La Liga': '🇪🇸', 'Segunda División': '🇪🇸',
   'Bundesliga': '🇩🇪', '2. Bundesliga': '🇩🇪', 'Serie A': '🇮🇹', 'Serie B': '🇮🇹',
   'Ligue 1': '🇫🇷', 'Ligue 2': '🇫🇷', 'Eredivisie': '🇳🇱', 'Primeira Liga': '🇵🇹',
   'Süper Lig': '🇹🇷', 'Jupiler Pro League': '🇧🇪', 'Pro League': '🇧🇪',
