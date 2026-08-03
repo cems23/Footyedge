@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     .select(`
       market, edge, odds, ev,
       matches:match_id (
-        league_id, league_name
+        league_id, league_name, status
       )
     `)
     .eq('date', new Date().toISOString().split('T')[0])
@@ -19,11 +19,18 @@ export async function GET(req: NextRequest) {
 
   if (!rankings?.length) return NextResponse.json({ leagues: [] })
 
+  // Excluir partidos ya finalizados/aplazados/cancelados/suspendidos — mismo
+  // criterio que el dashboard principal (today/route.ts, all-today/route.ts).
+  // Sin esto, una value bet de un partido ya jugado seguia apareciendo aca aunque
+  // ya no estuviera visible en ningun otro lado del dashboard.
+  const INACTIVE_STATUSES = ['FT', 'AET', 'PEN', 'AWD', 'WO', 'PST', 'CANC', 'SUSP', 'ABD', 'INT']
+
   // Group by league
   const leagueMap: Record<number, any> = {}
   for (const r of rankings) {
     const m = r.matches as any
     if (!m?.league_id) continue
+    if (INACTIVE_STATUSES.includes(m.status ?? '')) continue
     if (!leagueMap[m.league_id]) {
       leagueMap[m.league_id] = {
         league_id: m.league_id,
