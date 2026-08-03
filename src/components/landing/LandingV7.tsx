@@ -266,8 +266,13 @@ const BIG_LEAGUES = [
 ];
 
 function daysUntil(date: Date) {
+  // Ancla el limite de "hoy" a UTC, no a la zona horaria local del entorno donde
+  // corre (servidor en UTC, navegador del usuario puede estar en otra zona) — evita
+  // que el calculo de dias restantes difiera entre servidor y cliente y rompa la
+  // hidratacion de React justo en el limite de un dia.
   const now = new Date();
-  const diff = date.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const diff = date.getTime() - todayUTC;
   return Math.max(0, Math.ceil(diff / 86400000));
 }
 
@@ -279,7 +284,7 @@ function KickoffCard({ flag, name, date, lang }: { flag: string; name: string; d
     return () => clearInterval(id);
   }, [date]);
 
-  const started = days === 0 && new Date() >= date;
+  const started = days === 0;
 
   return (
     <div data-reveal style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: '24px 20px', textAlign: 'center' }}>
@@ -789,7 +794,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
       {/* teasers reales de hoy — sin necesitar cuenta */}
       {teasers.length > 0 && (
         <section style={{ padding: 'clamp(48px,6vw,80px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}` }}>
-          <p style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center' }}>
+          <p suppressHydrationWarning style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center' }}>
             {lang === 'es' ? `▮ SEÑALES DE HOY · ${new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-GB', { day: '2-digit', month: 'long' })}` : `▮ TODAY'S SIGNALS · ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long' })}`}
           </p>
           <h2 style={{ textAlign: 'center', margin: '0 0 36px', textTransform: 'uppercase', lineHeight: 0.95 }}>
@@ -799,7 +804,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16, maxWidth: 1000, margin: '0 auto' }}>
             {teasers.map((t, i) => (
               <div key={i} style={{ background: C.card, border: '1px solid rgba(246,185,59,0.35)', borderRadius: 16, padding: 20 }}>
-                <div style={{ ...mono, fontSize: 11, color: C.mute, marginBottom: 14 }}>
+                <div suppressHydrationWarning style={{ ...mono, fontSize: 11, color: C.mute, marginBottom: 14 }}>
                   {t.league_name ?? '—'} · {t.kickoff_at ? new Date(t.kickoff_at).toLocaleTimeString(lang === 'es' ? 'es-ES' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </div>
                 <div style={{ filter: 'blur(6px)', opacity: 0.5, userSelect: 'none', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -975,7 +980,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
           <a href="/privacy" style={{ ...mono, fontSize: 12, color: C.mute, textDecoration: 'none' }}>{lang === 'es' ? 'Privacidad' : 'Privacy'}</a>
           <a href="/terms" style={{ ...mono, fontSize: 12, color: C.mute, textDecoration: 'none' }}>{lang === 'es' ? 'Términos' : 'Terms'}</a>
-          <span style={{ ...mono, fontSize: 12, color: C.mute }}>© {new Date().getFullYear()} FootyEdge · 18+ · {lang === 'es' ? 'Apuesta con responsabilidad' : 'Bet responsibly'}</span>
+          <span suppressHydrationWarning style={{ ...mono, fontSize: 12, color: C.mute }}>© {new Date().getFullYear()} FootyEdge · 18+ · {lang === 'es' ? 'Apuesta con responsabilidad' : 'Bet responsibly'}</span>
         </div>
       </footer>
     </main>
