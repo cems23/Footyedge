@@ -294,8 +294,8 @@ function KickoffCard({ flag, name, date, lang }: { flag: string; name: string; d
         <div style={{ ...mono, fontSize: 13, color: C.green, fontWeight: 700 }}>{lang === 'es' ? '¡EN JUEGO!' : 'LIVE NOW!'}</div>
       ) : (
         <>
-          <div style={{ ...bebas, fontSize: 44, color: C.green, lineHeight: 1 }}>{days}</div>
-          <div style={{ ...mono, fontSize: 11, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{lang === 'es' ? (days === 1 ? 'día restante' : 'días restantes') : (days === 1 ? 'day left' : 'days left')}</div>
+          <div suppressHydrationWarning style={{ ...bebas, fontSize: 44, color: C.green, lineHeight: 1 }}>{days}</div>
+          <div suppressHydrationWarning style={{ ...mono, fontSize: 11, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{lang === 'es' ? (days === 1 ? 'día restante' : 'días restantes') : (days === 1 ? 'day left' : 'days left')}</div>
         </>
       )}
       <div style={{ ...mono, fontSize: 11, color: C.mute, marginTop: 10 }}>
