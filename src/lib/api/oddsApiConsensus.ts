@@ -82,7 +82,10 @@ export async function getOddsApiConsensus(sportKey: string, hourBucket?: string)
     url.searchParams.set('markets', 'h2h,totals')
     url.searchParams.set('oddsFormat', 'decimal')
 
-    const res = await fetch(url.toString())
+    // Timeout explicito — sin esto, si Odds API se cuelga, la funcion serverless
+    // (y el cron de capture-closing-odds que la llama) puede quedar colgada mucho
+    // mas alla de lo razonable (visto: 2 corridas de 15 min seguidas, canceladas).
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
     if (!res.ok) return null
 
     const remaining = parseInt(res.headers.get('x-requests-remaining') ?? '', 10)

@@ -79,9 +79,13 @@ export async function apf<T>(endpoint: string, params: Record<string, string | n
   const url = new URL(`${API_FOOTBALL}${endpoint}`)
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)))
 
+  // Timeout explicito — sin esto, un colgado del lado de API-Football puede
+  // arrastrar toda la funcion serverless que la llama (analyze-league corre esto
+  // por CADA partido de CADA liga, asi que el riesgo se multiplica mucho).
   const res = await fetch(url.toString(), {
     headers: { 'x-apisports-key': key },
     cache: "no-store",
+    signal: AbortSignal.timeout(15000),
   })
   if (!res.ok) throw new Error(`API-Football ${res.status}: ${await res.text()}`)
   const json = await res.json()
@@ -105,7 +109,7 @@ async function oddsApi<T>(endpoint: string, params: Record<string, string>): Pro
   url.searchParams.set('apiKey', key)
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
 
-  const res = await fetch(url.toString(), { next: { revalidate: 300 } })
+  const res = await fetch(url.toString(), { next: { revalidate: 300 }, signal: AbortSignal.timeout(15000) })
   if (!res.ok) throw new Error(`Odds API ${res.status}: ${await res.text()}`)
   return res.json() as T
 }
