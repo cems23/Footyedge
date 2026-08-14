@@ -75,11 +75,11 @@ export interface MatchAnalysis {
 const MIN_EDGE = 0.12
 const MIN_EV   = 0.10
 
-// Techo de lambda — subido de 3.5 a 3.7 (30/07/2026) mientras se acumula evidencia
-// real (raw_lambda_home/away en model_predictions) para elegir un valor definitivo
-// con datos en vez de a ciegas. Un valor crudo por encima de esto es señal de dato
-// de entrada distorsionado, no de un equipo genuinamente muy ofensivo.
-const LAMBDA_CEILING = 3.7
+// Techo de lambda — vuelto a 3.5 (14/08/2026) tras confirmar con datos reales que
+// 3.7 dejaba pasar casos distorsionados (Telstar-Sparta Rotterdam, raw_lambda_away
+// 3.65 con EV +138%). raw_lambda_home/away se sigue guardando en model_predictions
+// sin importar este valor, para seguir acumulando evidencia hacia un techo definitivo.
+const LAMBDA_CEILING = 3.5
 
 // Umbrales más estrictos por mercado
 const MARKET_MIN_EDGE: Record<string, number> = {
@@ -384,7 +384,9 @@ export function analyzeMatch(input: MatchInput): MatchAnalysis {
     .filter(() => Math.min(input.home.matchesPlayed, input.away.matchesPlayed) >= 3)
     // Techo de seguridad absoluto — un edge/EV real sostenible casi nunca supera estos valores
     // en mercados eficientes; mejor descartar que arriesgar una mala recomendación.
-    .filter(b => b.edge <= 0.45 && b.ev <= 1.5)
+    // EV bajado de 1.5 (150%) a 0.70 (70%) el 14/08/2026 — 150% dejaba pasar casos
+    // como Telstar-Sparta Rotterdam (+138% EV, dato distorsionado por pretemporada).
+    .filter(b => b.edge <= 0.45 && b.ev <= 0.70)
     // Bloquear si la lambda cruda (antes del clamp) superó el techo — señal de dato de
     // entrada distorsionado (típicamente el fallback de temporada anterior trayendo un
     // promedio de gol no representativo). Caso real: FC Copenhagen vs Polessya, edge 33%
