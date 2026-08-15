@@ -1105,13 +1105,13 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 <div onClick={() => setBttsOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', cursor: 'pointer', borderBottom: bttsOpen ? '1px solid #1a2e4a' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontFamily: '\"Bebas Neue\", sans-serif', fontSize: 20, color: '#64b5f6', textTransform: 'uppercase', letterSpacing: '0.06em', transform: 'skewX(-6deg)', display: 'inline-block' }}>◆ {T.bttsTitle}</span>
-                    <span style={{ fontSize: 11, color: '#4a6785' }}>{btts.filter(m => m.prob_btts >= 0.60).length} partidos · ≥60%</span>
+                    <span style={{ fontSize: 11, color: '#4a6785' }}>{Math.min(btts.filter(m => m.prob_btts >= 0.60).length, isElite ? 15 : isPro ? 10 : 3)} partidos · ≥60%</span>
                   </div>
                   <span style={{ color: '#4a6785', fontSize: 12 }}>{bttsOpen ? '▲' : '▼'}</span>
                 </div>
                 {bttsOpen && (
                   <div ref={bttsGridRef} style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
-                    {btts.filter(m => m.prob_btts >= 0.60).slice(0, isPro ? 10 : 3).map((m) => {
+                    {btts.filter(m => m.prob_btts >= 0.60).slice(0, isElite ? 15 : isPro ? 10 : 3).map((m) => {
                       const pct = Math.round(m.prob_btts * 100)
                       const color = pct >= 70 ? '#00c878' : pct >= 60 ? '#ffb400' : '#6b7fa3'
                       const isHot = pct >= 65
