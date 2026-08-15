@@ -40,9 +40,12 @@ export async function GET(req: NextRequest) {
     const lT = lH + lA
     const prob_over15 = 1 - Math.exp(-lT) * (1 + lT)
     // Si la lambda cruda del modelo superó el techo (dato de entrada probablemente
-    // distorsionado — ver poisson.ts LAMBDA_CEILING), no ofrecer este partido como
-    // señal de BTTS/Over — mismo criterio que ya se aplica a las Value Bets.
-    if (pred.lambda_home_capped || pred.lambda_away_capped) return null
+    // distorsionado — ver poisson.ts LAMBDA_CEILING), NO se oculta el partido de la
+    // tabla general (sigue siendo un partido real que se va a jugar) — solo se marca
+    // para excluirlo de las listas de BTTS/Over1.5/Over2.5 mas abajo, que sí dependen
+    // directamente de nuestra lambda. Corners/1er tiempo/doble oportunidad vienen de
+    // FootyStats, no de nuestro Poisson, asi que no deben verse afectados en absoluto.
+    const lambdaDistorted = !!(pred.lambda_home_capped || pred.lambda_away_capped)
 
     return {
       id: m.id,
@@ -52,6 +55,7 @@ export async function GET(req: NextRequest) {
       away_team_logo: m.away_team_logo,
       league_name: m.league_name,
       kickoff_at: m.kickoff_at,
+      lambda_distorted: lambdaDistorted,
       prob_btts: pred.prob_btts,
       prob_over15: +prob_over15.toFixed(4),
       prob_over25: pred.prob_over25,
@@ -106,12 +110,16 @@ export async function GET(req: NextRequest) {
 
   const active = [...enriched].filter(Boolean).filter((m: any) => !doneStatuses.includes(m.status ?? ''))
 
+  // Modelo propio (Poisson): excluir partidos con lambda distorsionada
+  const activeCleanLambda = active.filter((m: any) => !m.lambda_distorted)
+
   return NextResponse.json({
     total: sorted.length,
     matches: sorted,
-    btts:    [...active].filter((m: any) => m.prob_btts != null).sort((a: any, b: any) => b.prob_btts - a.prob_btts).slice(0, 15),
-    over15:  [...active].filter((m: any) => m.prob_over15 != null).sort((a: any, b: any) => b.prob_over15 - a.prob_over15).slice(0, 15),
-    over25:  [...active].filter((m: any) => m.prob_over25 != null).sort((a: any, b: any) => b.prob_over25 - a.prob_over25).slice(0, 15),
+    btts:    [...activeCleanLambda].filter((m: any) => m.prob_btts != null).sort((a: any, b: any) => b.prob_btts - a.prob_btts).slice(0, 15),
+    over15:  [...activeCleanLambda].filter((m: any) => m.prob_over15 != null).sort((a: any, b: any) => b.prob_over15 - a.prob_over15).slice(0, 15),
+    over25:  [...activeCleanLambda].filter((m: any) => m.prob_over25 != null).sort((a: any, b: any) => b.prob_over25 - a.prob_over25).slice(0, 15),
+    // FootyStats (no nuestro Poisson) — no filtrar por lambda_distorted, no aplica
     corners: [...active].filter((m: any) => m.corners_potential != null).sort((a: any, b: any) => (b.corners_potential ?? 0) - (a.corners_potential ?? 0)).slice(0, 10),
     firsthalf: [...active].filter((m: any) => m.o15HT_potential != null).sort((a: any, b: any) => (b.o15HT_potential ?? 0) - (a.o15HT_potential ?? 0)).slice(0, 10),
     doublechance: [...active].filter((m: any) => m.odds_doublechance_1x != null).sort((a: any, b: any) => (a.odds_doublechance_1x ?? 99) - (b.odds_doublechance_1x ?? 99)).slice(0, 10),
