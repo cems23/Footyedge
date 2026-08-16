@@ -2,14 +2,13 @@ name: Settle Results (hourly)
 
 on:
   schedule:
-    # GitHub Actions no garantiza que un cron corra exactamente cuando debería
-    # ("best-effort", puede saltearse bajo carga sin reintento — documentado
-    # por GitHub). Para compensar, disparamos el mismo job idempotente 3 veces
-    # por hora en minutos separados en vez de depender de una sola corrida.
-    # Si una se saltea, las otras dos igual liquidan los partidos pendientes.
-    - cron: '7 * * * *'
-    - cron: '27 * * * *'
-    - cron: '47 * * * *'
+    # Revertido a 1x/hora (14/08/2026) — la triplicacion (3x/hora) consumia
+    # demasiada cuota gratuita de GitHub Actions (cada corrida factura minimo
+    # 1 minuto completo sin importar que dure segundos, y 72 corridas/dia de
+    # este workflow solo, sumado a capture-closing-odds, agoto el 90% de los
+    # 2000 min/mes gratis en apenas 15 dias). Acepta mas riesgo de salteo
+    # ocasional de GitHub a cambio de no quedarse sin cuota.
+    - cron: '15 * * * *'
   workflow_dispatch: {}
 
 jobs:

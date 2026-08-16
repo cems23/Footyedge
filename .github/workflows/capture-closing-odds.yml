@@ -1,10 +1,13 @@
 name: Capture Closing Odds (CLV)
 
 on:
-  schedule:
-    # Cada ~20 min, en minutos separados por si alguna corrida se saltea
-    # (GitHub Actions cron es "best-effort", puede saltear sin aviso).
-    - cron: '3,23,43 * * * *'
+  # PAUSADO (14/08/2026) — 72 corridas/dia (cada minima 1 min facturado por
+  # GitHub aunque tarde 8 segundos reales) agotaba la cuota gratuita de
+  # Actions junto con settle-results. CLV todavia no tiene visualizacion
+  # construida, asi que pausar esto no afecta nada visible al usuario. Sigue
+  # disponible via workflow_dispatch para correrlo a mano cuando haga falta.
+  # Retomar el schedule cuando: (a) exista la visualizacion de CLV, y (b) el
+  # presupuesto de Actions este comodo (revisar github.com/settings/billing).
   workflow_dispatch: {}
 
 jobs:
