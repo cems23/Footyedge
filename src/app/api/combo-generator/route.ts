@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const { data: preds } = await supabase
     .from('model_predictions')
-    .select('match_id, prob_home_win, prob_draw, prob_away_win, prob_over25, prob_btts')
+    .select('match_id, prob_home_win, prob_draw, prob_away_win, prob_over25, prob_btts, lambda_home_capped, lambda_away_capped')
     .in('match_id', matchIds)
 
   const { data: odds } = await supabase
@@ -53,6 +53,10 @@ export async function POST(req: NextRequest) {
     const pred = predMap[matchId] as any
     const odd = oddsMap[matchId] as any
     if (!pred) continue
+    // Mismo criterio que BTTS/Over1.5/Over2.5 en el dashboard: si la lambda cruda
+    // del modelo superó el techo (dato de entrada probablemente distorsionado —
+    // ver poisson.ts LAMBDA_CEILING), no ofrecer este partido en ninguna combinada.
+    if (pred.lambda_home_capped || pred.lambda_away_capped) continue
 
     for (const market of markets) {
       const prob = pred[PROB_FIELD[market]]
