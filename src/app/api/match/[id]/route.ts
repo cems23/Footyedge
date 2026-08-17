@@ -153,11 +153,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     isHome: s.team?.id === home_team_id, isAway: s.team?.id === away_team_id,
   })) || []
 
-  const injuriesProcessed = (injuries || []).map((i: any) => ({
-    player: i.player?.name, photo: i.player?.photo,
-    type: i.player?.type, reason: i.player?.reason,
-    team: i.team?.name, teamId: i.team?.id,
-  }))
+  // API-Football a veces devuelve el mismo jugador repetido en /injuries (multiples
+  // reportes de la misma baja combinados) — deduplicar por player.id, con fallback
+  // a nombre+equipo si el id no viene en la respuesta.
+  const seenInjuries = new Set<string>()
+  const injuriesProcessed = (injuries || [])
+    .map((i: any) => ({
+      player: i.player?.name, photo: i.player?.photo,
+      type: i.player?.type, reason: i.player?.reason,
+      team: i.team?.name, teamId: i.team?.id,
+      playerKey: i.player?.id ?? `${i.player?.name}_${i.team?.id}`,
+    }))
+    .filter((i: any) => {
+      if (seenInjuries.has(i.playerKey)) return false
+      seenInjuries.add(i.playerKey)
+      return true
+    })
+    .map(({ playerKey, ...rest }: any) => rest)
 
   const processForm = (fixtures: any[], teamId: number) => {
     const results = (fixtures || []).slice(0, 10).map((f: any) => {
