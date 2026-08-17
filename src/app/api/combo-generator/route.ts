@@ -65,7 +65,13 @@ export async function POST(req: NextRequest) {
       // BTTS no tiene columna de odds propia en odds_snapshots; si no hay cuota, usamos 1/prob como aproximacion
       let marketOdds: number | null = market === 'btts' ? null : (odd?.[ODDS_FIELD[market]] ?? null)
       if (!marketOdds) marketOdds = prob > 0 ? Number((1 / prob).toFixed(2)) : null
-      if (!marketOdds || marketOdds < minOdds || marketOdds > maxOdds) continue
+      if (!marketOdds) continue
+      // El rango min/maxOdds tiene sentido para mercados con cuota REAL de mercado —
+      // para BTTS, la cuota es 1/prob (una aproximacion derivada de la misma
+      // probabilidad que ya filtramos con minProb), asi que aplicar el mismo rango
+      // ahi es circular y descartaba justo los casos de mayor confianza (ej. 84%
+      // de probabilidad BTTS dando cuota sintetica 1.18, apenas debajo de 1.20).
+      if (market !== 'btts' && (marketOdds < minOdds || marketOdds > maxOdds)) continue
 
       candidates.push({ match_id: matchId, market, odds: marketOdds, model_prob: prob, score: prob * marketOdds })
     }
