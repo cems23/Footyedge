@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
               218:'Austria BL',197:'Super League 1',207:'Swiss SL',169:'Scottish PL',
               41:'League One',79:'2. Bundesliga',136:'Serie B',62:'Ligue 2',
               141:'Segunda División',239:'Liga BetPlay',265:'Primera Chile',
-              268:'Primera Uruguay',332:'Super Liga IR',98:'J1 League',292:'K League 1',2:'Champions League'
+              268:'Primera Uruguay',332:'Super Liga IR',98:'J1 League',292:'K League 1',2:'Champions League',299:'Venezuela Primera'
             }; return m[fixture.league.id] || fixture.league.name })(),
             season: fixture.league.season,
             home_team_id: fixture.teams.home.id, home_team_name: fixture.teams.home.name, home_team_logo: fixture.teams.home.logo,
