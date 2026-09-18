@@ -6,7 +6,7 @@
  * scrub compacto 180vh, tiers reales, logo 112px.
  */
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { animate, stagger } from 'animejs';
 import AnimatedPitch from './AnimatedPitch';
 
@@ -195,14 +195,15 @@ const FAQS_ES = [
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
+  const contentId = useId();
   return (
     <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, background: C.card, overflow: 'hidden' }}>
-      <button onClick={() => setOpen(!open)} style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: C.white, padding: '18px 22px', fontSize: 16, fontWeight: 600, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <button type="button" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen(!open)} style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: C.white, padding: '18px 22px', fontSize: 16, fontWeight: 600, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <span>{q}</span>
         <span style={{ ...mono, color: C.green, fontSize: 18, flexShrink: 0, transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}>+</span>
       </button>
       {open && (
-        <div style={{ padding: '0 22px 20px', color: C.mute, fontSize: 14.5, lineHeight: 1.65 }}>{a}</div>
+        <div id={contentId} role="region" aria-label={q} style={{ padding: '0 22px 20px', color: C.mute, fontSize: 14.5, lineHeight: 1.65 }}>{a}</div>
       )}
     </div>
   );
@@ -533,11 +534,11 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
       >
         <a href={`/${lang}`} style={{ textDecoration: 'none' }}><Logo size={scrolled ? 90 : 132} /></a>
 
-        <a href="https://theresanaiforthat.com/ai/footyedge/?ref=featured&v=525272" target="_blank" rel="nofollow" className="fe-taaft-badge" style={{ display: 'flex', alignItems: 'center' }}>
+        <a href="https://theresanaiforthat.com/ai/footyedge/?ref=featured&v=525272" target="_blank" rel="noopener noreferrer nofollow" className="fe-taaft-badge" style={{ display: 'flex', alignItems: 'center' }}>
           <img width={170} src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" alt="Featured on There's An AI For That" style={{ display: 'block' }} />
         </a>
 
-        <nav className="fe-nav" style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
+        <nav aria-label={lang === 'es' ? 'Navegación principal' : 'Primary navigation'} className="fe-nav" style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
           {(lang === 'es'
             ? [['#engine', 'Motor'], ['#features', 'Producto'], ['#pricing', 'Precios']]
             : [['#engine', 'Engine'], ['#features', 'Product'], ['#pricing', 'Pricing']]
@@ -548,14 +549,14 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           <a className="fe-btn" href={`/${lang}/auth/register`} style={btnStyle(true, 'sm')}>{lang === 'es' ? 'Empezar gratis' : 'Start free'}</a>
         </nav>
 
-        <button className="fe-burger" aria-label="Menu" onClick={() => setMenu(!menu)}
+        <button type="button" className="fe-burger" aria-label={menu ? (lang === 'es' ? 'Cerrar menú' : 'Close menu') : (lang === 'es' ? 'Abrir menú' : 'Open menu')} aria-expanded={menu} aria-controls="mobile-navigation" onClick={() => setMenu(!menu)}
           style={{ display: 'none', background: 'none', border: `2px solid ${C.line}`, borderRadius: 10, color: C.white, padding: '8px 12px', ...mono, fontSize: 13 }}>
           {menu ? 'CLOSE' : 'MENU'}
         </button>
       </header>
 
       {menu && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(7,13,26,0.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34 }}>
+        <nav id="mobile-navigation" aria-label={lang === 'es' ? 'Navegación móvil' : 'Mobile navigation'} style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(7,13,26,0.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34 }}>
           {(lang === 'es'
             ? [['#engine', 'MOTOR'], ['#features', 'PRODUCTO'], ['#pricing', 'PRECIOS'], [`/${lang}/auth/login`, 'ENTRAR']]
             : [['#engine', 'ENGINE'], ['#features', 'PRODUCT'], ['#pricing', 'PRICING'], [`/${lang}/auth/login`, 'LOG IN']]
@@ -563,7 +564,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
             <a key={h} href={h} onClick={() => setMenu(false)} className="fe-menu-item" style={{ ...slant, fontSize: 46, color: C.white, textDecoration: 'none', animationDelay: `${i * 0.07}s` }}>{l}</a>
           ))}
           <a href={`/${lang}/auth/register`} onClick={() => setMenu(false)} style={btnStyle(true, 'lg')}>{lang === 'es' ? 'Empezar gratis' : 'Start free'}</a>
-        </div>
+        </nav>
       )}
 
       {/* hero */}
@@ -672,6 +673,13 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         <div className="fe-up" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', animationDelay: '0.6s', position: 'relative' }}>
           <a ref={magneticRef} className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={{ ...btnStyle(true, 'lg'), willChange: 'transform' }}>{lang === 'es' ? 'Ver las señales de hoy →' : "See today's signals →"}</a>
           <a className="fe-btn" href="#engine" style={btnStyle(false, 'lg')}>{lang === 'es' ? 'Cómo funciona el motor' : 'How the engine works'}</a>
+        </div>
+
+        <div className="fe-up fe-trust-rail" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 22, position: 'relative', ...mono, animationDelay: '0.68s' }} aria-label={lang === 'es' ? 'Principios del producto' : 'Product principles'}>
+          {(lang === 'es'
+            ? ['Modelo probabilístico', 'Datos validados por ejecución', 'Sin resultados garantizados']
+            : ['Probabilistic model', 'Data validated on every run', 'No guaranteed results']
+          ).map((item) => <span key={item} style={{ color: C.mute, fontSize: 11, border: `1px solid ${C.line}`, borderRadius: 999, padding: '7px 10px', background: 'rgba(13,30,53,0.56)' }}>✓ {item}</span>)}
         </div>
 
         <div className="fe-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginTop: 20, padding: '10px 18px', borderRadius: 12, background: 'rgba(13,30,53,0.75)', border: '2px solid rgba(255,200,60,0.7)', boxShadow: '0 0 30px rgba(255,200,60,0.25)', animationDelay: '0.75s', position: 'relative', ...mono }}>
@@ -922,7 +930,7 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
 
       <footer style={{ borderTop: `1px solid ${C.line}`, padding: '32px clamp(16px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-between', alignItems: 'center' }}>
         <Logo size={80} />
-        <a href="https://theresanaiforthat.com/ai/footyedge/?ref=featured&v=525272" target="_blank" rel="nofollow">
+        <a href="https://theresanaiforthat.com/ai/footyedge/?ref=featured&v=525272" target="_blank" rel="noopener noreferrer nofollow">
           <img width={200} src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" alt="Featured on There's An AI For That" style={{ display: 'block' }} />
         </a>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
@@ -1148,6 +1156,7 @@ html { scroll-behavior: smooth; }
 .fe-btn:hover { transform: translateY(-2px) scale(1.02); }
 .fe-navlink { transition: color .15s ease; }
 .fe-navlink:hover { color: #00c878 !important; }
+.fe-btn:focus-visible, .fe-navlink:focus-visible, .fe-burger:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #f6b93b; outline-offset: 3px; }
 
 .fe-menu-item { opacity: 0; animation: fe-rise .5s cubic-bezier(.2,.8,.2,1) forwards; }
 

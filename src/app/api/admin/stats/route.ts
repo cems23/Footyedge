@@ -79,6 +79,58 @@ export async function GET() {
     .gte('kickoff_at', today + 'T00:00:00').lt('kickoff_at', today + 'T23:59:59')
   const leaguesWithDataToday = new Set((leaguesTodayRaw ?? []).map(m => m.league_name)).size
 
+  // Cobertura real del modelo: los partidos importados no son suficientes si aún
+  // no tienen una predicción asociada. Se calcula desde la propia base de datos,
+  // sin llamar a proveedores ni exponer sus credenciales desde el panel.
+  const { data: todayMatchesForCoverage } = await admin
+    .from('matches')
+    .select('id, league_name, model_predictions(generated_at)')
+    .gte('kickoff_at', today + 'T00:00:00').lt('kickoff_at', today + 'T23:59:59')
+
+  const coverageByLeagueMap = new Map<string, { matches: number; predicted: number }>()
+  let predictedMatchesToday = 0
+  let lastPredictionGeneratedAt: string | null = null
+  for (const match of todayMatchesForCoverage ?? []) {
+    const league = match.league_name || 'Sin liga'
+    const current = coverageByLeagueMap.get(league) ?? { matches: 0, predicted: 0 }
+    current.matches++
+    const predictions = Array.isArray(match.model_predictions) ? match.model_predictions : []
+    if (predictions.length > 0) {
+      current.predicted++
+      predictedMatchesToday++
+      for (const prediction of predictions as Array<{ generated_at?: string | null }>) {
+        if (prediction.generated_at && (!lastPredictionGeneratedAt || prediction.generated_at > lastPredictionGeneratedAt)) {
+          lastPredictionGeneratedAt = prediction.generated_at
+        }
+      }
+    }
+    coverageByLeagueMap.set(league, current)
+  }
+
+  const coverageByLeague = Array.from(coverageByLeagueMap.entries())
+    .map(([league, values]) => ({
+      league,
+      ...values,
+      coverage: values.matches ? values.predicted / values.matches : 0,
+    }))
+    .sort((a, b) => a.coverage - b.coverage || b.matches - a.matches)
+
+  const coverage = matchesToday ? predictedMatchesToday / matchesToday : 1
+  const lastPipelineEventAt = [lastMatchUpdate?.updated_at, lastPredictionGeneratedAt]
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1) ?? null
+  const freshnessMinutes = lastPipelineEventAt
+    ? Math.max(0, Math.round((now.getTime() - new Date(lastPipelineEventAt).getTime()) / 60000))
+    : null
+  const status = matchesToday === 0
+    ? 'idle'
+    : freshnessMinutes === null || coverage < 0.75 || freshnessMinutes > 720
+      ? 'attention'
+      : freshnessMinutes > 360 || coverage < 1
+        ? 'stale'
+        : 'healthy'
+
   // ── ANÁLISIS IA ──
   const { data: aiAll } = await admin.from('ai_analyses').select('status, payment_type, created_at, paid_at')
   const aiGenerated = (aiAll ?? []).filter(a => a.status === 'generated').length
@@ -180,10 +232,23 @@ export async function GET() {
     },
     pipeline: {
       lastMatchUpdatedAt: lastMatchUpdate?.updated_at ?? null,
+      lastPredictionGeneratedAt,
+      freshnessMinutes,
+      status,
       matchesToday: matchesToday ?? 0,
+      predictedMatchesToday,
+      coverage,
+      coverageByLeague,
       leaguesWithDataToday,
       rankingsToday: rankingsToday ?? 0,
       unsettledOverdue: unsettled ?? 0,
+      // Solo indica que existe configuración; la conectividad y las respuestas
+      // se validan por cada ejecución y se informan en GitHub Actions.
+      providers: {
+        apiFootballConfigured: Boolean(process.env.API_FOOTBALL_KEY),
+        oddsApiConfigured: Boolean(process.env.ODDS_API_KEY),
+        footyStatsConfigured: Boolean(process.env.FOOTYSTATS_API_KEY),
+      },
     },
     aiAnalysis: {
       totalGenerated: aiGenerated,

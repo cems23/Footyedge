@@ -38,6 +38,15 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function pct(n: number) { return `${(n * 100).toFixed(1)}%` }
 function hrColor(hr: number) { return hr >= 0.5 ? G : hr >= 0.35 ? GOLD : '#ff5555' }
+function pipelineTone(status: string) {
+  if (status === 'healthy') return G
+  if (status === 'idle') return MUTE
+  if (status === 'stale') return GOLD
+  return '#ff5555'
+}
+function pipelineLabel(status: string) {
+  return ({ healthy: 'Operativo', stale: 'Revisar frescura', attention: 'Requiere atención', idle: 'Sin partidos hoy' } as Record<string, string>)[status] ?? 'Sin estado'
+}
 
 export default function AdminPage() {
   const router = useRouter()
@@ -45,8 +54,10 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetch('/api/admin/stats')
+  const loadStats = () => {
+    setLoading(true)
+    setError(null)
+    return fetch('/api/admin/stats')
       .then(async r => {
         if (!r.ok) {
           const d = await r.json().catch(() => ({}))
@@ -57,7 +68,9 @@ export default function AdminPage() {
       .then(setData)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { void loadStats() }, [])
 
   if (loading) {
     return <div style={{ minHeight: '100vh', background: BG, display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTE, fontFamily: "'DM Mono', monospace" }}>Cargando panel...</div>
@@ -79,6 +92,9 @@ export default function AdminPage() {
           </div>
           <button onClick={() => router.push('/es/dashboard')} style={{ background: 'transparent', border: `1px solid ${BORDER}`, color: MUTE, padding: '8px 16px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}>
             ← Volver al Dashboard
+          </button>
+          <button onClick={() => void loadStats()} style={{ background: 'rgba(0,200,120,0.1)', border: `1px solid rgba(0,200,120,0.45)`, color: G, padding: '8px 16px', borderRadius: 999, fontSize: 12, cursor: 'pointer' }}>
+            ↻ Actualizar estado
           </button>
         </div>
 
@@ -230,12 +246,59 @@ export default function AdminPage() {
 
         {/* ── SALUD DEL PIPELINE ── */}
         <SectionTitle>⚙️ Salud del Pipeline</SectionTitle>
+        <Card style={{ marginBottom: 14, borderColor: pipelineTone(pipeline.status) }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 10, color: MUTE, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Estado calculado con datos de producción</div>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 27, color: pipelineTone(pipeline.status), letterSpacing: '0.03em' }}>{pipelineLabel(pipeline.status)}</div>
+            </div>
+            <div style={{ fontSize: 12, color: MUTE, maxWidth: 480 }}>
+              {pipeline.freshnessMinutes == null
+                ? 'Aún no hay una actualización reciente para medir.'
+                : `Último evento hace ${pipeline.freshnessMinutes} min · Cobertura de predicciones: ${pct(pipeline.coverage)}.`}
+            </div>
+          </div>
+        </Card>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 14 }}>
           <Card><Stat label="Última actualización" value={pipeline.lastMatchUpdatedAt ? new Date(pipeline.lastMatchUpdatedAt).toLocaleString('es-ES') : '—'} /></Card>
+          <Card><Stat label="Último cálculo" value={pipeline.lastPredictionGeneratedAt ? new Date(pipeline.lastPredictionGeneratedAt).toLocaleString('es-ES') : '—'} /></Card>
           <Card><Stat label="Partidos hoy" value={pipeline.matchesToday} color={G} /></Card>
+          <Card><Stat label="Con predicción" value={`${pipeline.predictedMatchesToday}/${pipeline.matchesToday}`} color={pipeline.coverage >= 1 ? G : GOLD} sub={`${pct(pipeline.coverage)} cobertura`} /></Card>
           <Card><Stat label="Ligas con datos hoy" value={pipeline.leaguesWithDataToday} color={G} /></Card>
           <Card><Stat label="Rankings hoy" value={pipeline.rankingsToday} color={G} /></Card>
           <Card><Stat label="Sin liquidar (vencidos)" value={pipeline.unsettledOverdue} color={pipeline.unsettledOverdue > 0 ? GOLD : G} /></Card>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(240px, 1fr)', gap: 14, marginTop: 14 }}>
+          <Card>
+            <div style={{ fontSize: 11, color: MUTE, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cobertura por liga · hoy</div>
+            {pipeline.coverageByLeague?.length ? (
+              <div style={{ display: 'grid', gap: 9 }}>
+                {pipeline.coverageByLeague.map((league: any) => (
+                  <div key={league.league} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 1fr 56px', gap: 10, alignItems: 'center', fontSize: 12 }}>
+                    <span style={{ color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{league.league}</span>
+                    <div style={{ height: 5, borderRadius: 4, background: '#0a1628', overflow: 'hidden' }} aria-label={`${league.league}: ${pct(league.coverage)} de cobertura`}>
+                      <div style={{ height: '100%', width: `${league.coverage * 100}%`, background: league.coverage === 1 ? G : GOLD, borderRadius: 4 }} />
+                    </div>
+                    <span style={{ color: league.coverage === 1 ? G : GOLD, textAlign: 'right' }}>{league.predicted}/{league.matches}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <div style={{ fontSize: 12, color: MUTE }}>No hay partidos programados para hoy.</div>}
+          </Card>
+          <Card>
+            <div style={{ fontSize: 11, color: MUTE, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Proveedores</div>
+            {[
+              ['API-Football', pipeline.providers?.apiFootballConfigured],
+              ['The Odds API', pipeline.providers?.oddsApiConfigured],
+              ['FootyStats', pipeline.providers?.footyStatsConfigured],
+            ].map(([name, configured]) => (
+              <div key={String(name)} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, borderBottom: `1px solid ${BORDER}`, padding: '8px 0', fontSize: 12 }}>
+                <span>{name}</span>
+                <span style={{ color: configured ? G : GOLD }}>{configured ? 'Configurado' : 'No configurado'}</span>
+              </div>
+            ))}
+            <p style={{ fontSize: 10, color: MUTE, lineHeight: 1.5, margin: '10px 0 0' }}>La disponibilidad real se valida en cada ejecución y se informa en GitHub Actions.</p>
+          </Card>
         </div>
 
         {/* ── ANÁLISIS IA ── */}

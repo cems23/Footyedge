@@ -10,6 +10,9 @@
   --accent-dim: #00a86b;
   --muted:      #4a6785;
   --text-dim:   #6b8db5;
+  --scroll-track: #0a1628;
+  --scroll-thumb: #1e3a5f;
+  --scroll-thumb-hover: #315b88;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,9 +24,20 @@ body {
   min-height: 100vh;
 }
 
-::-webkit-scrollbar       { width: 4px; height: 4px; }
-::-webkit-scrollbar-track  { background: #0a1628; }
-::-webkit-scrollbar-thumb  { background: #1e3a5f; border-radius: 2px; }
+html { scrollbar-color: var(--scroll-thumb) var(--scroll-track); scrollbar-width: thin; scrollbar-gutter: stable; }
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--scroll-track); }
+::-webkit-scrollbar-thumb  { background: var(--scroll-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+::-webkit-scrollbar-thumb:active { background: var(--accent-dim); }
+
+@media (forced-colors: active) {
+  html { scrollbar-color: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }

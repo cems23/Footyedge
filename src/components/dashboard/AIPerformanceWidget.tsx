@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createScope, animate, stagger } from 'animejs'
 
 type MarketStat = { market: string; total: number; wins: number; winRate: number; roi: number; profit: number }
@@ -32,14 +32,32 @@ function heatColor(winRate: number) {
 
 export default function AIPerformanceWidget({ lang }: { lang: string }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading')
   const rootRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    fetch('/api/analytics/model')
-      .then(r => r.json())
-      .then(d => { if (d.hasData) setMetrics(d.metrics) })
-      .catch(() => {})
+  const loadMetrics = useCallback(async (signal?: AbortSignal) => {
+    setState('loading')
+    try {
+      const response = await fetch('/api/analytics/model', { signal })
+      if (!response.ok) throw new Error('metrics request failed')
+      const data = await response.json()
+      if (data.hasData && data.metrics) {
+        setMetrics(data.metrics)
+        setState('ready')
+      } else {
+        setMetrics(null)
+        setState('empty')
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') setState('error')
+    }
   }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void loadMetrics(controller.signal)
+    return () => controller.abort()
+  }, [loadMetrics])
 
   useEffect(() => {
     if (!metrics || !rootRef.current) return
@@ -101,7 +119,26 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
     return () => scope.revert()
   }, [metrics])
 
-  if (!metrics) return null
+  if (state === 'loading') return (
+    <div style={{ minHeight: 126, background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, padding: 20, marginBottom: 12, display: 'grid', alignContent: 'center', gap: 8 }} aria-busy="true" aria-live="polite">
+      <div style={{ fontSize: 11, color: '#00c878', letterSpacing: '0.06em' }}>{lang === 'en' ? '// LOADING MODEL PERFORMANCE' : '// CARGANDO RENDIMIENTO DEL MODELO'}</div>
+      <div style={{ height: 5, maxWidth: 240, background: '#1a2e4a', borderRadius: 4, overflow: 'hidden' }}><div className="pulse" style={{ height: '100%', width: '55%', background: '#00c878', borderRadius: 4 }} /></div>
+    </div>
+  )
+
+  if (state === 'error') return (
+    <div role="status" style={{ minHeight: 126, background: 'rgba(13,30,53,0.6)', border: '1px solid rgba(255,180,0,0.45)', borderRadius: 16, padding: 20, marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: '#ffb400', marginBottom: 8 }}>{lang === 'en' ? 'Performance is temporarily unavailable.' : 'El rendimiento no está disponible temporalmente.'}</div>
+      <button type="button" onClick={() => void loadMetrics()} style={{ background: 'transparent', border: '1px solid #ffb400', color: '#ffb400', borderRadius: 8, padding: '7px 11px', cursor: 'pointer', fontSize: 11 }}>{lang === 'en' ? 'Try again' : 'Reintentar'}</button>
+    </div>
+  )
+
+  if (state === 'empty' || !metrics) return (
+    <div role="status" style={{ minHeight: 126, background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, padding: 20, marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: '#00c878', letterSpacing: '0.06em', marginBottom: 7 }}>{lang === 'en' ? '// MODEL PERFORMANCE' : '// RENDIMIENTO DEL MODELO'}</div>
+      <div style={{ color: '#8ba2c0', fontSize: 12, lineHeight: 1.6 }}>{lang === 'en' ? 'There are no settled model picks yet. The panel will show verified historical results as soon as settlements arrive.' : 'Aún no hay picks del modelo liquidados. Este panel mostrará resultados históricos verificados cuando lleguen las liquidaciones.'}</div>
+    </div>
+  )
 
   // Las señales BTTS se snapshottean por probabilidad, no por edge/cuota. Se
   // muestran aparte para no mezclarlas con el ROI ni el sample de Value Bets.
