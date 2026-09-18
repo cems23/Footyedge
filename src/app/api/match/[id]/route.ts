@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getFootyStatsToday, findFootyStatsMatch } from '@/lib/api/footystats'
 
 const APF = 'https://v3.football.api-sports.io'
@@ -21,6 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabaseAdmin = createServiceClient()
 
   // Check plan
   const { data: userData } = await supabase.from('users').select('plan').eq('id', user.id).single()
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   let cachedData: any = null
 
   if (cacheKey) {
-    const { data: cache } = await supabase
+    const { data: cache } = await supabaseAdmin
       .from('match_cache')
       .select('data, cached_at')
       .eq('fixture_id', cacheKey)
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // Save to cache
     if (cacheKey) {
-      await supabase.from('match_cache').upsert({
+      await supabaseAdmin.from('match_cache').upsert({
         fixture_id: cacheKey,
         data: { h2h, standings, injuries, form_home, form_away, lineups, fixtureStats, homeSeasonStats, awaySeasonStats, fixturePlayers },
         cached_at: new Date().toISOString(),

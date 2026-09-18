@@ -1,14 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/matches/analyze",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/picks/settle",
-      "schedule": "0 23 * * *"
-    }
-  ],
   "functions": {
     "src/app/api/matches/analyze/route.ts": {
       "maxDuration": 60

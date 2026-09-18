@@ -37,7 +37,7 @@ const SCENES_ES = [
   { tag: '01 · EL MODELO', title: 'Dixon-Coles por dentro', body: 'Un modelo Poisson de goles con ventaja local dinámica, decaimiento temporal y calibración por liga — ajustado de forma independiente en más de 30 ligas.' },
   { tag: '02 · SEÑALES', title: 'Señal, no opiniones', body: 'Cada mercado se calcula con el modelo y se compara contra los precios reales de las casas. Solo las señales con valor esperado positivo llegan al tablero.' },
   { tag: '03 · RANKINGS', title: 'Mercados por equipo, ordenados', body: 'Tasas de acierto de Over 0.5–3.5 y BTTS para cada equipo, con splits Total / Casa / Fuera construidos con más de 12,000 partidos históricos.' },
-  { tag: '04 · ANÁLISIS IA', title: 'Un ojeador en el proceso', body: 'Informes de partido generados por IA bajo demanda, con contexto web en vivo — lesiones, noticias, forma — sobre los números del modelo.' },
+  { tag: '04 · ANÁLISIS IA', title: 'Un ojeador en el proceso', body: 'Informes de partido generados por IA bajo demanda, con lesiones, noticias y forma como contexto adicional a los números del modelo.' },
 ];
 
 const FEATURES_EN = [
@@ -90,8 +90,8 @@ const TIERS_EN: Tier[] = [
     items: [
       { t: 'Everything in Pro', on: true },
       { t: 'Top 20 daily signals', on: true },
-      { t: '🎯 Value Radar — market inefficiency scanner', on: true },
-      { t: '⚡ Early Line Hunter — detect value early', on: true },
+      { t: '🎯 Value Radar — league edge overview', on: true },
+      { t: '⚡ Early Line Hunter — fixtures 12h+ ahead', on: true },
       { t: '10 AI match analyses / month', on: true },
       { t: 'Custom favorite leagues', on: true },
       { t: 'Advanced match stats (xG, shots, corners)', on: true },
@@ -134,8 +134,8 @@ const TIERS_ES: Tier[] = [
     items: [
       { t: 'Todo lo de Pro', on: true },
       { t: 'Top 20 señales diarias', on: true },
-      { t: '🎯 Value Radar — escáner de ineficiencias del mercado', on: true },
-      { t: '⚡ Early Line Hunter — detecta valor antes que nadie', on: true },
+      { t: '🎯 Value Radar — resumen de edge por liga', on: true },
+      { t: '⚡ Early Line Hunter — partidos con 12 h o más', on: true },
       { t: '10 análisis de partido con IA / mes', on: true },
       { t: 'Ligas favoritas personalizadas', on: true },
       { t: 'Estadísticas avanzadas (xG, tiros, córners)', on: true },
@@ -255,53 +255,6 @@ function Particles() {
 
   return (
     <div ref={wrapRef} aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }} />
-  );
-}
-
-const BIG_LEAGUES = [
-  { flag: '🇪🇸', name: 'LaLiga', date: new Date('2026-08-15T00:00:00Z') },
-  { flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', name: 'Premier League', date: new Date('2026-08-21T00:00:00Z') },
-  { flag: '🇮🇹🇫🇷', name: 'Serie A / Ligue 1', date: new Date('2026-08-21T00:00:00Z') },
-  { flag: '🇩🇪', name: 'Bundesliga', date: new Date('2026-08-28T00:00:00Z') },
-];
-
-function daysUntil(date: Date) {
-  // Ancla el limite de "hoy" a UTC, no a la zona horaria local del entorno donde
-  // corre (servidor en UTC, navegador del usuario puede estar en otra zona) — evita
-  // que el calculo de dias restantes difiera entre servidor y cliente y rompa la
-  // hidratacion de React justo en el limite de un dia.
-  const now = new Date();
-  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  const diff = date.getTime() - todayUTC;
-  return Math.max(0, Math.ceil(diff / 86400000));
-}
-
-function KickoffCard({ flag, name, date, lang }: { flag: string; name: string; date: Date; lang: string }) {
-  const [days, setDays] = useState(() => daysUntil(date));
-
-  useEffect(() => {
-    const id = setInterval(() => setDays(daysUntil(date)), 1000 * 60 * 60);
-    return () => clearInterval(id);
-  }, [date]);
-
-  const started = days === 0;
-
-  return (
-    <div data-reveal style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: '24px 20px', textAlign: 'center' }}>
-      <div style={{ fontSize: 30, marginBottom: 10 }}>{flag}</div>
-      <div style={{ ...bebas, fontSize: 20, color: C.white, textTransform: 'uppercase', marginBottom: 10 }}>{name}</div>
-      {started ? (
-        <div style={{ ...mono, fontSize: 13, color: C.green, fontWeight: 700 }}>{lang === 'es' ? '¡EN JUEGO!' : 'LIVE NOW!'}</div>
-      ) : (
-        <>
-          <div suppressHydrationWarning style={{ ...bebas, fontSize: 44, color: C.green, lineHeight: 1 }}>{days}</div>
-          <div suppressHydrationWarning style={{ ...mono, fontSize: 11, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{lang === 'es' ? (days === 1 ? 'día restante' : 'días restantes') : (days === 1 ? 'day left' : 'days left')}</div>
-        </>
-      )}
-      <div style={{ ...mono, fontSize: 11, color: C.mute, marginTop: 10 }}>
-        {date.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-GB', { day: '2-digit', month: 'long', timeZone: 'UTC' })}
-      </div>
-    </div>
   );
 }
 
@@ -769,17 +722,17 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
           {lang === 'es' ? '▮ CÓMO FUNCIONA' : '▮ HOW IT WORKS'}
         </p>
         <h2 data-reveal style={{ textAlign: 'center', margin: '0 0 44px', textTransform: 'uppercase', lineHeight: 0.95 }}>
-          <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Tres modelos, ' : 'Three models, '}</span>
+          <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Tres capas, ' : 'Three layers, '}</span>
           <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'una señal' : 'one signal'}</span>
         </h2>
         <div className="fe-grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 20, maxWidth: 1000, margin: '0 auto' }}>
           {(lang === 'es' ? [
             { n: '01', t: 'Precio base con Dixon-Coles', d: 'Un modelo Poisson bivariado calcula la probabilidad de cada marcador posible, calibrado de forma independiente por liga y con decaimiento temporal de la forma reciente.' },
-            { n: '02', t: 'Ajuste con rating Elo', d: 'La fuerza relativa de cada equipo, actualizada tras cada partido liquidado según resultado y margen de gol, refina la probabilidad base del modelo.' },
+            { n: '02', t: 'Contexto con rating Elo', d: 'La fuerza relativa de cada equipo se actualiza tras cada partido liquidado según resultado y margen de gol, y se muestra como contexto adicional.' },
             { n: '03', t: 'Mezcla con el mercado', d: 'El resultado se combina con las cuotas reales de las casas de apuestas para reducir ruido — solo se muestran los partidos donde queda una ventaja estadística real.' },
           ] : [
             { n: '01', t: 'Base pricing with Dixon-Coles', d: 'A bivariate Poisson model prices every possible scoreline, calibrated independently per league with temporal decay on recent form.' },
-            { n: '02', t: 'Elo rating adjustment', d: "Each team's relative strength, updated after every settled match based on result and goal margin, refines the model's base probability." },
+            { n: '02', t: 'Elo rating context', d: "Each team's relative strength is updated after every settled match based on result and goal margin, and shown as additional context." },
             { n: '03', t: 'Blended with the market', d: 'The result is combined with live bookmaker odds to reduce noise — only matches with a real statistical edge left over make the board.' },
           ]).map((s) => (
             <div key={s.n} data-reveal style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 'clamp(22px,3vw,32px)' }}>
@@ -834,26 +787,21 @@ export default function LandingV7({ lang = 'en' }: { lang?: string }) {
         </section>
       )}
 
-      {/* cuenta regresiva — arranque de las grandes ligas */}
+      {/* cobertura de las grandes ligas */}
       <section style={{ padding: 'clamp(48px,6vw,80px) clamp(16px,5vw,64px)', borderTop: `1px solid ${C.line}`, position: 'relative', overflow: 'hidden' }}>
         <div className="fe-glow" aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 'min(80vw,900px)', aspectRatio: '2', background: `radial-gradient(ellipse, ${C.greenDim}, transparent 70%)`, pointerEvents: 'none' }} />
         <p data-reveal style={{ ...mono, fontSize: 13, color: C.green, marginBottom: 14, textAlign: 'center', position: 'relative' }}>
-          {lang === 'es' ? '▮ TEMPORADA 2026/27' : '▮ 2026/27 SEASON'}
+          {lang === 'es' ? '▮ COBERTURA ACTIVA' : '▮ ACTIVE COVERAGE'}
         </p>
         <h2 data-reveal style={{ textAlign: 'center', margin: '0 0 16px', textTransform: 'uppercase', lineHeight: 0.95, position: 'relative' }}>
-          <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Las grandes ligas ' : 'The big leagues '}</span>
-          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'están por arrancar' : 'are about to kick off'}</span>
+          <span style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'Sigue las grandes ligas ' : 'Follow the big leagues '}</span>
+          <span className="fe-outline" style={{ ...slant, fontSize: 'clamp(32px,5vw,60px)' }}>{lang === 'es' ? 'en una sola vista' : 'in one place'}</span>
         </h2>
         <p data-reveal style={{ textAlign: 'center', color: C.mute, fontSize: 15, maxWidth: 560, margin: '0 auto 40px', lineHeight: 1.6, position: 'relative' }}>
           {lang === 'es'
-            ? 'El modelo se vuelve más fuerte con cada partido acumulado. Crea tu cuenta ahora y llega listo para el arranque de LaLiga, Premier League, Serie A, Ligue 1 y Bundesliga.'
-            : 'The model gets sharper with every match it sees. Create your account now and be ready when LaLiga, Premier League, Serie A, Ligue 1 and Bundesliga kick off.'}
+            ? 'Consulta señales y estadísticas de LaLiga, Premier League, Serie A, Ligue 1 y Bundesliga desde un solo tablero.'
+            : 'Explore signals and statistics for LaLiga, Premier League, Serie A, Ligue 1 and Bundesliga from one board.'}
         </p>
-        <div className="fe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 16, maxWidth: 900, margin: '0 auto', position: 'relative' }}>
-          {BIG_LEAGUES.map((l) => (
-            <KickoffCard key={l.name} flag={l.flag} name={l.name} date={l.date} lang={lang} />
-          ))}
-        </div>
         <div data-reveal style={{ textAlign: 'center', marginTop: 36, position: 'relative' }}>
           <a className="fe-btn fe-pulse" href={`/${lang}/auth/register`} style={btnStyle(true, 'md')}>
             {lang === 'es' ? 'Crear mi cuenta gratis →' : 'Create my free account →'}
