@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateElo, DEFAULT_ELO_RATING } from '@/lib/math/elo'
+import { apf } from '@/lib/api/football'
+import { findFootyStatsMatch, getFootyStatsToday } from '@/lib/api/footystats'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
-
-const APF = 'https://v3.football.api-sports.io'
-const FOOTYSTATS = 'https://api.football-data-api.com'
 
 function parseResult(homeGoals: number, awayGoals: number) {
   return {
@@ -19,27 +18,11 @@ function parseResult(homeGoals: number, awayGoals: number) {
 }
 
 async function getFixtureResultFootyStats(homeName: string, awayName: string) {
-  const key = process.env.FOOTYSTATS_API_KEY
-  if (!key) return null
-  try {
-    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
-    const h = normalize(homeName)
-    const a = normalize(awayName)
-    const res = await fetch(`${FOOTYSTATS}/todays-matches?key=${key}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    const json = await res.json()
-    const matches = json.data ?? []
-    const match = matches.find((m: any) => {
-      const mh = normalize(m.home_name ?? '')
-      const ma = normalize(m.away_name ?? '')
-      return (mh.includes(h) || h.includes(mh)) && (ma.includes(a) || a.includes(ma))
-    })
-    if (!match) return null
-    if (match.status !== 'complete') return null
-    const homeGoals = match.homeGoalCount ?? 0
-    const awayGoals = match.awayGoalCount ?? 0
-    return parseResult(homeGoals, awayGoals)
-  } catch { return null }
+  const match = findFootyStatsMatch(await getFootyStatsToday(), homeName, awayName)
+  if (!match || match.status !== 'complete') return null
+  const homeGoals = match.homeGoalCount ?? 0
+  const awayGoals = match.awayGoalCount ?? 0
+  return parseResult(homeGoals, awayGoals)
 }
 
 // Partidos que NO se van a jugar como estaba programado — no tienen marcador
@@ -47,15 +30,12 @@ async function getFixtureResultFootyStats(homeName: string, awayName: string) {
 // para que dejen de reintentarse cada hora y de aparecer como predicción activa.
 const INACTIVE_STATUSES = ['PST', 'CANC', 'SUSP', 'ABD', 'INT']
 
+function throwIfSupabaseError(operation: string, error: { message: string } | null) {
+  if (error) throw new Error(`${operation}: ${error.message}`)
+}
+
 async function getFixtureResultAPF(fixtureId: string) {
-  const key = process.env.API_FOOTBALL_KEY
-  if (!key) throw new Error('API_FOOTBALL_KEY missing')
-  const res = await fetch(`${APF}/fixtures?id=${fixtureId}`, {
-    headers: { 'x-apisports-key': key },
-    cache: 'no-store',
-  })
-  const json = await res.json()
-  const f = json.response?.[0]
+  const [f] = await apf<any[]>('/fixtures', { id: fixtureId })
   if (!f) return null
   const status = f.fixture?.status?.short
   if (INACTIVE_STATUSES.includes(status)) return { inactive: true as const, statusCode: status as string }
@@ -88,13 +68,18 @@ export async function GET(req: NextRequest) {
   // Solo partidos que terminaron hace al menos 2 horas
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
 
-  const { data: unsettledMatches } = await supabase
+  const { data: unsettledMatches, error: unsettledMatchesError } = await supabase
     .from('matches')
     .select('id, external_id, home_team_id, away_team_id, home_team_name, away_team_name, home_team_logo, away_team_logo, league_id, kickoff_at, league_name')
     .is('home_goals', null)
     .gte('kickoff_at', threeDaysAgo)
     .lte('kickoff_at', twoHoursAgo)
     .not('status', 'in', '(PST,CANC,SUSP,ABD,INT)')
+
+  if (unsettledMatchesError) {
+    console.error(`[settle-results] Could not load unsettled matches: ${unsettledMatchesError.message}`)
+    return NextResponse.json({ success: false, error: 'Could not load unsettled matches' }, { status: 502 })
+  }
 
   if (!unsettledMatches?.length) {
     return NextResponse.json({ success: true, message: 'No unsettled matches', settled: 0 })
@@ -116,16 +101,17 @@ export async function GET(req: NextRequest) {
       }
 
       if ('inactive' in result) {
-        await supabase.from('matches').update({
+        const { error: inactiveUpdateError } = await supabase.from('matches').update({
           status: result.statusCode,
           updated_at: new Date().toISOString(),
         }).eq('id', match.id)
+        throwIfSupabaseError('inactive match update failed', inactiveUpdateError)
         log.push(`⏸ ${match.home_team_name} vs ${match.away_team_name} — marcado como ${result.statusCode} (no se juega, no cuenta para Elo/rankings)`)
         settled++
         continue
       }
 
-      await supabase.from('matches').update({
+      const { error: matchUpdateError } = await supabase.from('matches').update({
         status: 'FT',
         home_goals: result.homeGoals,
         away_goals: result.awayGoals,
@@ -134,12 +120,14 @@ export async function GET(req: NextRequest) {
         btts_result: result.btts,
         updated_at: new Date().toISOString(),
       }).eq('id', match.id)
+      throwIfSupabaseError('match settlement update failed', matchUpdateError)
 
       // Liquidar también los "probability picks" (ej. Mejores BTTS del día) de este partido
-      await supabase.from('probability_picks').update({
+      const { error: probabilityPickError } = await supabase.from('probability_picks').update({
         result: result.btts ? 'win' : 'loss',
         settled_at: new Date().toISOString(),
       }).eq('match_id', match.id).eq('market', 'btts').is('result', null)
+      throwIfSupabaseError('probability pick settlement failed', probabilityPickError)
 
       // Actualizar ratings Elo de ambos equipos con el resultado real
       if (match.home_team_id && match.away_team_id) {
@@ -189,10 +177,11 @@ export async function GET(req: NextRequest) {
       }
 
       const matchDate = match.kickoff_at.split('T')[0]
-      const { data: rankings } = await supabase
+      const { data: rankings, error: rankingsError } = await supabase
         .from('daily_rankings')
         .select('*')
         .eq('match_id', match.id)
+      throwIfSupabaseError('daily rankings lookup failed', rankingsError)
 
       if (rankings?.length) {
         for (const ranking of rankings) {
@@ -204,7 +193,7 @@ export async function GET(req: NextRequest) {
           if (ranking.market === 'away')   won = result.result === 'away'
           if (ranking.market === 'draw')   won = result.result === 'draw'
 
-          await supabase.from('model_performance').insert({
+          const { error: performanceError } = await supabase.from('model_performance').insert({
             fixture_id: parseInt(match.external_id),
             match_date: matchDate,
             home_team: match.home_team_name,
@@ -217,6 +206,7 @@ export async function GET(req: NextRequest) {
             result: won ? 'win' : 'loss',
             profit: won ? (ranking.odds - 1) : -1,
           })
+          throwIfSupabaseError('model performance insert failed', performanceError)
         }
         log.push(`✅ ${match.home_team_name} vs ${match.away_team_name} — ${result.homeGoals}-${result.awayGoals} — ${rankings.length} markets settled`)
       } else {
@@ -231,5 +221,8 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ success: true, settled, errors, total: unsettledMatches.length, log })
+  return NextResponse.json(
+    { success: errors === 0, settled, errors, total: unsettledMatches.length, log },
+    { status: errors === 0 ? 200 : 207 },
+  )
 }

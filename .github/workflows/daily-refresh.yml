@@ -2,75 +2,110 @@ name: Daily Refresh
 
 on:
   schedule:
-    # Corre 4 veces al día para agarrar partidos que se confirman/agregan más tarde
-    # (algunas ligas como Brasileirao no aparecen en la corrida matutina, se agregan durante el día)
-    - cron: '0 5 * * *'   # 05:00 UTC = 07:00 Berlin (verano)
-    - cron: '0 11 * * *'  # 11:00 UTC = 13:00 Berlin
-    - cron: '0 17 * * *'  # 17:00 UTC = 19:00 Berlin
-    - cron: '0 23 * * *'  # 23:00 UTC = 01:00 Berlin
+    - cron: '0 5 * * *'
+    - cron: '0 11 * * *'
+    - cron: '0 17 * * *'
+    - cron: '0 23 * * *'
   workflow_dispatch: {}
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - name: Analizar cada liga secuencialmente
+      - name: Initialize pipeline report
+        shell: bash --noprofile --norc {0}
+        run: |
+          echo "PIPELINE_FAILURE_LOG=$RUNNER_TEMP/footyedge-pipeline-failures" >> "$GITHUB_ENV"
+          : > "$RUNNER_TEMP/footyedge-pipeline-failures"
+
+      - name: Analyze leagues
+        shell: bash --noprofile --norc {0}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.app
-        # No usar "bash -e" implícito para este step: un timeout de curl (exit 28) en
-        # UNA liga (ej. Conference League con muchos fixtures el mismo día) no debe
-        # tumbar el resto del loop ni saltarse consolidate/settle-results.
-        shell: bash --noprofile --norc {0}
         run: |
           set +e
           LEAGUES="2 13 11 3 848 39 40 41 42 140 141 135 136 78 79 61 62 88 94 203 144 128 71 253 262 113 103 179 307 164 106 119 98 197 207 218 235 265 268 239 292 332 299"
+          failures=0
           for league in $LEAGUES; do
-            echo "Analizando liga $league..."
-            code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
-              "$BASE_URL/api/matches/analyze-league?leagueId=$league" \
-              -H "Authorization: Bearer $CRON_SECRET" \
-              --max-time 55)
+            response_file=$(mktemp)
+            http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/analyze-league?leagueId=$league" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
             curl_exit=$?
-            if [ "$curl_exit" != "0" ]; then
-              echo "  ⚠️ curl falló (exit $curl_exit, probablemente timeout) — sigue con la siguiente liga"
+            success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+            failed_fixtures=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('failedFixtures', 0))" "$response_file" 2>/dev/null)
+            if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ] || [ "${failed_fixtures:-0}" != "0" ]; then
+              echo "League $league failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, failedFixtures=${failed_fixtures:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+              failures=$((failures + 1))
             else
-              echo "  status: $code"
-              echo "  respuesta: $(cat /tmp/resp.json)"
+              echo "League $league: OK"
             fi
+            rm -f "$response_file"
             sleep 2
           done
-          exit 0
+          {
+            echo "### Daily analysis"
+            echo "- Leagues with failures: $failures"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Consolidar value bets
+      - name: Consolidate value bets
         if: always()
+        shell: bash --noprofile --norc {0}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.app
         run: |
-          curl -s -w "\nstatus: %{http_code}\n" \
-            "$BASE_URL/api/matches/consolidate" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            --max-time 55
+          response_file=$(mktemp)
+          http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/consolidate" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
+          curl_exit=$?
+          success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+          if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ]; then
+            echo "Consolidate failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+          fi
+          rm -f "$response_file"
 
-      - name: Guardar foto de probability picks (BTTS del día, etc.)
+      - name: Snapshot probability picks
         if: always()
+        shell: bash --noprofile --norc {0}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.app
         run: |
-          curl -s -w "\nstatus: %{http_code}\n" \
-            "$BASE_URL/api/cron/snapshot-probability-picks" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            --max-time 55
+          response_file=$(mktemp)
+          http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/cron/snapshot-probability-picks" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
+          curl_exit=$?
+          success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+          if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ]; then
+            echo "Probability snapshot failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+          fi
+          rm -f "$response_file"
 
-      - name: Settle resultados de partidos pasados
+      - name: Settle completed matches
         if: always()
+        shell: bash --noprofile --norc {0}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.app
         run: |
-          curl -s -w "\nstatus: %{http_code}\n" \
-            "$BASE_URL/api/cron/settle-results" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            --max-time 55
+          response_file=$(mktemp)
+          http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/cron/settle-results" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
+          curl_exit=$?
+          success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+          if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ]; then
+            echo "Settle results failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+          fi
+          rm -f "$response_file"
+
+      - name: Publish pipeline result
+        if: always()
+        shell: bash --noprofile --norc {0}
+        run: |
+          if [ -s "$PIPELINE_FAILURE_LOG" ]; then
+            {
+              echo "### ❌ Daily pipeline failed"
+              echo '```text'
+              cat "$PIPELINE_FAILURE_LOG"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "### ✅ Daily pipeline completed" >> "$GITHUB_STEP_SUMMARY"

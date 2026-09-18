@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   const today = new Date().toISOString().split('T')[0]
   const log: string[] = []
   const valueBets: any[] = []
+  let failedFixtures = 0
   const processedMatchIds: string[] = []  // TODOS los partidos analizados esta corrida, tengan o no value bets — necesario para poder borrar de staging_rankings un pick viejo que ya no califica (ej. filtro de lambda-al-techo bloqueandolo ahora)
 
   try {
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
         const matchInput = { home: homeStats, away: awayStats, league: leagueStats, leagueId: league.id, ...odds }
         const analysis = analyzeMatch(matchInput)
 
-        const { data: savedMatch } = await supabase
+        const { data: savedMatch, error: savedMatchError } = await supabase
           .from('matches').upsert({
             external_id: String(fixture.fixture.id),
             league_id: fixture.league.id,
@@ -82,10 +83,11 @@ export async function GET(req: NextRequest) {
             // usan el valor por defecto de la columna ('scheduled'), los existentes conservan el suyo.
           }, { onConflict: 'external_id' }).select('id').single()
 
-        if (!savedMatch) continue
+        if (savedMatchError) throw new Error(`match upsert failed: ${savedMatchError.message}`)
+        if (!savedMatch) throw new Error('match upsert returned no record')
         processedMatchIds.push(savedMatch.id)
 
-        await supabase.from('model_predictions').upsert({
+        const { error: predictionError } = await supabase.from('model_predictions').upsert({
           match_id: savedMatch.id,
           expected_goals_home: analysis.poisson.expectedGoalsHome,
           expected_goals_away: analysis.poisson.expectedGoalsAway,
@@ -103,6 +105,7 @@ export async function GET(req: NextRequest) {
           lambda_home_capped: analysis.poisson.lambdaHomeCapped,
           lambda_away_capped: analysis.poisson.lambdaAwayCapped,
         }, { onConflict: 'match_id,model_version' })
+        if (predictionError) throw new Error(`prediction upsert failed: ${predictionError.message}`)
 
         // Guardar odds en snapshots
         if ((matchInput as any).oddsHome || (matchInput as any).oddsOver25) {
@@ -118,15 +121,16 @@ export async function GET(req: NextRequest) {
         // Historial de odds para el radar de dropping odds — aditivo, nunca debe tumbar el analisis
         if ((matchInput as any).oddsHome || (matchInput as any).oddsOver25) {
           try {
-            await supabase.from('odds_history').insert({
+            const { error } = await supabase.from('odds_history').insert({
               match_id:    savedMatch.id,
               odds_home:   (matchInput as any).oddsHome,
               odds_draw:   (matchInput as any).oddsDraw,
               odds_away:   (matchInput as any).oddsAway,
               odds_over25: (matchInput as any).oddsOver25,
             })
-          } catch (e) {
-            console.error('odds_history insert failed (non-fatal):', e)
+            if (error) console.warn(`odds_history insert failed (non-fatal): ${error.message}`)
+          } catch {
+            console.warn('odds_history insert failed (non-fatal)')
           }
         }
 
@@ -141,7 +145,9 @@ export async function GET(req: NextRequest) {
             log.push(`  ⚡ ${fixture.teams.home.name} vs ${fixture.teams.away.name}: ${analysis.valueBets.length} bets`)
         }
       } catch (err) {
+        failedFixtures++
         log.push(`  ✗ ${fixture.teams.home.name}: ${String(err).slice(0, 60)}`)
+        console.warn(`[analyze-league] ${league.name} fixture failed: ${err instanceof Error ? err.message : 'unknown error'}`)
       }
     }
 
@@ -170,7 +176,15 @@ export async function GET(req: NextRequest) {
 
   } catch (err) {
     log.push(`Error: ${String(err)}`)
+    console.error(`[analyze-league] ${league.name} failed: ${err instanceof Error ? err.message : 'unknown error'}`)
+    return NextResponse.json(
+      { success: false, league: league.name, valueBets: valueBets.length, failedFixtures, log },
+      { status: 502 },
+    )
   }
 
-  return NextResponse.json({ success: true, league: league.name, valueBets: valueBets.length, log })
+  return NextResponse.json(
+    { success: failedFixtures === 0, league: league.name, valueBets: valueBets.length, failedFixtures, log },
+    { status: failedFixtures === 0 ? 200 : 207 },
+  )
 }

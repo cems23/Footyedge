@@ -15,11 +15,16 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: matches } = await supabase
+  const { data: matches, error: matchesError } = await supabase
     .from('matches')
     .select('id, home_team_name, away_team_name, league_name, kickoff_at, status, model_predictions(prob_btts)')
     .gte('kickoff_at', today + 'T00:00:00')
     .lt('kickoff_at', today + 'T23:59:59')
+
+  if (matchesError) {
+    console.error(`[snapshot-probability-picks] Could not load matches: ${matchesError.message}`)
+    return NextResponse.json({ success: false, error: 'Could not load matches' }, { status: 502 })
+  }
 
   if (!matches?.length) return NextResponse.json({ success: true, saved: 0 })
 
@@ -36,6 +41,7 @@ export async function GET(req: NextRequest) {
     .slice(0, 15)
 
   let saved = 0
+  let errors = 0
   for (const { m, prob } of bttsPicks) {
     const { error } = await supabase.from('probability_picks').upsert({
       match_id: m.id,
@@ -46,8 +52,16 @@ export async function GET(req: NextRequest) {
       away_team: m.away_team_name,
       league_name: m.league_name,
     }, { onConflict: 'match_id,market' })
-    if (!error) saved++
+    if (error) {
+      errors++
+      console.error(`[snapshot-probability-picks] Could not save ${m.id}: ${error.message}`)
+    } else {
+      saved++
+    }
   }
 
-  return NextResponse.json({ success: true, saved })
+  return NextResponse.json(
+    { success: errors === 0, saved, errors },
+    { status: errors === 0 ? 200 : 207 },
+  )
 }

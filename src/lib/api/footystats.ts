@@ -46,6 +46,17 @@ export interface FootyStatsMatch {
   pre_match_away_ppg?: number
 }
 
+function isFootyStatsMatch(value: unknown): value is FootyStatsMatch {
+  if (!value || typeof value !== 'object') return false
+  const match = value as Partial<FootyStatsMatch>
+  return typeof match.id === 'number'
+    && typeof match.homeID === 'number'
+    && typeof match.awayID === 'number'
+    && typeof match.home_name === 'string'
+    && typeof match.away_name === 'string'
+    && typeof match.status === 'string'
+}
+
 let _todayCache: FootyStatsMatch[] | null = null
 let _todayCacheTime = 0
 const CACHE_MS = 30 * 60 * 1000 // 30 min
@@ -60,14 +71,27 @@ export async function getFootyStatsToday(): Promise<FootyStatsMatch[]> {
   try {
     const res = await fetch(
       `${FOOTYSTATS_API}/todays-matches?key=${key}`,
-      { next: { revalidate: 1800 } }
+      { next: { revalidate: 1800 }, signal: AbortSignal.timeout(15000) }
     )
-    if (!res.ok) return []
-    const json = await res.json()
-    _todayCache = (json.data ?? []) as FootyStatsMatch[]
+    if (!res.ok) {
+      console.warn(`[footystats] todays-matches returned HTTP ${res.status}`)
+      return []
+    }
+    const json: unknown = await res.json()
+    if (!json || typeof json !== 'object' || !Array.isArray((json as { data?: unknown }).data)) {
+      console.warn('[footystats] todays-matches returned an invalid response shape')
+      return []
+    }
+    const data = (json as { data: unknown[] }).data
+    _todayCache = data.filter(isFootyStatsMatch)
+    if (_todayCache.length !== data.length) {
+      console.warn(`[footystats] discarded ${data.length - _todayCache.length} malformed match records`)
+    }
     _todayCacheTime = now
     return _todayCache
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error && error.name === 'TimeoutError' ? 'timed out after 15s' : 'network request failed'
+    console.warn(`[footystats] todays-matches ${reason}`)
     return []
   }
 }

@@ -83,16 +83,35 @@ export async function apf<T>(endpoint: string, params: Record<string, string | n
   // Timeout explicito — sin esto, un colgado del lado de API-Football puede
   // arrastrar toda la funcion serverless que la llama (analyze-league corre esto
   // por CADA partido de CADA liga, asi que el riesgo se multiplica mucho).
-  const res = await fetch(url.toString(), {
-    headers: { 'x-apisports-key': key },
-    cache: "no-store",
-    signal: AbortSignal.timeout(15000),
-  })
-  if (!res.ok) throw new Error(`API-Football ${res.status}: ${await res.text()}`)
-  const json = await res.json()
+  let res: Response
+  try {
+    res = await fetch(url.toString(), {
+      headers: { 'x-apisports-key': key },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (error) {
+    const reason = error instanceof Error && error.name === 'TimeoutError' ? 'timed out after 15s' : 'network request failed'
+    throw new Error(`API-Football ${endpoint} ${reason}`)
+  }
+
+  const raw = await res.text()
+  if (!res.ok) throw new Error(`API-Football ${endpoint} returned HTTP ${res.status}`)
+
+  let json: { response?: T; errors?: unknown }
+  try {
+    json = JSON.parse(raw) as { response?: T; errors?: unknown }
+  } catch {
+    throw new Error(`API-Football ${endpoint} returned invalid JSON`)
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(json, 'response')) {
+    throw new Error(`API-Football ${endpoint} returned an invalid response shape`)
+  }
+
   const errObj = json.errors
   if (errObj && !Array.isArray(errObj) && Object.keys(errObj).length > 0)
-    throw new Error(`API-Football error: ${JSON.stringify(errObj)}`)
+    throw new Error(`API-Football ${endpoint} reported an upstream error`)
   return json.response as T
 }
 
@@ -125,6 +144,19 @@ export interface APIFixture {
     away: { id: number; name: string; logo: string }
   }
   goals: { home: number | null; away: number | null }
+}
+
+function isAPIFixture(value: unknown): value is APIFixture {
+  if (!value || typeof value !== 'object') return false
+  const fixture = value as Partial<APIFixture>
+  return typeof fixture.fixture?.id === 'number'
+    && typeof fixture.fixture?.date === 'string'
+    && typeof fixture.league?.id === 'number'
+    && typeof fixture.league?.season === 'number'
+    && typeof fixture.teams?.home?.id === 'number'
+    && typeof fixture.teams?.home?.name === 'string'
+    && typeof fixture.teams?.away?.id === 'number'
+    && typeof fixture.teams?.away?.name === 'string'
 }
 
 export interface APITeamStats {
@@ -184,7 +216,10 @@ export async function getLeagueStats(leagueId: number, season: number): Promise<
 
     await setCached(key, stats)
     return stats
-  } catch {
+  } catch (error) {
+    // These values are intentionally conservative, but callers must be able to
+    // see in logs that the provider data was unavailable for this calculation.
+    console.warn(`[football-data] League ${leagueId} fallback stats used: ${error instanceof Error ? error.message : 'unknown error'}`)
     return { avgHomeGoals: 1.52, avgAwayGoals: 1.18, avgTotalGoals: 2.70 }
   }
 }
@@ -354,7 +389,14 @@ export async function getUpcomingFixtures(leagueId: number, season: number, _nex
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
   const from = today.toISOString().split('T')[0]
   const to = tomorrow.toISOString().split('T')[0]
-  return apf<APIFixture[]>('/fixtures', { league: leagueId, season, from, to })
+  const response = await apf<unknown>('/fixtures', { league: leagueId, season, from, to })
+  if (!Array.isArray(response)) throw new Error('API-Football fixtures response is not an array')
+
+  const fixtures = response.filter(isAPIFixture)
+  if (fixtures.length !== response.length) {
+    console.warn(`[football-data] League ${leagueId}: discarded ${response.length - fixtures.length} malformed fixture records`)
+  }
+  return fixtures
 }
 
 // ── ODDS (API-Football) ─────────────────────────────────────

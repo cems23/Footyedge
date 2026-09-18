@@ -2,12 +2,6 @@ name: Settle Results (hourly)
 
 on:
   schedule:
-    # Revertido a 1x/hora (14/08/2026) — la triplicacion (3x/hora) consumia
-    # demasiada cuota gratuita de GitHub Actions (cada corrida factura minimo
-    # 1 minuto completo sin importar que dure segundos, y 72 corridas/dia de
-    # este workflow solo, sumado a capture-closing-odds, agoto el 90% de los
-    # 2000 min/mes gratis en apenas 15 dias). Acepta mas riesgo de salteo
-    # ocasional de GitHub a cambio de no quedarse sin cuota.
     - cron: '15 * * * *'
   workflow_dispatch: {}
 
@@ -15,32 +9,55 @@ jobs:
   settle:
     runs-on: ubuntu-latest
     steps:
-      - name: Liquidar partidos terminados (en loop hasta vaciar)
+      - name: Settle completed matches
         shell: bash --noprofile --norc {0}
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: https://footyedge.app
         run: |
           set +e
-          # settle-results procesa máx 15 por corrida — iterar hasta 4 veces
-          # o hasta que no quede nada pendiente (settled=0)
+          failures=0
+          total_settled=0
           for i in 1 2 3 4; do
-            echo "— Pasada $i —"
-            resp=$(curl -s "$BASE_URL/api/cron/settle-results" \
-              -H "Authorization: Bearer $CRON_SECRET" \
-              --max-time 55)
-            echo "$resp"
-            settled=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('settled', 0))" 2>/dev/null)
+            response_file=$(mktemp)
+            http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/cron/settle-results" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
+            curl_exit=$?
+            success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+            settled=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('settled', 0))" "$response_file" 2>/dev/null)
+            errors=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('errors', 0))" "$response_file" 2>/dev/null)
+            if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ] || [ "${errors:-0}" != "0" ]; then
+              echo "Pass $i failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, errors=${errors:-invalid})"
+              failures=$((failures + 1))
+              rm -f "$response_file"
+              break
+            fi
+            total_settled=$((total_settled + settled))
+            rm -f "$response_file"
             if [ "$settled" = "0" ] || [ -z "$settled" ]; then
-              echo "Cola vacía o sin cambios — terminando."
               break
             fi
             sleep 2
           done
+          {
+            echo "### Hourly settlement"
+            echo "- Matches settled: $total_settled"
+            echo "- Failed passes: $failures"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$failures" -ne 0 ]; then exit 1; fi
 
-          # Re-consolidar para que el dashboard refleje el estado nuevo de inmediato
-          curl -s -w "\nconsolidate status: %{http_code}\n" \
-            "$BASE_URL/api/matches/consolidate" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            --max-time 55
-          exit 0
+      - name: Re-consolidate rankings
+        if: success()
+        shell: bash --noprofile --norc {0}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: https://footyedge.app
+        run: |
+          response_file=$(mktemp)
+          http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/consolidate" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
+          curl_exit=$?
+          success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+          rm -f "$response_file"
+          if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ]; then
+            echo "Consolidate failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid})" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

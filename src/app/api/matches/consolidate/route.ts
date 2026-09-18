@@ -32,7 +32,8 @@ export async function GET(req: NextRequest) {
     .order('rank_score', { ascending: false })
 
   if (!staging?.length) {
-    return NextResponse.json({ success: false, message: 'No rankings found' })
+    // A day without qualifying value bets is a valid result, not a pipeline failure.
+    return NextResponse.json({ success: true, status: 'no_rankings', message: 'No rankings found' })
   }
 
   // Obtener predicciones y odds actuales para recalcular EV
