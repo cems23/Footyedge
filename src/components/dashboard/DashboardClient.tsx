@@ -419,7 +419,8 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
     doublechance = MOCK_MATCHES.map(m => ({ ...m, odds_doublechance_1x: '1.28', odds_doublechance_x2: '1.55', odds_doublechance_12: '1.18' }))
   }
   const router = useRouter()
-  const isPro = user.plan === 'pro' || user.plan === 'elite'
+  const plan = user.plan ?? 'free'
+  const isPro = plan === 'pro' || plan === 'elite'
   const T = lang === 'en' ? {
     dashboard: 'Dashboard', live: 'Live', refresh: 'Refresh', logout: 'Logout',
     noLive: 'No live matches right now', upgradeTitle: '⚡ Free Plan — Limited view',
@@ -445,7 +446,7 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
     today: 'HOY', found: 'encontradas', seeAll: 'Ver todas las ligas',
     seeFav: 'Ver mis', favLeagues: 'ligas favoritas',
   }
-  const isElite = user.plan === 'elite'
+  const isElite = plan === 'elite'
 
   const [notif, setNotif] = useState<{ msg: string; type: 'ok'|'warn'|'err' } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -893,7 +894,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 </>
               )}
               <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 15, letterSpacing: '0.08em', padding: '4px 14px', borderRadius: 999, background: isElite ? 'linear-gradient(90deg, rgba(246,185,59,0.18), rgba(255,214,107,0.08))' : isPro ? 'rgba(0,200,120,0.12)' : 'rgba(255,180,0,0.1)', color: isElite ? '#f6b93b' : isPro ? '#00c878' : '#ffb400', border: isElite ? '1px solid rgba(246,185,59,0.55)' : isPro ? '1px solid rgba(0,200,120,0.4)' : '1px solid rgba(255,180,0,0.25)', boxShadow: isElite ? '0 0 18px rgba(246,185,59,0.25)' : 'none' }}>
-                {user.plan.toUpperCase()}
+                {plan.toUpperCase()}
               </span>
               <button onClick={async () => {
                 const { createClient } = await import('@/lib/supabase/client')

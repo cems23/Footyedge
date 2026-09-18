@@ -30,7 +30,15 @@ export async function GET(req: NextRequest) {
     supabase.from('users').select('plan, picks_today, picks_today_date, bankroll').eq('id', user.id).single(),
   ])
 
-  return NextResponse.json({ picks: picks ?? [], performance: perf, user: { ...userData, email: user.email } })
+  return NextResponse.json({
+    picks: picks ?? [],
+    performance: perf,
+    user: {
+      plan: userData?.plan ?? 'free',
+      picks_today: userData?.picks_today ?? 0,
+      email: user.email,
+    },
+  })
 }
 
 // POST /api/picks — crear pick

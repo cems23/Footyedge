@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+import { createPublicRateLimit } from '@/lib/security/publicRateLimit'
 
 export const dynamic = 'force-dynamic'
 
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(20, '1 m'),
-  prefix: 'league-predictions',
-})
+const ratelimit = createPublicRateLimit({ prefix: 'league-predictions', requests: 20 })
 
 // Endpoint publico (sin auth) para paginas SEO: partidos de hoy de una liga,
 // con predicciones basicas del modelo. No expone cuotas ni edge/EV.
 export async function GET(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const { success } = await ratelimit.limit(ip)
+  let rateLimit
+  try {
+    rateLimit = ratelimit ? await ratelimit.limit(ip) : null
+  } catch {
+    // Keep an upstream Redis failure from becoming an unhandled route exception.
+    console.warn('[league-predictions] Public rate limiter temporarily unavailable')
+    rateLimit = null
+  }
+
+  if (!rateLimit) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable' },
+      { status: 503, headers: { 'Retry-After': '60' } },
+    )
+  }
+
+  const { success } = rateLimit
   if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   const { searchParams } = new URL(req.url)

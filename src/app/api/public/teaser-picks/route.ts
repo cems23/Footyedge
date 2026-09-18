@@ -1,22 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+import { createPublicRateLimit } from '@/lib/security/publicRateLimit'
 
 export const dynamic = 'force-dynamic'
 
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, '1 m'),
-  prefix: 'teaser-picks',
-})
+const ratelimit = createPublicRateLimit({ prefix: 'teaser-picks', requests: 5 })
 
 // Endpoint público (sin auth) para mostrar picks reales en formato "teaser" en la
 // landing — solo liga, hora, rating y edge. NUNCA expone equipos, mercado ni cuotas,
 // para no regalar el valor real a quien no tiene cuenta.
 export async function GET(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? 'unknown'
-  const { success, limit, remaining, reset } = await ratelimit.limit(ip)
+  let rateLimit
+  try {
+    rateLimit = ratelimit ? await ratelimit.limit(ip) : null
+  } catch {
+    // Do not expose Redis details or turn a dependency outage into an unhandled 500.
+    console.warn('[teaser-picks] Public rate limiter temporarily unavailable')
+    rateLimit = null
+  }
+
+  if (!rateLimit) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable' },
+      { status: 503, headers: { 'Retry-After': '60' } },
+    )
+  }
+
+  const { success, limit, remaining, reset } = rateLimit
 
   if (!success) {
     return NextResponse.json(
