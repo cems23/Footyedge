@@ -19,7 +19,6 @@ const MARKET_LABELS: Record<string, { es: string; en: string }> = {
   home: { es: 'Local', en: 'Home' },
   away: { es: 'Visitante', en: 'Away' },
   draw: { es: 'Empate', en: 'Draw' },
-  btts_signal: { es: 'BTTS (señal del día)', en: 'BTTS (daily signal)' },
 }
 
 const MIN_SAMPLE_SIZE = 100
@@ -104,13 +103,14 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
 
   if (!metrics) return null
 
-  const allMarkets = metrics.probabilityPicks
-    ? [...metrics.byMarket, { market: metrics.probabilityPicks.market, total: metrics.probabilityPicks.total, wins: metrics.probabilityPicks.wins, winRate: metrics.probabilityPicks.winRate, roi: 0, profit: 0 }]
-    : metrics.byMarket
+  // Las señales BTTS se snapshottean por probabilidad, no por edge/cuota. Se
+  // muestran aparte para no mezclarlas con el ROI ni el sample de Value Bets.
+  const allMarkets = metrics.byMarket
+  const bttsSignal = metrics.probabilityPicks
 
   const T = {
     title: lang === 'en' ? '// AI MODEL PERFORMANCE' : '// RENDIMIENTO DEL MODELO',
-    subtitle: lang === 'en' ? `Based on ${metrics.total} settled bets` : `Basado en ${metrics.total} apuestas liquidadas`,
+    subtitle: lang === 'en' ? `Value Bets: ${metrics.total} settled` : `Value Bets: ${metrics.total} liquidadas`,
     last10: lang === 'en' ? 'Last 10 predictions' : 'Últimas 10 predicciones',
   }
 
@@ -120,6 +120,24 @@ export default function AIPerformanceWidget({ lang }: { lang: string }) {
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#00c878', letterSpacing: '0.04em' }}>{T.title}</span>
         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#4a6785' }}>{T.subtitle}</span>
       </div>
+
+      {bttsSignal && (
+        <div style={{ border: '1px solid rgba(100,181,246,0.38)', background: 'rgba(100,181,246,0.07)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 10, color: '#64b5f6', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>
+              {lang === 'en' ? 'Best BTTS of the day' : 'Mejores BTTS del día'}
+            </div>
+            <div style={{ fontSize: 11, color: '#8ba2c0' }}>
+              {lang === 'en'
+                ? `${bttsSignal.wins}/${bttsSignal.total} settled signals · probability-only, no ROI`
+                : `${bttsSignal.wins}/${bttsSignal.total} señales liquidadas · solo probabilidad, sin ROI`}
+            </div>
+          </div>
+          <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 32, lineHeight: 1, color: heatColor(bttsSignal.winRate) }}>
+            {bttsSignal.winRate.toFixed(1)}%
+          </div>
+        </div>
+      )}
 
       {metrics.total < MIN_SAMPLE_SIZE_MARKETS && (() => {
         const over25 = allMarkets.find(m => m.market === 'over25')
