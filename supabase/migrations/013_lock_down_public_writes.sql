@@ -9,7 +9,9 @@ DROP POLICY IF EXISTS "results_write" ON public.results;
 DROP POLICY IF EXISTS "rankings_write" ON public.daily_rankings;
 DROP POLICY IF EXISTS "picks_service" ON public.picks;
 DROP POLICY IF EXISTS "users_own" ON public.users;
+DROP POLICY IF EXISTS "own user" ON public.users;
 DROP POLICY IF EXISTS "picks_own" ON public.picks;
+DROP POLICY IF EXISTS "own picks" ON public.picks;
 DROP POLICY IF EXISTS "ai_analyses_own" ON public.ai_analyses;
 
 CREATE POLICY "users_select_own" ON public.users
@@ -18,7 +20,11 @@ CREATE POLICY "users_select_own" ON public.users
 CREATE POLICY "picks_select_own" ON public.picks
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "picks_insert_own" ON public.picks
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+  FOR INSERT TO authenticated WITH CHECK (
+    auth.uid() = user_id
+    AND is_system_pick IS FALSE
+    AND public.check_pick_limit(user_id)
+  );
 CREATE POLICY "picks_delete_own" ON public.picks
   FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
