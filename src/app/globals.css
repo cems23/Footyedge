@@ -15,6 +15,12 @@
   --scroll-thumb-hover: #315b88;
 }
 
+/* Keyboard focus is a first-class signal in the data-heavy product UI. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #ffb400;
+  outline-offset: 3px;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {

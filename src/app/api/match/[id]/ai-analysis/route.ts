@@ -1,9 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getFootyStatsToday, findFootyStatsMatch } from '@/lib/api/footystats'
+import { apf } from '@/lib/api/football'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
+
+function confirmedProviderContext(input: {
+  injuries: any[]
+  lineups: any[]
+  homeTeamId: number
+  awayTeamId: number
+  homeTeamName: string
+  awayTeamName: string
+  lang: 'es' | 'en'
+}) {
+  const { injuries, lineups, homeTeamId, awayTeamId, homeTeamName, awayTeamName, lang } = input
+  const formatAbsences = (teamId: number, teamName: string) => {
+    const unique = new Map<string, { name: string; reason: string }>()
+    for (const injury of injuries.filter((item) => item.team?.id === teamId)) {
+      const name = injury.player?.name
+      if (!name) continue
+      const key = String(injury.player?.id ?? name)
+      if (!unique.has(key)) unique.set(key, { name, reason: injury.player?.reason || injury.player?.type || '' })
+    }
+    const entries = Array.from(unique.values())
+    if (!entries.length) {
+      return lang === 'en'
+        ? `${teamName}: API-Football returned no absence records for this fixture.`
+        : `${teamName}: API-Football no devolvió bajas registradas para este partido.`
+    }
+    const detail = entries.map(({ name, reason }) => `${name}${reason ? ` (${reason})` : ''}`).join(', ')
+    return `${teamName}: ${detail}.`
+  }
+
+  const formatLineup = (teamId: number, teamName: string) => {
+    const lineup = lineups.find((item) => item.team?.id === teamId)
+    if (!lineup?.startXI?.length) {
+      return lang === 'en'
+        ? `${teamName}: confirmed lineup is not published yet.`
+        : `${teamName}: la alineación confirmada aún no está publicada.`
+    }
+    const players = lineup.startXI.slice(0, 11).map((item: any) => item.player?.name).filter(Boolean).join(', ')
+    return lang === 'en'
+      ? `${teamName}: confirmed lineup${lineup.formation ? ` (${lineup.formation})` : ''}: ${players}.`
+      : `${teamName}: alineación confirmada${lineup.formation ? ` (${lineup.formation})` : ''}: ${players}.`
+  }
+
+  return [
+    lang === 'en'
+      ? 'CONFIRMED API-FOOTBALL DATA (retrieved for this request):'
+      : 'DATOS CONFIRMADOS DE API-FOOTBALL (consultados en esta solicitud):',
+    lang === 'en' ? 'Absences:' : 'Bajas:',
+    formatAbsences(homeTeamId, homeTeamName),
+    formatAbsences(awayTeamId, awayTeamName),
+    lang === 'en' ? 'Lineups:' : 'Alineaciones:',
+    formatLineup(homeTeamId, homeTeamName),
+    formatLineup(awayTeamId, awayTeamName),
+  ].join('\n')
+}
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const matchId = params.id
@@ -46,7 +101,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { data: match } = await supabaseAdmin
     .from('matches')
     .select(`
-      home_team_name, away_team_name, league_name, league_id, kickoff_at,
+      home_team_name, away_team_name, home_team_id, away_team_id, external_id,
+      league_name, league_id, kickoff_at,
       model_predictions (
         expected_goals_home, expected_goals_away,
         prob_home_win, prob_draw, prob_away_win,
@@ -59,6 +115,28 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!match) return NextResponse.json({ error: 'Partido no encontrado' }, { status: 404 })
 
   const pred = Array.isArray(match.model_predictions) ? match.model_predictions[0] : match.model_predictions
+
+  // La búsqueda web complementa, pero nunca sustituye, la información del
+  // proveedor. Estas dos llamadas solo se hacen cuando el usuario eligió abrir
+  // el contexto IA para un partido desbloqueado; no se consumen durante el scan
+  // diario ni mientras se busca un equipo en el dashboard.
+  let providerContext = lang === 'en'
+    ? 'CONFIRMED API-FOOTBALL DATA: unavailable for this request. Do not infer absences or a lineup from its absence.'
+    : 'DATOS CONFIRMADOS DE API-FOOTBALL: no disponibles para esta solicitud. No infieras bajas ni alineaciones por su ausencia.'
+  try {
+    const [injuries, lineups] = await Promise.all([
+      apf<any[]>('/injuries', { fixture: match.external_id }),
+      apf<any[]>('/fixtures/lineups', { fixture: match.external_id }),
+    ])
+    providerContext = confirmedProviderContext({
+      injuries: injuries ?? [], lineups: lineups ?? [],
+      homeTeamId: match.home_team_id, awayTeamId: match.away_team_id,
+      homeTeamName: match.home_team_name, awayTeamName: match.away_team_name, lang,
+    })
+  } catch {
+    // El análisis puede seguir usando el modelo y la web, pero el prompt obliga
+    // a no presentar como confirmado lo que no pudo verificar el proveedor.
+  }
 
   const favored = pred
     ? (pred.prob_home_win > pred.prob_away_win ? match.home_team_name : match.away_team_name)
@@ -92,8 +170,9 @@ COMPETITION: ${match.league_name}
 DATE: ${match.kickoff_at}
 ${favored ? `The statistical model favors: ${favored}` : ''}
 ${statsContext}
+${providerContext}
 
-Search the web for CURRENT news specific to this match: confirmed injuries/suspensions, expected lineup changes, table context/motivation, recent form of both teams, head-to-head trends. The probability numbers above are already shown to the user in a separate grid — your job is to EXPLAIN and REASON about what's driving them (attacking form, defensive weaknesses, home advantage, tactical matchup), not just restate them, and to layer in the qualitative context the model can't see.
+Search the web for CURRENT news specific to this match: suspensions, expected lineup changes, table context/motivation, recent form of both teams and head-to-head trends. Treat the API-Football block above as the only source for confirmed injuries and confirmed lineups. Web findings must be described as reports or expectations unless they independently cite an official confirmation. The probability numbers above are already shown to the user in a separate grid — your job is to EXPLAIN and REASON about what's driving them (attacking form, defensive weaknesses, home advantage, tactical matchup), not just restate them, and to layer in the qualitative context the model can't see.
 
 Write in English, 220-320 words, using this exact markdown structure:
 ## Context
@@ -113,8 +192,9 @@ COMPETICIÓN: ${match.league_name}
 FECHA: ${match.kickoff_at}
 ${favored ? `El modelo estadístico favorece a: ${favored}` : ''}
 ${statsContext}
+${providerContext}
 
-Busca en la web noticias ACTUALES específicas de este partido: lesiones/sanciones confirmadas, cambios de alineación esperados, contexto de tabla/motivación, forma reciente de ambos equipos, tendencias del historial entre ambos. Los números de probabilidad de arriba ya se le muestran al usuario en una cuadrícula aparte — tu trabajo es EXPLICAR y RAZONAR qué los está impulsando (forma ofensiva, debilidades defensivas, ventaja de local, el enfrentamiento táctico), no solo repetirlos, y sumar el contexto cualitativo que el modelo no puede ver.
+Busca en la web noticias ACTUALES específicas de este partido: sanciones, cambios de alineación esperados, contexto de tabla/motivación, forma reciente de ambos equipos y tendencias del historial. Trata el bloque de API-Football de arriba como la única fuente de lesiones y alineaciones confirmadas. Todo hallazgo web debe describirse como reporte o expectativa, salvo que cite una confirmación oficial independiente. Los números de probabilidad de arriba ya se le muestran al usuario en una cuadrícula aparte — tu trabajo es EXPLICAR y RAZONAR qué los está impulsando (forma ofensiva, debilidades defensivas, ventaja de local, el enfrentamiento táctico), no solo repetirlos, y sumar el contexto cualitativo que el modelo no puede ver.
 
 Escribe en español, 220-320 palabras, usando exactamente esta estructura markdown:
 ## Contexto

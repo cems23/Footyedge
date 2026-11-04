@@ -299,7 +299,7 @@ export default function MatchPage() {
   const proTabs = ['h2h', 'injuries', 'form', 'compare', 'stats']
   const tabs = [
     { id: 'analysis', label: t.analysis },
-    { id: 'ai',       label: lang === 'en' ? '🤖 AI Analysis' : '🤖 Análisis IA' },
+    { id: 'ai',       label: lang === 'en' ? '🤖 Live context' : '🤖 Contexto actual' },
     { id: 'compare',  label: t.compare },
     { id: 'h2h',      label: t.h2h },
     { id: 'injuries', label: t.injuries },
@@ -405,8 +405,8 @@ export default function MatchPage() {
           {tab === 'analysis' && pred && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Banner promocional: Análisis IA */}
-              <div onClick={() => setTab('ai' as any)}
-                style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden', background: 'linear-gradient(120deg, rgba(255,180,0,0.10), rgba(13,30,53,0.7) 60%)', border: '1px solid rgba(255,180,0,0.35)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => setTab('ai' as any)}
+                style={{ width: '100%', textAlign: 'left', cursor: 'pointer', position: 'relative', overflow: 'hidden', background: 'linear-gradient(120deg, rgba(255,180,0,0.10), rgba(13,30,53,0.7) 60%)', border: '1px solid rgba(255,180,0,0.35)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ fontSize: 28 }}>🤖</div>
                   <div>
@@ -425,7 +425,7 @@ export default function MatchPage() {
                     ? (lang === 'en' ? `Free (${aiQuota.remaining} left) →` : `Gratis (${aiQuota.remaining} restantes) →`)
                     : (lang === 'en' ? 'View →' : 'Ver →')}
                 </span>
-              </div>
+              </button>
 
               {/* Goles esperados */}
               <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
@@ -942,8 +942,8 @@ export default function MatchPage() {
                 </h3>
                 <p style={{ color: '#4a6785', fontSize: 12, marginTop: 8 }}>
                   {lang === 'en'
-                    ? 'Real-time web context: injuries, form, motivation — beyond what the statistical model sees'
-                    : 'Contexto cualitativo con búsqueda web en tiempo real: lesiones, forma, motivación — más allá de lo que ve el modelo estadístico'}
+                    ? 'Confirmed API-Football absences and lineups, plus web context — generated only when you open it'
+                    : 'Bajas y alineaciones confirmadas por API-Football, más contexto web — se genera solo cuando tú lo abres'}
                 </p>
               </div>
 

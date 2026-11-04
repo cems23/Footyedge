@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ComboGenerator } from './widgets/ComboGenerator'
 import AnimatedBackground from '@/components/AnimatedBackground'
 import AIPerformanceWidget from './AIPerformanceWidget'
+import TeamIntelSearch from './widgets/TeamIntelSearch'
 import { animate, stagger, createScope } from 'animejs'
 
 // ── TYPES ────────────────────────────────────────
@@ -927,6 +928,8 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
               )}
 
               <AIPerformanceWidget lang={lang} />
+
+              <TeamIntelSearch picks={rankings} lang={lang} />
 
               {/* VALUE BETS SECTION */}
               <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>
