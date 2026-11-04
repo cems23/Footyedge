@@ -55,7 +55,9 @@ jobs:
           BASE_URL: https://footyedge.app
         run: |
           response_file=$(mktemp)
-          http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/consolidate" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
+          # La consolidación valida como máximo cinco candidatos con API-Football
+          # y web/IA; el margen evita marcar como 502 un proceso aún válido.
+          http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/consolidate" -H "Authorization: Bearer $CRON_SECRET" --max-time 110)
           curl_exit=$?
           success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
           if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ]; then

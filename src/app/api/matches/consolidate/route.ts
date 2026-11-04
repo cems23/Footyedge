@@ -3,9 +3,9 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { runSignalCheck } from '@/lib/ai/signalCheck'
 import { apf } from '@/lib/api/football'
 
-// El trabajo contextual se limita estrictamente a cinco candidatos. 60s deja
+// El trabajo contextual se limita estrictamente a cinco candidatos. 90s deja
 // margen para API-Football y la IA sin convertir el cron en un trabajo masivo.
-export const maxDuration = 60
+export const maxDuration = 90
 export const dynamic = 'force-dynamic'
 
 const MAX_AUTOMATIC_CONTEXTS = 5
