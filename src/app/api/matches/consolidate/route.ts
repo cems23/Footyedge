@@ -3,8 +3,43 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { runSignalCheck } from '@/lib/ai/signalCheck'
 import { apf } from '@/lib/api/football'
 
-export const maxDuration = 30
+// El trabajo contextual se limita estrictamente a cinco candidatos. 60s deja
+// margen para API-Football y la IA sin convertir el cron en un trabajo masivo.
+export const maxDuration = 60
 export const dynamic = 'force-dynamic'
+
+const MAX_AUTOMATIC_CONTEXTS = 5
+
+function summarizeForm(fixtures: any[], teamId: number) {
+  return (fixtures || []).slice(0, 5).map((fixture: any) => {
+    const isHome = fixture.teams?.home?.id === teamId
+    const winner = isHome ? fixture.teams?.home?.winner : fixture.teams?.away?.winner
+    if (winner === true) return 'V'
+    if (winner === false) return 'D'
+    return 'E'
+  }).join('')
+}
+
+function listedAbsences(injuries: any[], teamId: number) {
+  const seen = new Set<string>()
+  return (injuries || []).flatMap((injury: any) => {
+    if (injury.team?.id !== teamId || !injury.player?.name) return []
+    const key = String(injury.player?.id ?? injury.player.name)
+    if (seen.has(key)) return []
+    seen.add(key)
+    return [{ name: injury.player.name, reason: injury.player?.reason ?? injury.player?.type ?? 'baja reportada' }]
+  })
+}
+
+function listedLineup(lineups: any[], teamId: number) {
+  const lineup = (lineups || []).find((item: any) => item.team?.id === teamId)
+  if (!lineup?.startXI?.length) return { published: false, formation: null, players: [] as string[] }
+  return {
+    published: true,
+    formation: lineup.formation ?? null,
+    players: lineup.startXI.slice(0, 11).map((item: any) => item.player?.name).filter(Boolean),
+  }
+}
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
@@ -123,13 +158,113 @@ export async function GET(req: NextRequest) {
     return true
   })
 
-  const top30 = onePerMatch.slice(0, 30)
+  // Primero se eligen cinco candidatos puramente estadísticos. Solo ellos
+  // consumen la capa automática API-Football + web/IA; nunca se escanea un
+  // listado entero por detrás ni se cobra una consulta por abrir una tarjeta.
+  const candidates = onePerMatch.slice(0, MAX_AUTOMATIC_CONTEXTS)
+
+  const assessCandidate = async (candidate: any) => {
+    const match = matchDataById[candidate.match_id]
+    if (!match?.external_id) return { candidate, intelligence: null }
+
+    try {
+      const readProvider = async <T,>(request: Promise<T>) => {
+        try {
+          return { value: await request, available: true }
+        } catch {
+          return { value: [] as unknown as T, available: false }
+        }
+      }
+      const [injuriesResult, lineupsResult, homeFormResult, awayFormResult] = await Promise.all([
+        readProvider(apf<any[]>('/injuries', { fixture: match.external_id })),
+        readProvider(apf<any[]>('/fixtures/lineups', { fixture: match.external_id })),
+        readProvider(apf<any[]>('/fixtures', { team: match.home_team_id, league: match.league_id, season: match.season, last: 5 })),
+        readProvider(apf<any[]>('/fixtures', { team: match.away_team_id, league: match.league_id, season: match.season, last: 5 })),
+      ])
+      const injuries = injuriesResult.value
+      const lineups = lineupsResult.value
+      const homeForm = homeFormResult.value
+      const awayForm = awayFormResult.value
+
+      const providerData = {
+        retrieved_at: new Date().toISOString(),
+        api_football: {
+          injuries_available: injuriesResult.available,
+          lineups_available: lineupsResult.available,
+          home_form_available: homeFormResult.available,
+          away_form_available: awayFormResult.available,
+        },
+        home: {
+          team: match.home_team_name,
+          absences: listedAbsences(injuries, match.home_team_id),
+          lineup: listedLineup(lineups, match.home_team_id),
+          form_last_5: summarizeForm(homeForm, match.home_team_id),
+        },
+        away: {
+          team: match.away_team_name,
+          absences: listedAbsences(injuries, match.away_team_id),
+          lineup: listedLineup(lineups, match.away_team_id),
+          form_last_5: summarizeForm(awayForm, match.away_team_id),
+        },
+      }
+      // No se incluye retrieved_at: un mismo dato confirmado debe reutilizar la
+      // investigación web ya guardada en vez de repetirla cada cuatro horas.
+      const providerFingerprint = JSON.stringify({ ...providerData, retrieved_at: undefined, model_prob: candidate.modelProb })
+      const intelligence = await runSignalCheck({
+        matchId: candidate.match_id,
+        market: candidate.market,
+        modelProb: candidate.modelProb ?? 0,
+        homeTeam: match.home_team_name,
+        awayTeam: match.away_team_name,
+        formHome: providerData.home.form_last_5,
+        formAway: providerData.away.form_last_5,
+        goalsForHome: null,
+        goalsAgainstHome: null,
+        goalsForAway: null,
+        goalsAgainstAway: null,
+        injuriesHome: providerData.home.absences.map((item) => `${item.name} (${item.reason})`).join(', '),
+        injuriesAway: providerData.away.absences.map((item) => `${item.name} (${item.reason})`).join(', '),
+        h2hSummary: '',
+        providerData,
+        providerFingerprint,
+      })
+      return { candidate, intelligence }
+    } catch (error) {
+      console.error('automatic pick intelligence failed (non-fatal):', error)
+      return { candidate, intelligence: null }
+    }
+  }
+
+  // API-Football limita las ráfagas. Dos partidos a la vez mantienen ocho
+  // solicitudes como máximo, en vez de disparar veinte simultáneas.
+  const assessed: Array<{ candidate: any; intelligence: Awaited<ReturnType<typeof runSignalCheck>> | null }> = []
+  for (let index = 0; index < candidates.length; index += 2) {
+    const batch = await Promise.all(candidates.slice(index, index + 2).map(assessCandidate))
+    assessed.push(...batch)
+  }
+
+  // La IA no sustituye el modelo ni "inventa" una probabilidad nueva. Solo
+  // penaliza la puntuación cuando el contexto contradice el pick. Un rechazo
+  // fuerte evita publicar una recomendación que el control contextual descartó.
+  const selected = assessed
+    .filter(({ intelligence }) => !intelligence?.rejected)
+    .map(({ candidate, intelligence }) => {
+      const penalty = intelligence?.confidencePenalty ?? 0
+      const adjustment = intelligence?.adjustment ?? 0
+      const contextMultiplier = Math.max(0.55, 1 - penalty / 100 + adjustment / 100)
+      return {
+        ...candidate,
+        confidence_score: Math.max(0, Math.round((candidate.confidence_score ?? 0) * contextMultiplier)),
+        rank_score: (candidate.rank_score ?? 0) * contextMultiplier,
+      }
+    })
+    .sort((a, b) => b.rank_score - a.rank_score)
 
   // Limpiar daily_rankings de hoy y reescribir
   await supabase.from('daily_rankings').delete().eq('date', today)
 
-  for (let i = 0; i < top30.length; i++) {
-    const r = top30[i]
+  for (let i = 0; i < selected.length; i++) {
+    const r = selected[i]
     await supabase.from('daily_rankings').insert({
       date:             today,
       rank:             i + 1,
@@ -141,7 +276,7 @@ export async function GET(req: NextRequest) {
       edge:             r.edge,
       confidence_score: r.confidence_score,
       rank_score:       r.rank_score,
-      is_pro_only:      i >= 10,
+      is_pro_only:      i >= 3,
       model_prob_raw:      r.modelProb,
       market_implied_prob: r.marketImpliedProb,
     })
@@ -152,7 +287,7 @@ export async function GET(req: NextRequest) {
   // evita pisarla en corridas posteriores del mismo día (consolidate corre
   // 4x/día y reescribe daily_rankings completo, pero la apertura debe quedar
   // fija en el primer momento en que se publicó).
-  const clvCandidates = top30
+  const clvCandidates = selected
     .filter(r => MAJOR_LEAGUES.has(matchDataById[r.match_id]?.league_id))
     .map(r => ({
       match_id: r.match_id,
@@ -167,61 +302,7 @@ export async function GET(req: NextRequest) {
     await supabase.from('clv_tracking').upsert(clvCandidates, { onConflict: 'match_id,market', ignoreDuplicates: true })
   }
 
-  // AI signal check — modo observar: corre en paralelo con limite de concurrencia,
-  // nunca bloquea ni afecta el resultado del consolidate si falla.
-  const AI_CONCURRENCY = 3
-  for (let i = 0; i < top30.length; i += AI_CONCURRENCY) {
-    const batch = top30.slice(i, i + AI_CONCURRENCY)
-    await Promise.allSettled(batch.map(async (r: any) => {
-      try {
-        const m = matchDataById[r.match_id]
-        if (!m || !m.external_id) return
-
-        const [injuriesRes, formHomeRes, formAwayRes] = await Promise.all([
-          apf<any[]>('/injuries', { fixture: m.external_id }).catch(() => []),
-          apf<any[]>('/fixtures', { team: m.home_team_id, league: m.league_id, season: m.season, last: 5 }).catch(() => []),
-          apf<any[]>('/fixtures', { team: m.away_team_id, league: m.league_id, season: m.season, last: 5 }).catch(() => []),
-        ])
-
-        const summarizeForm = (fixtures: any[], teamId: number) => {
-          return (fixtures || []).map((f: any) => {
-            const isHome = f.teams?.home?.id === teamId
-            const won = isHome ? f.teams?.home?.winner : f.teams?.away?.winner
-            if (won === true) return 'V'
-            if (won === false) return 'D'
-            return 'E'
-          }).join('')
-        }
-
-        const injuriesText = (list: any[]) =>
-          (list || []).slice(0, 5).map((inj: any) => `${inj.player?.name ?? '?'} (${inj.player?.reason ?? 'baja'})`).join(', ')
-
-        const homeInjuries = (injuriesRes || []).filter((inj: any) => inj.team?.id === m.home_team_id)
-        const awayInjuries = (injuriesRes || []).filter((inj: any) => inj.team?.id === m.away_team_id)
-
-        await runSignalCheck({
-          matchId: r.match_id,
-          market: r.market,
-          modelProb: r.modelProb,
-          homeTeam: m.home_team_name,
-          awayTeam: m.away_team_name,
-          formHome: summarizeForm(formHomeRes, m.home_team_id),
-          formAway: summarizeForm(formAwayRes, m.away_team_id),
-          goalsForHome: null,
-          goalsAgainstHome: null,
-          goalsForAway: null,
-          goalsAgainstAway: null,
-          injuriesHome: injuriesText(homeInjuries),
-          injuriesAway: injuriesText(awayInjuries),
-          h2hSummary: '',
-        })
-      } catch (e) {
-        console.error('signal check batch item failed (non-fatal):', e)
-      }
-    }))
-  }
-
-  return NextResponse.json({ success: true, top5: top30.length, rankings: top30.map((r, i) => ({
+  return NextResponse.json({ success: true, top5: selected.length, rankings: selected.map((r, i) => ({
     rank: i + 1,
     match_id: r.match_id,
     market: r.market,

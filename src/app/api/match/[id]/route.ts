@@ -38,6 +38,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (!match) return NextResponse.json({ error: 'Match not found' }, { status: 404 })
 
+  // El contexto del pick se prepara durante el cron para, como máximo, los cinco
+  // candidatos del día. Leer la ficha no dispara IA ni consultas de búsqueda web.
+  const today = new Date().toISOString().split('T')[0]
+  const { data: dailyRanking } = await supabaseAdmin
+    .from('daily_rankings')
+    .select('market')
+    .eq('date', today)
+    .eq('match_id', match.id)
+    .order('rank', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  const { data: pickContext } = dailyRanking
+    ? await supabaseAdmin
+      .from('ai_signal_checks')
+      .select('market, adjustment, confidence_penalty, reason, context, provider_data, sources, checked_at')
+      .eq('match_id', match.id)
+      .eq('market', dailyRanking.market)
+      .maybeSingle()
+    : { data: null }
+
   const { home_team_id, away_team_id, league_id, season, external_id } = match
 
   // Check cache first (6 hour TTL)
@@ -283,6 +303,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({
     match,
     plan,
+    pickContext,
     standings: table,
     lineups: {
       home: processLineup(homeLineup, home_team_id),

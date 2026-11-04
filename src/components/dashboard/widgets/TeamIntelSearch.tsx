@@ -29,8 +29,8 @@ function formatKickoff(value: string, lang: string) {
 
 /**
  * Local search over matches which passed the model's value thresholds. It does
- * not call a provider while the user types, so contextual data and AI quota are
- * only spent after the user explicitly opens a selected match.
+ * not call a provider while the user types. The daily top five have their
+ * context prepared by the pipeline before they are published.
  */
 export default function TeamIntelSearch({ picks, lang }: { picks: ModelPick[]; lang: string }) {
   const router = useRouter()
@@ -65,7 +65,7 @@ export default function TeamIntelSearch({ picks, lang }: { picks: ModelPick[]; l
         noResults: 'No selected match matches that search.',
         selected: 'Model-selected', open: 'Open confirmed match data',
         detail: 'Form, confirmed absences and lineups',
-        ai: 'Web + AI context is generated only when you choose it in the match view.',
+        ai: 'The five daily candidates are checked with API-Football and web/AI before publication. Open a match only when you want to read its saved context.',
         global: 'Browse all team ratings',
       }
     : {
@@ -75,7 +75,7 @@ export default function TeamIntelSearch({ picks, lang }: { picks: ModelPick[]; l
         noResults: 'Ningún partido seleccionado coincide con esa búsqueda.',
         selected: 'Seleccionado por el modelo', open: 'Abrir datos confirmados',
         detail: 'Forma, bajas confirmadas y alineaciones',
-        ai: 'El contexto web + IA solo se genera cuando tú lo eliges en la ficha del partido.',
+        ai: 'Los cinco candidatos diarios se revisan con API-Football y web/IA antes de publicarse. Abre el partido solo cuando quieras leer su contexto guardado.',
         global: 'Ver todos los ratings de equipos',
       }
 

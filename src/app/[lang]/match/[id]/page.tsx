@@ -69,7 +69,7 @@ export default function MatchPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'analysis'|'compare'|'h2h'|'injuries'|'standings'|'form'|'lineups'|'stats'|'ai'>('analysis')
+  const [tab, setTab] = useState<'analysis'|'context'|'compare'|'h2h'|'injuries'|'standings'|'form'|'lineups'|'stats'|'ai'>('analysis')
   const [lineupView, setLineupView] = useState<'list' | 'pitch'>('pitch')
   const [userPlan, setUserPlan] = useState<string>('free')
   const isElite = userPlan === 'elite'
@@ -289,7 +289,7 @@ export default function MatchPage() {
     </div>
   )
 
-  const { match, h2h, standings, injuries, homeForm, awayForm, scorePredictions, lineups, matchStats, seasonStats, fsData } = data
+  const { match, h2h, standings, injuries, homeForm, awayForm, scorePredictions, lineups, matchStats, seasonStats, fsData, pickContext } = data
   const pred = match.model_predictions?.[0]
   const kickoff = new Date(match.kickoff_at)
 
@@ -299,7 +299,8 @@ export default function MatchPage() {
   const proTabs = ['h2h', 'injuries', 'form', 'compare', 'stats']
   const tabs = [
     { id: 'analysis', label: t.analysis },
-    { id: 'ai',       label: lang === 'en' ? '🤖 Live context' : '🤖 Contexto actual' },
+    { id: 'context',  label: lang === 'en' ? '🧠 Pick context' : '🧠 Contexto del pick' },
+    { id: 'ai',       label: lang === 'en' ? '🤖 Deep analysis' : '🤖 Análisis profundo' },
     { id: 'compare',  label: t.compare },
     { id: 'h2h',      label: t.h2h },
     { id: 'injuries', label: t.injuries },
@@ -555,6 +556,55 @@ export default function MatchPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ── CONTEXTO PREPARADO DEL PICK ── */}
+          {tab === 'context' && (
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 24 }}>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 10, color: G, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>{lang === 'en' ? '◆ PREPARED BEFORE PUBLICATION' : '◆ PREPARADO ANTES DE PUBLICAR'}</div>
+                <h3 style={{ fontSize: 20, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, margin: 0 }}>
+                  {lang === 'en' ? <>PICK <span style={{ color: G }}>CONTEXT</span></> : <>CONTEXTO DEL <span style={{ color: G }}>PICK</span></>}
+                </h3>
+                <p style={{ color: '#4a6785', fontSize: 12, marginTop: 8 }}>
+                  {lang === 'en'
+                    ? 'API-Football facts plus a web/AI review. Opening this tab does not run another check.'
+                    : 'Datos confirmados de API-Football y revisión web/IA. Abrir esta pestaña no ejecuta otra consulta.'}
+                </p>
+              </div>
+
+              {!pickContext?.context && (
+                <div style={{ textAlign: 'center', color: '#8fa3bf', fontSize: 13, padding: 24 }}>
+                  {lang === 'en'
+                    ? 'This match is not one of today’s five context-reviewed candidates yet.'
+                    : 'Este partido todavía no forma parte de los cinco candidatos revisados con contexto hoy.'}
+                </div>
+              )}
+
+              {pickContext?.context && (
+                <div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 18 }}>
+                    <span style={{ color: '#00c878', border: '1px solid rgba(0,200,120,.35)', background: 'rgba(0,200,120,.08)', borderRadius: 999, padding: '5px 10px', fontSize: 10 }}>
+                      {lang === 'en' ? 'API-Football checked' : 'API-Football comprobada'}
+                    </span>
+                    <span style={{ color: (pickContext.confidence_penalty ?? 0) >= 15 ? '#ffb400' : '#64b5f6', border: '1px solid #294d75', background: 'rgba(100,181,246,.06)', borderRadius: 999, padding: '5px 10px', fontSize: 10 }}>
+                      {lang === 'en' ? 'Context adjustment' : 'Ajuste de contexto'}: {pickContext.adjustment ?? 0}%
+                    </span>
+                  </div>
+                  <div style={{ color: '#c5d3e8', fontSize: 14 }}>{renderAiMarkdown(pickContext.context)}</div>
+                  {pickContext.reason && <p style={{ margin: '18px 0 0', color: '#8fa3bf', fontSize: 11, borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>⚑ {pickContext.reason}</p>}
+                  {Array.isArray(pickContext.sources) && pickContext.sources.length > 0 && (
+                    <div style={{ marginTop: 14, borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>
+                      <div style={{ color: '#4a6785', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 7 }}>{lang === 'en' ? 'Web sources consulted' : 'Fuentes web consultadas'}</div>
+                      {pickContext.sources.map((source: { title?: string; url?: string }, index: number) => source.url && (
+                        <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer" style={{ display: 'block', color: '#64b5f6', fontSize: 11, marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>↗ {source.title || source.url}</a>
+                      ))}
+                    </div>
+                  )}
+                  {pickContext.checked_at && <p style={{ margin: '9px 0 0', color: '#4a6785', fontSize: 10 }}>{lang === 'en' ? 'Last reviewed' : 'Última revisión'}: {new Date(pickContext.checked_at).toLocaleString(lang === 'en' ? 'en-GB' : 'es-ES')}</p>}
+                </div>
+              )}
             </div>
           )}
 
@@ -942,8 +992,8 @@ export default function MatchPage() {
                 </h3>
                 <p style={{ color: '#4a6785', fontSize: 12, marginTop: 8 }}>
                   {lang === 'en'
-                    ? 'Confirmed API-Football absences and lineups, plus web context — generated only when you open it'
-                    : 'Bajas y alineaciones confirmadas por API-Football, más contexto web — se genera solo cuando tú lo abres'}
+                    ? 'A longer individual report, generated only when you unlock it.'
+                    : 'Un informe individual más extenso, generado solo cuando lo desbloqueas.'}
                 </p>
               </div>
 
