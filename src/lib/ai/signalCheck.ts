@@ -81,6 +81,38 @@ function normalizeResult(value: any, cached = false): SignalResult {
   }
 }
 
+function parseStructuredResponse(text: string) {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+  try { return JSON.parse(cleaned) } catch {}
+
+  // Un resultado con búsqueda web puede añadir una frase antes del JSON. En vez
+  // de una regex codiciosa, extraemos el primer objeto balanceado respetando
+  // strings y escapes para no romper el contexto por una llave dentro del texto.
+  const start = cleaned.indexOf('{')
+  if (start < 0) return null
+  let depth = 0
+  let quoted = false
+  let escaped = false
+  for (let index = start; index < cleaned.length; index++) {
+    const char = cleaned[index]
+    if (quoted) {
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === '"') quoted = false
+      continue
+    }
+    if (char === '"') quoted = true
+    else if (char === '{') depth++
+    else if (char === '}' && --depth === 0) {
+      try { return JSON.parse(cleaned.slice(start, index + 1)) } catch { return null }
+    }
+  }
+  return null
+}
+
 export async function runSignalCheck(input: SignalCheckInput): Promise<SignalResult> {
   const supabase = createServiceClient()
 
@@ -133,7 +165,7 @@ Responde SOLO con JSON valido, sin texto adicional, en este formato exacto:
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 450,
+        max_tokens: 700,
         messages: [{ role: 'user', content: prompt }],
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
       }),
@@ -151,26 +183,25 @@ Responde SOLO con JSON valido, sin texto adicional, en este formato exacto:
       + (usage.output_tokens ?? 0) * HAIKU_OUTPUT_PER_TOKEN
       + webSearches * 0.01
 
-    const text = data.content?.find((c: any) => c.type === 'text')?.text ?? ''
+    const text = (data.content ?? []).filter((block: any) => block.type === 'text').map((block: any) => block.text).join('\n').trim()
     const sources = (data.content ?? []).flatMap((block: any) => {
       if (block.type !== 'web_search_tool_result' || !Array.isArray(block.content)) return []
       return block.content
         .filter((result: any) => result.type === 'web_search_result' && result.url)
         .map((result: any) => ({ title: String(result.title ?? result.url).slice(0, 180), url: String(result.url).slice(0, 1000) }))
     }).slice(0, 6)
-    let parsed: any = null
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
-      if (jsonMatch) parsed = JSON.parse(jsonMatch[0])
-    } catch {
-      parsed = null
-    }
+    const parsed = parseStructuredResponse(text)
 
     await recordSpend(supabase, costUsd)
 
-    if (!parsed) return existing ? normalizeResult(existing, true) : neutralResult('Respuesta de contexto no válida')
-
-    const normalized = normalizeResult(parsed)
+    // Nunca descartamos una investigación válida solo porque el modelo añadió
+    // texto alrededor del JSON. Si no produjo JSON pero sí una explicación,
+    // se guarda como contexto de revisión manual con una decisión neutral.
+    const normalized = parsed
+      ? normalizeResult(parsed)
+      : text
+        ? { ...neutralResult('Contexto web disponible; revisar antes de apostar.'), context: text.slice(0, 1800) }
+        : existing ? normalizeResult(existing, true) : neutralResult('La IA no devolvió contexto para este partido')
 
     const { error: upsertError } = await supabase.from('ai_signal_checks').upsert({
       match_id: input.matchId,
