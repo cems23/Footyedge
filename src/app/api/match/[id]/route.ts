@@ -49,14 +49,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     .order('rank', { ascending: true })
     .limit(1)
     .maybeSingle()
-  const { data: pickContext } = dailyRanking
-    ? await supabaseAdmin
-      .from('ai_signal_checks')
-      .select('market, adjustment, confidence_penalty, reason, context, provider_data, sources, checked_at')
-      .eq('match_id', match.id)
-      .eq('market', dailyRanking.market)
-      .maybeSingle()
-    : { data: null }
+  let contextQuery = supabaseAdmin
+    .from('ai_signal_checks')
+    .select('market, adjustment, confidence_penalty, reason, context, provider_data, sources, checked_at')
+    .eq('match_id', match.id)
+    .order('checked_at', { ascending: false })
+    .limit(1)
+  if (dailyRanking?.market) contextQuery = contextQuery.eq('market', dailyRanking.market)
+  const { data: pickContext } = await contextQuery.maybeSingle()
 
   const { home_team_id, away_team_id, league_id, season, external_id } = match
 
