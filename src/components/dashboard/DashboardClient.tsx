@@ -7,6 +7,7 @@ import AnimatedBackground from '@/components/AnimatedBackground'
 import AIPerformanceWidget from './AIPerformanceWidget'
 import ValueLeagueRadar from './widgets/ValueLeagueRadar'
 import { animate, stagger, createScope } from 'animejs'
+import { isAdminEmail } from '@/lib/permissions'
 
 // ── TYPES ────────────────────────────────────────
 interface Ranking {
@@ -421,6 +422,7 @@ export default function DashboardClient({ rankings, picks = [], allMatches = [],
   }
   const router = useRouter()
   const plan = user.plan ?? 'free'
+  const isAdmin = isAdminEmail(user.email)
   const isPro = plan === 'pro' || plan === 'elite'
   const T = lang === 'en' ? {
     dashboard: 'Dashboard', live: 'Live', refresh: 'Refresh', logout: 'Logout',
@@ -881,7 +883,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 {lang === 'en' ? '🇪🇸 ES' : '🇬🇧 EN'}
               </button>
 
-              {['admin@footyedge.com', 'carlosmartens8@gmail.com'].includes(user.email ?? '') && (
+              {isAdmin && (
                 <>
                   <button onClick={() => router.push('/admin')} style={{ background: 'rgba(255,180,0,0.1)', border: '1px solid rgba(255,180,0,0.45)', color: '#ffb400', padding: '6px 15px', borderRadius: 999, fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>
                     🛠️ Admin
@@ -927,7 +929,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
                 </div>
               )}
 
-              <AIPerformanceWidget lang={lang} />
+              {isAdmin && <AIPerformanceWidget lang={lang} />}
 
               <ValueLeagueRadar matches={allMatches} lang={lang} plan={user.plan} />
 

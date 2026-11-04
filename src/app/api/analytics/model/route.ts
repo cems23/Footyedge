@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isAdminEmail } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,6 +8,7 @@ export async function GET() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdminEmail(user.email)) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
   // 25/07/2026: fix del bug de doble conteo de ventaja local en Home. Los datos
   // de antes mezclan errores ya corregidos con el modelo actual — no es
