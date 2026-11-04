@@ -40,23 +40,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   // El contexto del pick se prepara durante el cron para, como máximo, los cinco
   // candidatos del día. Leer la ficha no dispara IA ni consultas de búsqueda web.
-  const today = new Date().toISOString().split('T')[0]
-  const { data: dailyRanking } = await supabaseAdmin
-    .from('daily_rankings')
-    .select('market')
-    .eq('date', today)
-    .eq('match_id', match.id)
-    .order('rank', { ascending: true })
-    .limit(1)
-    .maybeSingle()
-  let contextQuery = supabaseAdmin
+  // Un contexto puede haber sido pedido manualmente desde el Radar para un
+  // mercado distinto al ranking diario. Mostramos siempre el más reciente del
+  // partido, en lugar de ocultarlo por una coincidencia de mercado.
+  const { data: pickContext } = await supabaseAdmin
     .from('ai_signal_checks')
     .select('market, adjustment, confidence_penalty, reason, context, provider_data, sources, checked_at')
     .eq('match_id', match.id)
     .order('checked_at', { ascending: false })
     .limit(1)
-  if (dailyRanking?.market) contextQuery = contextQuery.eq('market', dailyRanking.market)
-  const { data: pickContext } = await contextQuery.maybeSingle()
+    .maybeSingle()
 
   const { home_team_id, away_team_id, league_id, season, external_id } = match
 
