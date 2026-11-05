@@ -2,14 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { apf } from '@/lib/api/football'
 import { runSignalCheck } from '@/lib/ai/signalCheck'
+import { isAdminEmail } from '@/lib/permissions'
+import { isRadarCompetition } from '@/lib/football/radarCompetitions'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 90
-
-// Competiciones donde el usuario quiere hacer scouting manual. Mantener la
-// lista explícita evita convertir el radar en otra vista de las ligas grandes.
-const RADAR_LEAGUES = new Set([40, 103, 106, 113, 144, 179, 203, 253])
-const OWNER_EMAILS = new Set(['admin@footyedge.com', 'carlosmartens8@gmail.com'])
 
 function form(fixtures: any[], teamId: number) {
   return (fixtures ?? []).slice(0, 5).map((fixture: any) => {
@@ -57,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
   const { data: account } = await service.from('users').select('plan,email').eq('id', user.id).single()
-  const allowed = account?.plan === 'pro' || account?.plan === 'elite' || OWNER_EMAILS.has(account?.email ?? user.email ?? '')
+  const allowed = account?.plan === 'pro' || account?.plan === 'elite' || isAdminEmail(account?.email ?? user.email)
   if (!allowed) return NextResponse.json({ error: 'RADAR_PRO_REQUIRED' }, { status: 403 })
 
   const now = new Date().toISOString()
@@ -68,7 +65,7 @@ export async function POST(req: NextRequest) {
     .gt('kickoff_at', now)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  const approved = (matches ?? []).filter((match: any) => RADAR_LEAGUES.has(match.league_id) && match.external_id)
+  const approved = (matches ?? []).filter((match: any) => isRadarCompetition(match.league_id) && match.external_id)
   if (!approved.length) return NextResponse.json({ error: 'Los partidos deben ser próximos y pertenecer a las ligas del radar.' }, { status: 422 })
 
   const { data: snapshots } = await service

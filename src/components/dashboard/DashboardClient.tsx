@@ -931,7 +931,7 @@ button:active:not(:disabled) { transform: translateY(0) scale(.97); }
 
               {isAdmin && <AIPerformanceWidget lang={lang} />}
 
-              <ValueLeagueRadar matches={allMatches} lang={lang} plan={user.plan} />
+              <ValueLeagueRadar lang={lang} plan={user.plan} email={user.email} />
 
               {/* VALUE BETS SECTION */}
               <div style={{ background: 'rgba(13,30,53,0.6)', border: '1px solid #1a2e4a', borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.3)', marginBottom: 12, overflow: 'hidden' }}>

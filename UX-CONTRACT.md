@@ -32,7 +32,7 @@
 | Select/Listbox | Native `<select>` in rankings filters | `src/app/rankings/RankingsClient.tsx` | native | keyboard + browser popup |
 | Status panel | Admin pipeline panel | `src/app/api/admin/stats/route.ts` | healthy, stale, attention, idle | API + browser |
 | Toast | Dashboard `Notif` component | `DashboardClient.tsx` | ok, warn, err | dashboard interaction |
-| Value-league radar | `ValueLeagueRadar` | `src/components/dashboard/widgets/ValueLeagueRadar.tsx` | upcoming curated league match, maximum five selections | keyboard + browser |
+| Match intelligence radar | `ValueLeagueRadar` | `src/components/dashboard/widgets/ValueLeagueRadar.tsx`, `api/radar/matches` | upcoming match from one or more monitored competitions, maximum five analyses | keyboard + browser + API |
 | CRUD | Picks route handlers | `src/app/api/picks` | create / delete | authenticated flow |
 
 ## Flow ledger
@@ -40,7 +40,7 @@
 | Operation | Trigger | Pending | Success feedback | Failure recovery | Source ref |
 |---|---|---|---|---|---|
 | Read model performance | Dashboard load, administrator only | Stable loading panel | Verified metrics or explicit empty state | Retry button | `AIPerformanceWidget.tsx`, `api/analytics/model` |
-| Select matches for contextual scouting | Value League Radar on dashboard | Explicit “Analizar seleccionados” busy state; no provider request while selecting | Show per-match pick/rejection and link to saved context | Inline API error, retain selection | `ValueLeagueRadar.tsx`, `api/radar/analyze` |
+| Select matches for contextual scouting | Select competitions, then “Buscar partidos” in the Match Intelligence Radar | Search is read-only; explicit “Analizar seleccionados” busy state triggers provider calls for no more than five matches | Show per-match pick/rejection and link to saved context | Inline API error, retain selection | `ValueLeagueRadar.tsx`, `api/radar/matches`, `api/radar/analyze` |
 | Read contextual analysis | Explicit AI tab from a model-selected match | Existing analysis quota/payment state | Cached or newly generated context | Retry or plan/payment path | `api/match/[id]/ai-analysis` |
 | Refresh admin health | Operator button | Button remains available | Fresh database-derived status | Inline page error | `admin/page.tsx` |
 | Run daily pipeline | Admin control | Determinate workflow status | GitHub Actions conclusion | Link/status inspection | `DashboardClient.tsx` |
