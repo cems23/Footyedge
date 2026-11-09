@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import AnimatedBackground from "@/components/AnimatedBackground"
+import { GameMomentum } from "@/components/match/GameMomentum"
 import { PlayerPitch } from "@/components/match/PlayerPitch"
 import { createClient } from "@/lib/supabase/client"
+import { isAdminEmail } from "@/lib/permissions"
 
 const G = '#00c878'
 const BG = '#070d1a'
@@ -69,11 +71,13 @@ export default function MatchPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'analysis'|'context'|'compare'|'h2h'|'injuries'|'standings'|'form'|'lineups'|'stats'|'ai'>('analysis')
+  const [tab, setTab] = useState<'analysis'|'context'|'compare'|'h2h'|'injuries'|'standings'|'form'|'lineups'|'stats'|'ai'|'momentum'>('analysis')
   const [lineupView, setLineupView] = useState<'list' | 'pitch'>('pitch')
   const [userPlan, setUserPlan] = useState<string>('free')
+  const [isAdmin, setIsAdmin] = useState(false)
   const isElite = userPlan === 'elite'
   const isPro = userPlan === 'pro' || userPlan === 'elite'
+  const canUseMomentum = isPro || isAdmin
   const [aiContent, setAiContent] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
@@ -170,8 +174,12 @@ export default function MatchPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('users').select('plan').single().then(({ data }) => {
+    Promise.all([
+      supabase.from('users').select('plan,email').single(),
+      supabase.auth.getUser(),
+    ]).then(([{ data }, { data: auth }]) => {
       if (data?.plan) setUserPlan(data.plan)
+      setIsAdmin(isAdminEmail(data?.email ?? auth.user?.email))
     })
   }, [])
 
@@ -301,6 +309,7 @@ export default function MatchPage() {
     { id: 'analysis', label: t.analysis },
     { id: 'context',  label: lang === 'en' ? '🧠 Pick context' : '🧠 Contexto del pick' },
     { id: 'ai',       label: lang === 'en' ? '🤖 Deep analysis' : '🤖 Análisis profundo' },
+    { id: 'momentum', label: lang === 'en' ? '⚡ Live pulse' : '⚡ Pulso live' },
     { id: 'compare',  label: t.compare },
     { id: 'h2h',      label: t.h2h },
     { id: 'injuries', label: t.injuries },
@@ -384,7 +393,7 @@ export default function MatchPage() {
         {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}`, padding: '0 24px', background: 'rgba(10,22,40,0.8)', overflowX: 'auto' }}>
           {tabs.map(t => {
-            const locked = proTabs.includes(t.id) && !isPro
+            const locked = (proTabs.includes(t.id) && !isPro) || (t.id === 'momentum' && !canUseMomentum)
             return (
               <button key={t.id} onClick={() => {
                 if (locked) { router.push(`/${lang}/pricing?reason=pro`); return }
@@ -717,6 +726,15 @@ export default function MatchPage() {
           )}
 
           {/* ── H2H ── */}
+          {tab === 'momentum' && (
+            <GameMomentum
+              matchId={id}
+              lang={lang}
+              homeTeam={match.home_team_name}
+              awayTeam={match.away_team_name}
+            />
+          )}
+
           {tab === 'h2h' && (
             <div>
               <div style={{ fontSize: 12, color: '#4a6785', marginBottom: 12 }}>Últimos enfrentamientos directos</div>

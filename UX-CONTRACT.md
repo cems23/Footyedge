@@ -33,6 +33,7 @@
 | Status panel | Admin pipeline panel | `src/app/api/admin/stats/route.ts` | healthy, stale, attention, idle | API + browser |
 | Toast | Dashboard `Notif` component | `DashboardClient.tsx` | ok, warn, err | dashboard interaction |
 | Match intelligence radar | `ValueLeagueRadar` | `src/components/dashboard/widgets/ValueLeagueRadar.tsx`, `api/radar/matches` | upcoming match from one or more monitored competitions, maximum five analyses | keyboard + browser + API |
+| Live match pulse | `GameMomentum` | `src/components/match/GameMomentum.tsx`, `api/match/[id]/momentum` | Pro/Elite plus administrator; manually requested, five-minute shared cache | browser + API + unit tests |
 | CRUD | Picks route handlers | `src/app/api/picks` | create / delete | authenticated flow |
 
 ## Flow ledger
@@ -42,6 +43,7 @@
 | Read model performance | Dashboard load, administrator only | Stable loading panel | Verified metrics or explicit empty state | Retry button | `AIPerformanceWidget.tsx`, `api/analytics/model` |
 | Select matches for contextual scouting | Select competitions, then “Buscar partidos” in the Match Intelligence Radar | Search is read-only; explicit “Analizar seleccionados” busy state triggers provider calls for no more than five matches | Show per-match pick/rejection and link to saved context | Inline API error, retain selection | `ValueLeagueRadar.tsx`, `api/radar/matches`, `api/radar/analyze` |
 | Read contextual analysis | Explicit AI tab from a model-selected match | Existing analysis quota/payment state | Cached or newly generated context | Retry or plan/payment path | `api/match/[id]/ai-analysis` |
+| Read live match pulse | Explicit “Live pulse” match tab and “Load pulse” action | Fixed-height loading panel; no automatic refresh | Confirmed provider events and aggregate live statistics, with cache freshness shown | Inline retry; unavailable state before kickoff | `GameMomentum.tsx`, `api/match/[id]/momentum` |
 | Refresh admin health | Operator button | Button remains available | Fresh database-derived status | Inline page error | `admin/page.tsx` |
 | Run daily pipeline | Admin control | Determinate workflow status | GitHub Actions conclusion | Link/status inspection | `DashboardClient.tsx` |
 
@@ -56,6 +58,7 @@
 - Read requests use a loading, empty, success or recoverable-error state; no success is inferred from an empty response.
 - The pipeline health panel only reports database freshness/coverage and credential configuration. Provider reachability is validated by execution and surfaced in GitHub Actions.
 - Background pipeline actions do not claim completion until GitHub reports it.
+- The live pulse never polls in the background. It only calls the provider after an explicit user action, and a five-minute server cache is shared across viewers of the same fixture.
 
 ## Verification
 
