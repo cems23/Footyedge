@@ -378,7 +378,7 @@ export async function getTeamStats(
 
 // ── UPCOMING FIXTURES ───────────────────────────────────────
 
-export async function getUpcomingFixtures(leagueId: number, season: number, _next = 5): Promise<APIFixture[]> {
+export async function getUpcomingFixtures(leagueId: number, season: number, next = 5): Promise<APIFixture[]> {
   // from/to = solo "hoy" perdía partidos que arrancan entre 23:00-05:00 UTC (muy
   // comun en futbol latinoamericano — 20:30 Argentina = 23:30 UTC, 21:00 Colombia =
   // 02:00 UTC del dia siguiente): la corrida de las 23:00 UTC calcula "hoy" y no
@@ -396,7 +396,12 @@ export async function getUpcomingFixtures(leagueId: number, season: number, _nex
   if (fixtures.length !== response.length) {
     console.warn(`[football-data] League ${leagueId}: discarded ${response.length - fixtures.length} malformed fixture records`)
   }
+  // El llamador pide explícitamente un máximo de fixtures. Sin este slice, una
+  // jornada con muchos partidos podía hacer que una sola invocación superase el
+  // presupuesto de ejecución de Vercel antes de llegar a responder a GitHub.
   return fixtures
+    .sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime())
+    .slice(0, Math.max(1, next))
 }
 
 // ── ODDS (API-Football) ─────────────────────────────────────
@@ -427,13 +432,16 @@ export async function getOddsForLeagueById(leagueId: number, season: number): Pr
       dt.setDate(dt.getDate() + d)
       return dt.toISOString().split('T')[0]
     })
-    const allData: any[] = []
-    for (const date of dates) {
-      try {
-        const dayData = await apf<any[]>('/odds', { league: leagueId, season, bookmaker: 8, date })
-        if (Array.isArray(dayData)) allData.push(...dayData)
-      } catch { /* no odds for this day */ }
-    }
+    // Las tres fechas son independientes. En serie podían acumular hasta 45 s
+    // de espera ante una latencia temporal del proveedor; en paralelo el límite
+    // queda acotado al timeout de una sola llamada. Los fallos parciales siguen
+    // siendo no fatales: simplemente se usan las fechas que respondan.
+    const responses = await Promise.allSettled(
+      dates.map(date => apf<any[]>('/odds', { league: leagueId, season, bookmaker: 8, date })),
+    )
+    const allData = responses.flatMap(result =>
+      result.status === 'fulfilled' && Array.isArray(result.value) ? result.value : [],
+    )
     const data = allData
     if (!Array.isArray(data) || !data.length) return []
 

@@ -8,7 +8,10 @@ import {
 } from '@/lib/api/football'
 import { createServiceClient } from '@/lib/supabase/server'
 
-export const maxDuration = 60
+// La ruta puede tener que rellenar cachés de estadísticas tras un reinicio de
+// instancia. Dejamos un margen realista para ese primer pase, pero el trabajo
+// por ejecución se mantiene acotado a cinco fixtures en getUpcomingFixtures.
+export const maxDuration = 90
 export const dynamic = 'force-dynamic'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
@@ -32,13 +35,18 @@ export async function GET(req: NextRequest) {
   const log: string[] = []
   const valueBets: any[] = []
   let failedFixtures = 0
+  const startedAt = Date.now()
+  let fixtureCount = 0
   const processedMatchIds: string[] = []  // TODOS los partidos analizados esta corrida, tengan o no value bets — necesario para poder borrar de staging_rankings un pick viejo que ya no califica (ej. filtro de lambda-al-techo bloqueandolo ahora)
 
   try {
     const [fixtures, oddsEvents] = await Promise.all([
       getUpcomingFixtures(league.id, league.season, 5),
-      getOddsForLeagueById(league.id, league.season),
+      // Las ligas sin cobertura de cuotas no deben gastar tres consultas de
+      // API-Football ni alargar la función para acabar descartando el resultado.
+      league.hasOdds ? getOddsForLeagueById(league.id, league.season) : Promise.resolve([]),
     ])
+    fixtureCount = fixtures.length
     log.push(`${league.name}: ${fixtures.length} fixtures`)
 
     const leagueStats = await getLeagueStats(league.id, league.season)
@@ -183,6 +191,7 @@ export async function GET(req: NextRequest) {
     )
   }
 
+  console.info(`[analyze-league] ${league.name} completed in ${Date.now() - startedAt}ms (${fixtureCount} fixtures)`)
   return NextResponse.json(
     { success: failedFixtures === 0, league: league.name, valueBets: valueBets.length, failedFixtures, log },
     { status: failedFixtures === 0 ? 200 : 207 },

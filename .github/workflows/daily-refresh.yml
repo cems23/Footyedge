@@ -27,19 +27,44 @@ jobs:
           set +e
           LEAGUES="2 13 11 3 848 39 40 41 42 140 141 135 136 78 79 61 62 88 94 203 144 128 71 253 262 113 103 179 307 164 106 119 98 197 207 218 235 265 268 239 292 332 299"
           failures=0
+
+          analyze_league() {
+            local league="$1"
+            local attempt=1
+            local response_file http_code curl_exit success failed_fixtures
+
+            while [ "$attempt" -le 2 ]; do
+              response_file=$(mktemp)
+              http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/analyze-league?leagueId=$league" -H "Authorization: Bearer $CRON_SECRET" --connect-timeout 15 --max-time 100)
+              curl_exit=$?
+              success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+              failed_fixtures=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('failedFixtures', 0))" "$response_file" 2>/dev/null)
+              rm -f "$response_file"
+
+              if [ "$curl_exit" -eq 0 ] && [ "$http_code" -eq 200 ] && [ "$success" = "true" ] && [ "${failed_fixtures:-0}" = "0" ]; then
+                echo "League $league: OK${attempt:+ (attempt $attempt)}"
+                return 0
+              fi
+
+              # Reintentar una vez solo errores transitorios de transporte o del
+              # proxy. Una respuesta de datos inválida/fixtures fallidos se deja
+              # visible como fallo real en vez de ocultarla con reintentos.
+              if [ "$attempt" -lt 2 ] && { [ "$curl_exit" -eq 28 ] || [ "$http_code" = "502" ] || [ "$http_code" = "503" ] || [ "$http_code" = "504" ]; }; then
+                echo "League $league transient failure (attempt $attempt: curl=$curl_exit, HTTP=$http_code); retrying once in 12s"
+                sleep 12
+                attempt=$((attempt + 1))
+                continue
+              fi
+
+              echo "League $league failed (attempt $attempt, curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, failedFixtures=${failed_fixtures:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+              return 1
+            done
+          }
+
           for league in $LEAGUES; do
-            response_file=$(mktemp)
-            http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/analyze-league?leagueId=$league" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
-            curl_exit=$?
-            success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
-            failed_fixtures=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('failedFixtures', 0))" "$response_file" 2>/dev/null)
-            if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ] || [ "${failed_fixtures:-0}" != "0" ]; then
-              echo "League $league failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, failedFixtures=${failed_fixtures:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+            if ! analyze_league "$league"; then
               failures=$((failures + 1))
-            else
-              echo "League $league: OK"
             fi
-            rm -f "$response_file"
             sleep 2
           done
           {
