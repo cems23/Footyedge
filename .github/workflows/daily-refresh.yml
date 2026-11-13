@@ -30,19 +30,29 @@ jobs:
 
           analyze_league() {
             local league="$1"
+            local offset=0
             local attempt=1
-            local response_file http_code curl_exit success failed_fixtures
+            local response_file http_code curl_exit success failed_fixtures has_more next_offset batch_total
 
-            while [ "$attempt" -le 2 ]; do
+            while true; do
               response_file=$(mktemp)
-              http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/analyze-league?leagueId=$league" -H "Authorization: Bearer $CRON_SECRET" --connect-timeout 15 --max-time 100)
+              http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/matches/analyze-league?leagueId=$league&offset=$offset&batchSize=1" -H "Authorization: Bearer $CRON_SECRET" --connect-timeout 15 --max-time 100)
               curl_exit=$?
               success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
               failed_fixtures=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('failedFixtures', 0))" "$response_file" 2>/dev/null)
+              has_more=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('batch', {}).get('hasMore') is True).lower())" "$response_file" 2>/dev/null)
+              next_offset=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('batch', {}).get('nextOffset', ''))" "$response_file" 2>/dev/null)
+              batch_total=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('batch', {}).get('total', ''))" "$response_file" 2>/dev/null)
               rm -f "$response_file"
 
               if [ "$curl_exit" -eq 0 ] && [ "$http_code" -eq 200 ] && [ "$success" = "true" ] && [ "${failed_fixtures:-0}" = "0" ]; then
-                echo "League $league: OK${attempt:+ (attempt $attempt)}"
+                echo "League $league: batch $((offset + 1))/${batch_total:-0} OK (attempt $attempt)"
+                if [ "$has_more" = "true" ] && [ -n "$next_offset" ] && [ "$next_offset" -gt "$offset" ]; then
+                  offset=$next_offset
+                  attempt=1
+                  sleep 2
+                  continue
+                fi
                 return 0
               fi
 
@@ -50,13 +60,13 @@ jobs:
               # proxy. Una respuesta de datos inválida/fixtures fallidos se deja
               # visible como fallo real en vez de ocultarla con reintentos.
               if [ "$attempt" -lt 2 ] && { [ "$curl_exit" -eq 28 ] || [ "$http_code" = "502" ] || [ "$http_code" = "503" ] || [ "$http_code" = "504" ]; }; then
-                echo "League $league transient failure (attempt $attempt: curl=$curl_exit, HTTP=$http_code); retrying once in 12s"
+                echo "League $league batch $((offset + 1)) transient failure (attempt $attempt: curl=$curl_exit, HTTP=$http_code); retrying once in 12s"
                 sleep 12
                 attempt=$((attempt + 1))
                 continue
               fi
 
-              echo "League $league failed (attempt $attempt, curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, failedFixtures=${failed_fixtures:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+              echo "League $league batch $((offset + 1)) failed (attempt $attempt, curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, failedFixtures=${failed_fixtures:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
               return 1
             done
           }

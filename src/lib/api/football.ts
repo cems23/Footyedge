@@ -174,13 +174,13 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 const CACHE_TTL_HOURS = 12
 
-async function getCached<T>(key: string): Promise<T | null> {
+async function getCached<T>(key: string, ttlHours = CACHE_TTL_HOURS): Promise<T | null> {
   try {
     const supabase = createServiceClient()
     const { data } = await supabase.from('api_cache').select('data, cached_at').eq('cache_key', key).single()
     if (!data) return null
     const age = Date.now() - new Date(data.cached_at).getTime()
-    if (age > CACHE_TTL_HOURS * 60 * 60 * 1000) return null
+    if (age > ttlHours * 60 * 60 * 1000) return null
     return data.data as T
   } catch { return null }
 }
@@ -378,7 +378,7 @@ export async function getTeamStats(
 
 // ── UPCOMING FIXTURES ───────────────────────────────────────
 
-export async function getUpcomingFixtures(leagueId: number, season: number, next = 5): Promise<APIFixture[]> {
+export async function getUpcomingFixtures(leagueId: number, season: number, next?: number): Promise<APIFixture[]> {
   // from/to = solo "hoy" perdía partidos que arrancan entre 23:00-05:00 UTC (muy
   // comun en futbol latinoamericano — 20:30 Argentina = 23:30 UTC, 21:00 Colombia =
   // 02:00 UTC del dia siguiente): la corrida de las 23:00 UTC calcula "hoy" y no
@@ -389,19 +389,24 @@ export async function getUpcomingFixtures(leagueId: number, season: number, next
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
   const from = today.toISOString().split('T')[0]
   const to = tomorrow.toISOString().split('T')[0]
-  const response = await apf<unknown>('/fixtures', { league: leagueId, season, from, to })
-  if (!Array.isArray(response)) throw new Error('API-Football fixtures response is not an array')
+  const cacheKey = `upcoming_${leagueId}_${season}_${from}_${to}`
+  // Cada batch del pipeline ve el mismo calendario. Una caché breve evita que
+  // dividir una jornada en lotes multiplique llamadas al proveedor, sin volver
+  // obsoletos los cambios de última hora durante demasiado tiempo.
+  let fixtures = await getCached<APIFixture[]>(cacheKey, 1 / 6)
+  if (!fixtures) {
+    const response = await apf<unknown>('/fixtures', { league: leagueId, season, from, to })
+    if (!Array.isArray(response)) throw new Error('API-Football fixtures response is not an array')
 
-  const fixtures = response.filter(isAPIFixture)
-  if (fixtures.length !== response.length) {
-    console.warn(`[football-data] League ${leagueId}: discarded ${response.length - fixtures.length} malformed fixture records`)
+    fixtures = response.filter(isAPIFixture)
+    if (fixtures.length !== response.length) {
+      console.warn(`[football-data] League ${leagueId}: discarded ${response.length - fixtures.length} malformed fixture records`)
+    }
+    fixtures = fixtures.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime())
+    await setCached(cacheKey, fixtures)
   }
-  // El llamador pide explícitamente un máximo de fixtures. Sin este slice, una
-  // jornada con muchos partidos podía hacer que una sola invocación superase el
-  // presupuesto de ejecución de Vercel antes de llegar a responder a GitHub.
-  return fixtures
-    .sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime())
-    .slice(0, Math.max(1, next))
+
+  return typeof next === 'number' ? fixtures.slice(0, Math.max(1, next)) : fixtures
 }
 
 // ── ODDS (API-Football) ─────────────────────────────────────
@@ -432,6 +437,10 @@ export async function getOddsForLeagueById(leagueId: number, season: number): Pr
       dt.setDate(dt.getDate() + d)
       return dt.toISOString().split('T')[0]
     })
+    const cacheKey = `odds_${leagueId}_${season}_${dates.join('_')}`
+    const cached = await getCached<OddsEvent[]>(cacheKey, 1 / 6)
+    if (cached) return cached
+
     // Las tres fechas son independientes. En serie podían acumular hasta 45 s
     // de espera ante una latencia temporal del proveedor; en paralelo el límite
     // queda acotado al timeout de una sola llamada. Los fallos parciales siguen
@@ -443,9 +452,12 @@ export async function getOddsForLeagueById(leagueId: number, season: number): Pr
       result.status === 'fulfilled' && Array.isArray(result.value) ? result.value : [],
     )
     const data = allData
-    if (!Array.isArray(data) || !data.length) return []
+    if (!Array.isArray(data) || !data.length) {
+      await setCached(cacheKey, [])
+      return []
+    }
 
-    return data.map((item: any) => {
+    const odds = data.map((item: any) => {
       const bm = item.bookmakers?.[0]
       if (!bm) return { fixture_id: item.fixture.id }
 
@@ -468,6 +480,8 @@ export async function getOddsForLeagueById(leagueId: number, season: number): Pr
         oddsBtts:   oddsBtts   ? parseFloat(oddsBtts)   : undefined,
       }
     }).filter(e => !!(e.oddsHome || e.oddsOver25)) as OddsEvent[]
+    await setCached(cacheKey, odds)
+    return odds
   } catch (err) {
     console.error('getOddsForLeagueById error:', err)
     return []

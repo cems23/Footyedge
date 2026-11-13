@@ -29,6 +29,12 @@ export async function GET(req: NextRequest) {
     ? ACTIVE_LEAGUES.find(l => l.id === parseInt(leagueId))
     : ACTIVE_LEAGUES[leagueIndex]
   if (!league) return NextResponse.json({ error: 'Invalid league' }, { status: 400 })
+  const batchRequested = searchParams.has('offset') || searchParams.has('batchSize')
+  const rawOffset = Number.parseInt(searchParams.get('offset') ?? '0', 10)
+  const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? rawOffset : 0
+  // Un partido por batch deja margen incluso cuando las cachés están frías y un
+  // proveedor tarda. GitHub itera los batches hasta cubrir toda la jornada.
+  const batchSize = 1
 
   const supabase = createServiceClient()
   const today = new Date().toISOString().split('T')[0]
@@ -37,17 +43,20 @@ export async function GET(req: NextRequest) {
   let failedFixtures = 0
   const startedAt = Date.now()
   let fixtureCount = 0
+  let totalFixtures = 0
   const processedMatchIds: string[] = []  // TODOS los partidos analizados esta corrida, tengan o no value bets — necesario para poder borrar de staging_rankings un pick viejo que ya no califica (ej. filtro de lambda-al-techo bloqueandolo ahora)
 
   try {
-    const [fixtures, oddsEvents] = await Promise.all([
-      getUpcomingFixtures(league.id, league.season, 5),
+    const [upcomingFixtures, oddsEvents] = await Promise.all([
+      getUpcomingFixtures(league.id, league.season),
       // Las ligas sin cobertura de cuotas no deben gastar tres consultas de
       // API-Football ni alargar la función para acabar descartando el resultado.
       league.hasOdds ? getOddsForLeagueById(league.id, league.season) : Promise.resolve([]),
     ])
+    totalFixtures = upcomingFixtures.length
+    const fixtures = batchRequested ? upcomingFixtures.slice(offset, offset + batchSize) : upcomingFixtures
     fixtureCount = fixtures.length
-    log.push(`${league.name}: ${fixtures.length} fixtures`)
+    log.push(`${league.name}: ${fixtures.length}/${upcomingFixtures.length} fixtures`)
 
     const leagueStats = await getLeagueStats(league.id, league.season)
     await sleep(1000)
@@ -192,8 +201,17 @@ export async function GET(req: NextRequest) {
   }
 
   console.info(`[analyze-league] ${league.name} completed in ${Date.now() - startedAt}ms (${fixtureCount} fixtures)`)
+  const nextOffset = Math.min(offset + fixtureCount, totalFixtures)
+  const hasMore = batchRequested && nextOffset < totalFixtures
   return NextResponse.json(
-    { success: failedFixtures === 0, league: league.name, valueBets: valueBets.length, failedFixtures, log },
+    {
+      success: failedFixtures === 0,
+      league: league.name,
+      valueBets: valueBets.length,
+      failedFixtures,
+      log,
+      ...(batchRequested ? { batch: { offset, processed: fixtureCount, total: totalFixtures, nextOffset, hasMore } } : {}),
+    },
     { status: failedFixtures === 0 ? 200 : 207 },
   )
 }
