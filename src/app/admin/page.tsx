@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import StatsBombResearchLab from '@/components/admin/StatsBombResearchLab'
 
 const BG = '#070d1a'
 const CARD = 'rgba(13,30,53,0.6)'
@@ -310,6 +311,8 @@ export default function AdminPage() {
           <Card><Stat label="Ingreso estimado" value={`$${aiAnalysis.revenueEstimateUsd.toFixed(2)}`} color={G} /></Card>
           <Card><Stat label="Este mes" value={aiAnalysis.generatedThisMonth} /></Card>
         </div>
+
+        <StatsBombResearchLab />
 
         <div style={{ height: 60 }} />
       </div>

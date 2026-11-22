@@ -35,6 +35,7 @@
 | Match intelligence radar | `ValueLeagueRadar` | `src/components/dashboard/widgets/ValueLeagueRadar.tsx`, `api/radar/matches` | upcoming match from one or more monitored competitions, maximum five analyses | keyboard + browser + API |
 | Live match pulse | `GameMomentum` | `src/components/match/GameMomentum.tsx`, `api/match/[id]/momentum` | Pro/Elite plus administrator; manually requested, five-minute shared cache | browser + API + unit tests |
 | Injury watch | `ValueLeagueRadar` | `src/components/dashboard/widgets/ValueLeagueRadar.tsx`, `api/admin/injury-watch`, `api/cron/injury-watch` | administrator only; manual scan of selected competitions or one shared daily configuration | dashboard + API 403 + unit tests |
+| StatsBomb research lab | `StatsBombResearchLab` | `src/components/admin/StatsBombResearchLab.tsx`, `api/admin/research/statsbomb` | administrator only; explicit catalog → historical match → aggregate profile request; research only | admin + API 403 + unit tests |
 | CRUD | Picks route handlers | `src/app/api/picks` | create / delete | authenticated flow |
 
 ## Flow ledger
@@ -47,6 +48,7 @@
 | Read live match pulse | Explicit “Live pulse” match tab and “Load pulse” action | Fixed-height loading panel; no automatic refresh | Confirmed provider events and aggregate live statistics, with cache freshness shown | Inline retry; unavailable state before kickoff | `GameMomentum.tsx`, `api/match/[id]/momentum` |
 | Scan injury watch | Administrator selects competitions in Match Intelligence Radar, then runs scan or saves the one shared daily selection | Fixed-height inline scan state; cached provider records are reused for four hours | Show teams with at least three confirmed injuries; doubts and suspensions remain contextual | Inline error, preserve selection and last valid scan | `ValueLeagueRadar.tsx`, `api/admin/injury-watch`, `api/cron/injury-watch` |
 | Refresh admin health | Operator button | Button remains available | Fresh database-derived status | Inline page error | `admin/page.tsx` |
+| Explore StatsBomb historical research | Administrator explicitly loads the catalog, picks an available competition/season, then a match | Per-action stable busy label; source is requested only on demand | Team-level aggregate profile, with research-only and attribution notice | Inline error; selection is preserved and no production data changes | `StatsBombResearchLab.tsx`, `api/admin/research/statsbomb` |
 | Run daily pipeline | Admin control | Determinate workflow status | GitHub Actions conclusion | Link/status inspection | `DashboardClient.tsx` |
 
 ## Navigation and responsive behavior
