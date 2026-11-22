@@ -5,6 +5,7 @@
 
 import type { LeagueStats, TeamStats, MatchInput } from '@/lib/math/poisson'
 import { getFootyStatsToday, findFootyStatsMatch, extractFootyStatsData } from '@/lib/api/footystats'
+import type { ApiFootballInjury } from '@/lib/football/injuries'
 
 const API_FOOTBALL = 'https://v3.football.api-sports.io'
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
@@ -190,6 +191,43 @@ async function setCached(key: string, data: any): Promise<void> {
     const supabase = createServiceClient()
     await supabase.from('api_cache').upsert({ cache_key: key, data, cached_at: new Date().toISOString() }, { onConflict: 'cache_key' })
   } catch {}
+}
+
+/**
+ * Loads absence data for up to twenty fixtures at a time. API-Football updates
+ * this endpoint every four hours, so a shared database cache prevents manual
+ * scans and the scheduled scan from repeatedly consuming the same provider
+ * quota. The `ids` parameter is documented by API-Football for this endpoint.
+ */
+export async function getInjuriesForFixtures(fixtureIds: Array<string | number>) {
+  const ids = Array.from(new Set(fixtureIds.map(Number).filter(Number.isFinite)))
+  const injuries: ApiFootballInjury[] = []
+  let providerCalls = 0
+  let cacheHits = 0
+  let failedBatches = 0
+
+  for (let start = 0; start < ids.length; start += 20) {
+    const batch = ids.slice(start, start + 20)
+    const cacheKey = `injuries_fixtures_v1_${batch.slice().sort((a, b) => a - b).join('-')}`
+    const cached = await getCached<ApiFootballInjury[]>(cacheKey, 4)
+    if (cached) {
+      cacheHits += 1
+      injuries.push(...cached)
+      continue
+    }
+
+    try {
+      const response = await apf<ApiFootballInjury[]>('/injuries', { ids: batch.join('-') })
+      providerCalls += 1
+      await setCached(cacheKey, response)
+      injuries.push(...response)
+    } catch (error) {
+      failedBatches += 1
+      console.error('injury-watch provider batch failed', { fixtureCount: batch.length, error })
+    }
+  }
+
+  return { injuries, providerCalls, cacheHits, failedBatches }
 }
 
 export async function getLeagueStats(leagueId: number, season: number): Promise<LeagueStats> {

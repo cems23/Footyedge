@@ -82,6 +82,25 @@ jobs:
             echo "- Leagues with failures: $failures"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Scan configured injury watch
+        if: always()
+        shell: bash --noprofile --norc {0}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: https://footyedge.app
+        run: |
+          response_file=$(mktemp)
+          http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/cron/injury-watch" -H "Authorization: Bearer $CRON_SECRET" --connect-timeout 15 --max-time 130)
+          curl_exit=$?
+          success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
+          status=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('status', 'invalid'))" "$response_file" 2>/dev/null)
+          if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ]; then
+            echo "Injury watch failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+          else
+            echo "Injury watch: $status" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          rm -f "$response_file"
+
       - name: Consolidate value bets
         if: always()
         shell: bash --noprofile --norc {0}

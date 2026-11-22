@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { RADAR_COMPETITIONS } from '@/lib/football/radarCompetitions'
 import { isAdminEmail } from '@/lib/permissions'
@@ -11,6 +11,17 @@ type Match = {
 }
 
 const DONE_STATUSES = new Set(['FT', 'AET', 'PEN', 'PST', 'CANC', 'SUSP', 'ABD'])
+
+type InjuryWatchData = {
+  settings?: { league_ids?: number[]; enabled?: boolean }
+  scan?: { completed_at?: string; status?: string; fixtures_scanned?: number; alerts_found?: number; provider_calls?: number; cache_hits?: number } | null
+  alerts?: Array<{
+    id: string; team_name: string; confirmed_injuries: number; questionable_count: number; suspension_count: number
+    players: { confirmed?: Array<{ name: string; reason: string }>; questionable?: Array<{ name: string; reason: string }>; suspensions?: Array<{ name: string; reason: string }> }
+    matches?: { home_team_name?: string; away_team_name?: string; league_name?: string; kickoff_at?: string } | null
+  }>
+  sourceUrl?: string
+}
 
 export default function ValueLeagueRadar({ lang, plan, email }: { lang: string; plan: string; email?: string }) {
   const router = useRouter()
@@ -23,7 +34,12 @@ export default function ValueLeagueRadar({ lang, plan, email }: { lang: string; 
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState<any[]>([])
+  const [injuryWatch, setInjuryWatch] = useState<InjuryWatchData | null>(null)
+  const [loadingInjuryWatch, setLoadingInjuryWatch] = useState(false)
+  const [savingInjuryWatch, setSavingInjuryWatch] = useState(false)
+  const [injuryWatchEnabled, setInjuryWatchEnabled] = useState(false)
   const isEn = lang === 'en'
+  const isAdmin = isAdminEmail(email)
   const isAllowed = plan === 'pro' || plan === 'elite' || isAdminEmail(email)
   const selectedLeagues = useMemo(() => RADAR_COMPETITIONS.filter((competition) => leagueIds.includes(competition.id)), [leagueIds])
   const upcoming = useMemo(() => matches.filter((match) => !DONE_STATUSES.has(match.status ?? '') && new Date(match.kickoff_at).getTime() > Date.now()), [matches])
@@ -44,6 +60,60 @@ export default function ValueLeagueRadar({ lang, plan, email }: { lang: string; 
     setMatches([]); setSelected([]); setResults([]); setHasSearched(false)
   }
   const toggle = (id: string) => setSelected((current) => current.includes(id) ? current.filter((value) => value !== id) : current.length < 5 ? [...current, id] : current)
+
+  const loadInjuryWatch = async () => {
+    if (!isAdmin) return
+    setLoadingInjuryWatch(true)
+    try {
+      const response = await fetch('/api/admin/injury-watch')
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'No se pudo cargar el barrido de lesiones.')
+      setInjuryWatch(data)
+      setInjuryWatchEnabled(data.settings?.enabled === true)
+      const savedLeagueIds = Array.isArray(data.settings?.league_ids) ? data.settings.league_ids : []
+      if (savedLeagueIds.length) setLeagueIds((current) => current.length ? current : savedLeagueIds)
+    } catch (err: any) {
+      setError(err.message ?? 'No se pudo cargar el barrido de lesiones.')
+    } finally {
+      setLoadingInjuryWatch(false)
+    }
+  }
+
+  useEffect(() => { void loadInjuryWatch() }, [isAdmin])
+
+  const saveInjuryWatch = async () => {
+    if (!isAdmin || !leagueIds.length || savingInjuryWatch) return
+    setSavingInjuryWatch(true); setError('')
+    try {
+      const response = await fetch('/api/admin/injury-watch', {
+        method: 'PUT', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ leagueIds, enabled: injuryWatchEnabled }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'No se pudo guardar la selección.')
+      setInjuryWatch((current) => ({ ...(current ?? {}), settings: data.settings }))
+    } catch (err: any) {
+      setError(err.message ?? 'No se pudo guardar la selección.')
+    } finally {
+      setSavingInjuryWatch(false)
+    }
+  }
+
+  const runInjuryWatch = async () => {
+    if (!isAdmin || !leagueIds.length || loadingInjuryWatch) return
+    setLoadingInjuryWatch(true); setError('')
+    try {
+      const response = await fetch('/api/admin/injury-watch', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ leagueIds }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'El barrido no pudo completarse.')
+      await loadInjuryWatch()
+    } catch (err: any) {
+      setError(err.message ?? 'El barrido no pudo completarse.')
+      setLoadingInjuryWatch(false)
+    }
+  }
 
   const fetchMatches = async () => {
     if (!leagueIds.length || loadingMatches) return
@@ -100,6 +170,48 @@ export default function ValueLeagueRadar({ lang, plan, email }: { lang: string; 
     {selectedLeagues.length > 0 && <div aria-label={isEn ? 'Selected competitions' : 'Competiciones seleccionadas'} style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
       {selectedLeagues.map((competition) => <button key={competition.id} type="button" onClick={() => removeLeague(competition.id)} disabled={loadingMatches || loadingAnalysis} aria-label={`${isEn ? 'Remove' : 'Quitar'} ${competition.name}`} style={{ background: 'rgba(100,181,246,.1)', border: '1px solid rgba(100,181,246,.4)', borderRadius: 999, color: '#b8dbff', padding: '5px 9px', cursor: 'pointer', fontSize: 10 }}>{competition.name} <span aria-hidden="true">×</span></button>)}
     </div>}
+
+    {isAdmin && <section aria-labelledby="injury-watch-title" style={{ marginTop: 14, padding: 14, borderRadius: 12, border: '1px solid rgba(255,180,0,.38)', background: 'linear-gradient(100deg, rgba(255,180,0,.08), rgba(13,30,53,.6))' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ color: '#ffb400', fontSize: 10, letterSpacing: '.16em', marginBottom: 4 }}>ADMIN · INJURY WATCH</div>
+          <h3 id="injury-watch-title" style={{ margin: 0, color: '#f2f6ff', fontSize: 16 }}>{isEn ? 'Teams with 3+ confirmed injuries' : 'Equipos con 3+ lesiones confirmadas'}</h3>
+          <p style={{ color: '#8ba2c0', fontSize: 11, lineHeight: 1.5, margin: '6px 0 0', maxWidth: 680 }}>{isEn ? 'Scan the competitions selected above now, or save them for one shared daily scan. Doubts and suspensions remain visible but do not trigger an injury alert.' : 'Analiza ahora las competiciones seleccionadas arriba o guárdalas para un único barrido diario compartido. Las dudas y sanciones se muestran, pero no activan una alerta de lesiones.'}</p>
+        </div>
+        <a href={injuryWatch?.sourceUrl ?? 'https://www.api-football.com/documentation_v3'} target="_blank" rel="noreferrer" style={{ color: '#ffca62', fontSize: 10, whiteSpace: 'nowrap' }}>{isEn ? 'API-Football source ↗' : 'Fuente API-Football ↗'}</a>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
+        <label style={{ color: '#d9c28f', fontSize: 11, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
+          <input type="checkbox" checked={injuryWatchEnabled} onChange={(event) => setInjuryWatchEnabled(event.target.checked)} disabled={savingInjuryWatch || loadingInjuryWatch} />
+          {isEn ? 'Enable daily scan' : 'Activar barrido diario'}
+        </label>
+        <button type="button" onClick={saveInjuryWatch} disabled={!leagueIds.length || savingInjuryWatch || loadingInjuryWatch} style={{ minHeight: 34, background: 'transparent', border: '1px solid #8b6a29', color: '#ffd06b', borderRadius: 8, padding: '0 11px', cursor: !leagueIds.length || savingInjuryWatch || loadingInjuryWatch ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 700 }}>
+          {savingInjuryWatch ? (isEn ? 'Saving…' : 'Guardando…') : (isEn ? 'Save daily selection' : 'Guardar selección diaria')}
+        </button>
+        <button type="button" onClick={runInjuryWatch} disabled={!leagueIds.length || loadingInjuryWatch || savingInjuryWatch} style={{ minHeight: 34, background: !leagueIds.length || loadingInjuryWatch || savingInjuryWatch ? '#534626' : '#ffb400', border: 'none', color: !leagueIds.length || loadingInjuryWatch || savingInjuryWatch ? '#c9b27f' : '#18200d', borderRadius: 8, padding: '0 11px', cursor: !leagueIds.length || loadingInjuryWatch || savingInjuryWatch ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 800 }}>
+          {loadingInjuryWatch ? (isEn ? 'Scanning…' : 'Analizando bajas…') : (isEn ? 'Run scan now' : 'Lanzar barrido ahora')}
+        </button>
+      </div>
+
+      {!leagueIds.length && <p role="status" style={{ color: '#d9c28f', fontSize: 11, margin: '10px 0 0' }}>{isEn ? 'Add one or more competitions above before starting the watch.' : 'Añade una o más competiciones arriba antes de iniciar el barrido.'}</p>}
+      {loadingInjuryWatch && <div role="status" style={{ minHeight: 32, paddingTop: 10, color: '#d9c28f', fontSize: 11 }}>{isEn ? 'Checking confirmed absence records…' : 'Comprobando bajas confirmadas…'}</div>}
+      {!loadingInjuryWatch && injuryWatch?.scan && <p role="status" style={{ color: '#8ba2c0', fontSize: 10, margin: '11px 0 0' }}>{isEn ? 'Last scan' : 'Último barrido'}: {new Intl.DateTimeFormat(isEn ? 'en-GB' : 'es-ES', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(injuryWatch.scan.completed_at ?? ''))} · {injuryWatch.scan.fixtures_scanned ?? 0} {isEn ? 'fixtures' : 'partidos'} · {injuryWatch.scan.alerts_found ?? 0} {isEn ? 'alerts' : 'alertas'}{(injuryWatch.scan.cache_hits ?? 0) > 0 ? ` · ${injuryWatch.scan.cache_hits} cache` : ''}</p>}
+      {!loadingInjuryWatch && injuryWatch?.scan && (injuryWatch.alerts?.length ?? 0) === 0 && <p role="status" style={{ color: '#8ba2c0', fontSize: 11, margin: '10px 0 0' }}>{isEn ? 'No team reached three confirmed injuries in the scanned fixtures.' : 'Ningún equipo alcanzó tres lesiones confirmadas en los partidos analizados.'}</p>}
+      {!loadingInjuryWatch && (injuryWatch?.alerts?.length ?? 0) > 0 && <div aria-live="polite" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 8, marginTop: 11 }}>
+        {injuryWatch!.alerts!.map((alert) => {
+          const match = alert.matches
+          const names = alert.players?.confirmed?.map((player) => `${player.name} (${player.reason})`).join(', ')
+          return <article key={alert.id} style={{ padding: 10, borderRadius: 9, background: 'rgba(7,13,26,.55)', border: '1px solid #5d4922' }}>
+            <div style={{ color: '#ffca62', fontSize: 10, letterSpacing: '.08em' }}>{alert.confirmed_injuries} {isEn ? 'CONFIRMED INJURIES' : 'LESIONES CONFIRMADAS'}</div>
+            <div style={{ color: '#f2f6ff', fontSize: 13, fontWeight: 700, marginTop: 4 }}>{alert.team_name}</div>
+            {match && <div style={{ color: '#8ba2c0', fontSize: 10, marginTop: 4 }}>{match.home_team_name} vs {match.away_team_name} · {match.league_name}</div>}
+            {names && <div style={{ color: '#c6d1df', fontSize: 10, lineHeight: 1.5, marginTop: 7 }}>{names}</div>}
+            {(alert.questionable_count > 0 || alert.suspension_count > 0) && <div style={{ color: '#8ba2c0', fontSize: 10, marginTop: 7 }}>{alert.questionable_count > 0 ? `${alert.questionable_count} ${isEn ? 'doubtful' : 'duda(s)'}` : ''}{alert.questionable_count > 0 && alert.suspension_count > 0 ? ' · ' : ''}{alert.suspension_count > 0 ? `${alert.suspension_count} ${isEn ? 'suspension(s)' : 'sanción(es)'}` : ''}</div>}
+          </article>
+        })}
+      </div>}
+    </section>}
 
     {leagueIds.length === 0 && <p role="status" style={{ color: '#8ba2c0', fontSize: 11, margin: '13px 0 0' }}>{isEn ? 'Choose one or more competitions to search their upcoming fixtures.' : 'Elige una o varias competiciones para buscar sus próximos partidos.'}</p>}
     {leagueIds.length > 0 && !loadingMatches && !hasSearched && !error && <p role="status" style={{ color: '#8ba2c0', fontSize: 11, margin: '13px 0 0' }}>{isEn ? 'Choose “Find matches” to load fixtures with a model prediction.' : 'Pulsa “Buscar partidos” para cargar los partidos con predicción del modelo.'}</p>}
