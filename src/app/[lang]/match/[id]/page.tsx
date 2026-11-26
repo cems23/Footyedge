@@ -300,6 +300,7 @@ export default function MatchPage() {
   const { match, h2h, standings, injuries, homeForm, awayForm, scorePredictions, lineups, matchStats, seasonStats, fsData, pickContext } = data
   const pred = match.model_predictions?.[0]
   const kickoff = new Date(match.kickoff_at)
+  const standingsCount = Array.isArray(standings) ? standings.length : 0
 
   const lT = (pred?.expected_goals_home ?? 0) + (pred?.expected_goals_away ?? 0)
   const prob_over15 = pred ? 1 - Math.exp(-lT) * (1 + lT) : null
@@ -939,10 +940,13 @@ export default function MatchPage() {
           {/* ── STANDINGS ── */}
           {tab === 'standings' && (
             <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: 'hidden' }}>
+              {standingsCount > 0 && <div style={{ padding: '10px 16px', color: '#6b7fa3', fontSize: 10, borderBottom: `1px solid ${BORDER}` }}>
+                {lang === 'en' ? `${standingsCount} teams in this table` : `${standingsCount} equipos en esta clasificación`}
+              </div>}
               <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 40px 40px 40px 40px 40px 50px', gap: 6, padding: '10px 16px', fontSize: 9, color: '#4a6785', borderBottom: `1px solid ${BORDER}`, textTransform: 'uppercase', letterSpacing: 1 }}>
                 <span>#</span><span>Equipo</span><span style={{ textAlign: 'center' }}>PJ</span><span style={{ textAlign: 'center' }}>G</span><span style={{ textAlign: 'center' }}>E</span><span style={{ textAlign: 'center' }}>P</span><span style={{ textAlign: 'center' }}>GD</span><span style={{ textAlign: 'center' }}>Pts</span>
               </div>
-              {standings?.slice(0, 20).map((s: any) => (
+              {standings?.map((s: any) => (
                 <div key={s.rank} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 40px 40px 40px 40px 40px 50px', gap: 6, padding: '9px 16px', fontSize: 12, background: s.isHome || s.isAway ? 'rgba(0,200,120,0.05)' : 'transparent', borderLeft: s.isHome || s.isAway ? `2px solid ${G}` : '2px solid transparent', borderBottom: `1px solid #0a1628` }}>
                   <span style={{ color: '#4a6785' }}>{s.rank}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
