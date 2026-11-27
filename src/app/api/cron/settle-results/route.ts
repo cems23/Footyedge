@@ -3,6 +3,7 @@ import { updateElo, DEFAULT_ELO_RATING } from '@/lib/math/elo'
 import { apf } from '@/lib/api/football'
 import { findFootyStatsMatch, getFootyStatsToday } from '@/lib/api/footystats'
 import { createServiceClient } from '@/lib/supabase/server'
+import { performanceFixtureId, type SettledMarket } from '@/lib/settlement/performance'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -193,19 +194,23 @@ export async function GET(req: NextRequest) {
           if (ranking.market === 'away')   won = result.result === 'away'
           if (ranking.market === 'draw')   won = result.result === 'draw'
 
-          const { error: performanceError } = await supabase.from('model_performance').insert({
-            fixture_id: parseInt(match.external_id),
+          const market = ranking.market as SettledMarket
+          const { error: performanceError } = await supabase.from('model_performance').upsert({
+            // Un mismo partido puede generar varios mercados (BTTS, Over, 1X2).
+            // Cada fila necesita un identificador estable propio para que el
+            // historial sea idempotente y no bloquee la liquidación completa.
+            fixture_id: performanceFixtureId(match.external_id, market),
             match_date: matchDate,
             home_team: match.home_team_name,
             away_team: match.away_team_name,
             league: match.league_name,
-            market: ranking.market,
+            market,
             predicted_prob: null,
             odds: ranking.odds,
             ev: ranking.ev,
             result: won ? 'win' : 'loss',
             profit: won ? (ranking.odds - 1) : -1,
-          })
+          }, { onConflict: 'fixture_id' })
           throwIfSupabaseError('model performance insert failed', performanceError)
         }
         log.push(`✅ ${match.home_team_name} vs ${match.away_team_name} — ${result.homeGoals}-${result.awayGoals} — ${rankings.length} markets settled`)

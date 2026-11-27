@@ -20,13 +20,17 @@ jobs:
           total_settled=0
           for i in 1 2 3 4; do
             response_file=$(mktemp)
-            http_code=$(curl -sS -o "$response_file" -w "%{http_code}" "$BASE_URL/api/cron/settle-results" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
+            # Reintenta únicamente fallos transitorios de red/5xx. No reintenta
+            # una liquidación parcial 207, que requiere diagnóstico explícito.
+            http_code=$(curl -sS --retry 2 --retry-delay 8 --retry-connrefused -o "$response_file" -w "%{http_code}" "$BASE_URL/api/cron/settle-results" -H "Authorization: Bearer $CRON_SECRET" --max-time 55)
             curl_exit=$?
             success=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('success') is True).lower())" "$response_file" 2>/dev/null)
             settled=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('settled', 0))" "$response_file" 2>/dev/null)
             errors=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('errors', 0))" "$response_file" 2>/dev/null)
             if [ "$curl_exit" -ne 0 ] || [ "$http_code" -ne 200 ] || [ "$success" != "true" ] || [ "${errors:-0}" != "0" ]; then
               echo "Pass $i failed (curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, errors=${errors:-invalid})"
+              echo "Settlement response (without credentials):"
+              cat "$response_file"
               failures=$((failures + 1))
               rm -f "$response_file"
               break
