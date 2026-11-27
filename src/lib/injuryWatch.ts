@@ -69,6 +69,16 @@ export async function getLatestInjuryWatch() {
   return { settings, scan, alerts: alerts ?? [], sourceUrl: SOURCE_URL }
 }
 
+/** Clears only saved scan output. The selected competitions and daily setting
+ * stay intact, and this never calls API-Football. */
+export async function clearInjuryWatchHistory() {
+  const service = createServiceClient()
+  // The alerts reference scans with ON DELETE CASCADE, so this removes both
+  // the stale cards and their historical scan rows in one deliberate action.
+  const { error } = await service.from('injury_watch_scans').delete().neq('id', '')
+  if (error) throw error
+}
+
 export async function runInjuryWatch({ leagueIds, trigger }: { leagueIds: number[]; trigger: 'manual' | 'daily' }) {
   const service = createServiceClient()
   const selectedLeagueIds = normalizeWatchLeagueIds(leagueIds)

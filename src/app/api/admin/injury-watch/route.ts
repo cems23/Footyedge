@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getInjuryWatchSettings, getLatestInjuryWatch, normalizeWatchLeagueIds, runInjuryWatch, saveInjuryWatchSettings } from '@/lib/injuryWatch'
+import { clearInjuryWatchHistory, getLatestInjuryWatch, normalizeWatchLeagueIds, runInjuryWatch, saveInjuryWatchSettings } from '@/lib/injuryWatch'
 import { isAdminEmail } from '@/lib/permissions'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
@@ -53,5 +53,17 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('manual injury-watch failed', error)
     return NextResponse.json({ error: 'El barrido no pudo completarse. Conservamos el último resultado válido.' }, { status: 502 })
+  }
+}
+
+export async function DELETE() {
+  const user = await requireAdmin()
+  if (!user) return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  try {
+    await clearInjuryWatchHistory()
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('injury-watch clear failed', error)
+    return NextResponse.json({ error: 'No se pudieron borrar los resultados de lesiones.' }, { status: 500 })
   }
 }

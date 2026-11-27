@@ -37,6 +37,7 @@ export default function ValueLeagueRadar({ lang, plan, email }: { lang: string; 
   const [injuryWatch, setInjuryWatch] = useState<InjuryWatchData | null>(null)
   const [loadingInjuryWatch, setLoadingInjuryWatch] = useState(false)
   const [savingInjuryWatch, setSavingInjuryWatch] = useState(false)
+  const [clearingInjuryWatch, setClearingInjuryWatch] = useState(false)
   const [injuryWatchEnabled, setInjuryWatchEnabled] = useState(false)
   const isEn = lang === 'en'
   const isAdmin = isAdminEmail(email)
@@ -112,6 +113,26 @@ export default function ValueLeagueRadar({ lang, plan, email }: { lang: string; 
     } catch (err: any) {
       setError(err.message ?? 'El barrido no pudo completarse.')
       setLoadingInjuryWatch(false)
+    }
+  }
+
+  const clearInjuryWatch = async () => {
+    if (!isAdmin || !injuryWatch?.scan || clearingInjuryWatch) return
+    const confirmed = window.confirm(isEn
+      ? 'Delete all saved injury-watch results? This keeps your selected competitions and does not call the provider.'
+      : '¿Borrar todos los resultados guardados de lesiones? Se conservan las competiciones seleccionadas y no se consulta al proveedor.')
+    if (!confirmed) return
+
+    setClearingInjuryWatch(true); setError('')
+    try {
+      const response = await fetch('/api/admin/injury-watch', { method: 'DELETE' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'No se pudieron borrar los resultados de lesiones.')
+      setInjuryWatch((current) => current ? { ...current, scan: null, alerts: [] } : current)
+    } catch (err: any) {
+      setError(err.message ?? 'No se pudieron borrar los resultados de lesiones.')
+    } finally {
+      setClearingInjuryWatch(false)
     }
   }
 
@@ -191,6 +212,9 @@ export default function ValueLeagueRadar({ lang, plan, email }: { lang: string; 
         </button>
         <button type="button" onClick={runInjuryWatch} disabled={!leagueIds.length || loadingInjuryWatch || savingInjuryWatch} style={{ minHeight: 34, background: !leagueIds.length || loadingInjuryWatch || savingInjuryWatch ? '#534626' : '#ffb400', border: 'none', color: !leagueIds.length || loadingInjuryWatch || savingInjuryWatch ? '#c9b27f' : '#18200d', borderRadius: 8, padding: '0 11px', cursor: !leagueIds.length || loadingInjuryWatch || savingInjuryWatch ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 800 }}>
           {loadingInjuryWatch ? (isEn ? 'Scanning…' : 'Analizando bajas…') : (isEn ? 'Run scan now' : 'Lanzar barrido ahora')}
+        </button>
+        <button type="button" onClick={clearInjuryWatch} disabled={!injuryWatch?.scan || clearingInjuryWatch || loadingInjuryWatch} style={{ minHeight: 34, background: 'transparent', border: '1px solid #8d4a4a', color: !injuryWatch?.scan || clearingInjuryWatch || loadingInjuryWatch ? '#8b6b6b' : '#ff9c9c', borderRadius: 8, padding: '0 11px', cursor: !injuryWatch?.scan || clearingInjuryWatch || loadingInjuryWatch ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 700 }}>
+          {clearingInjuryWatch ? (isEn ? 'Deleting…' : 'Borrando…') : (isEn ? 'Clear saved results' : 'Borrar resultados')}
         </button>
       </div>
 
