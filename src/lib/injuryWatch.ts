@@ -75,7 +75,10 @@ export async function clearInjuryWatchHistory() {
   const service = createServiceClient()
   // The alerts reference scans with ON DELETE CASCADE, so this removes both
   // the stale cards and their historical scan rows in one deliberate action.
-  const { error } = await service.from('injury_watch_scans').delete().neq('id', '')
+  const { error } = await service
+    .from('injury_watch_scans')
+    .delete()
+    .in('status', ['running', 'completed', 'partial', 'failed'])
   if (error) throw error
 }
 
