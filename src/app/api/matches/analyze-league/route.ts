@@ -192,10 +192,13 @@ export async function GET(req: NextRequest) {
     }
 
   } catch (err) {
-    log.push(`Error: ${String(err)}`)
-    console.error(`[analyze-league] ${league.name} failed: ${err instanceof Error ? err.message : 'unknown error'}`)
+    const errorMessage = err instanceof Error ? err.message : 'unknown error'
+    log.push(`Error: ${errorMessage}`)
+    console.error(`[analyze-league] ${league.name} failed: ${errorMessage}`)
     return NextResponse.json(
-      { success: false, league: league.name, valueBets: valueBets.length, failedFixtures, log },
+      // `error` is intentionally a provider/error-classification message only;
+      // no credentials, request headers or raw provider payloads are exposed.
+      { success: false, league: league.name, valueBets: valueBets.length, failedFixtures, error: errorMessage, log },
       { status: 502 },
     )
   }

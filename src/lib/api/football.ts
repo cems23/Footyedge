@@ -11,6 +11,27 @@ const API_FOOTBALL = 'https://v3.football.api-sports.io'
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 const ODDS_API     = 'https://api.the-odds-api.com/v4'
 
+/**
+ * API-Football returns provider errors inside an otherwise valid JSON envelope.
+ * Keep the useful, non-secret part of that envelope in the error so an operator
+ * can distinguish a bad/expired key from a temporary provider outage.
+ */
+export function formatApiFootballErrors(errors: unknown): string | null {
+  if (!errors) return null
+
+  if (typeof errors === 'string') return errors.slice(0, 240)
+  if (Array.isArray(errors)) {
+    const values = errors.filter(value => typeof value === 'string').map(value => value.trim()).filter(Boolean)
+    return values.length ? values.join('; ').slice(0, 240) : null
+  }
+  if (typeof errors !== 'object') return null
+
+  const parts = Object.entries(errors as Record<string, unknown>)
+    .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+    .filter(part => part !== 'undefined')
+  return parts.length ? parts.join('; ').slice(0, 240) : null
+}
+
 // ── LEAGUE WEIGHTS para ranking ────────────────────────────
 export const LEAGUE_WEIGHTS: Record<number, number> = {
   39:  1.00, // Premier League
@@ -97,22 +118,24 @@ export async function apf<T>(endpoint: string, params: Record<string, string | n
   }
 
   const raw = await res.text()
-  if (!res.ok) throw new Error(`API-Football ${endpoint} returned HTTP ${res.status}`)
-
-  let json: { response?: T; errors?: unknown }
+  let json: { response?: T; errors?: unknown } | null = null
   try {
     json = JSON.parse(raw) as { response?: T; errors?: unknown }
   } catch {
+    if (!res.ok) throw new Error(`API-Football ${endpoint} returned HTTP ${res.status}`)
     throw new Error(`API-Football ${endpoint} returned invalid JSON`)
+  }
+
+  const providerError = formatApiFootballErrors(json.errors)
+  if (!res.ok) {
+    throw new Error(`API-Football ${endpoint} returned HTTP ${res.status}${providerError ? `: ${providerError}` : ''}`)
   }
 
   if (!Object.prototype.hasOwnProperty.call(json, 'response')) {
     throw new Error(`API-Football ${endpoint} returned an invalid response shape`)
   }
 
-  const errObj = json.errors
-  if (errObj && !Array.isArray(errObj) && Object.keys(errObj).length > 0)
-    throw new Error(`API-Football ${endpoint} reported an upstream error`)
+  if (providerError) throw new Error(`API-Football ${endpoint} reported an upstream error: ${providerError}`)
   return json.response as T
 }
 

@@ -32,7 +32,7 @@ jobs:
             local league="$1"
             local offset=0
             local attempt=1
-            local response_file http_code curl_exit success failed_fixtures has_more next_offset batch_total
+            local response_file http_code curl_exit success failed_fixtures has_more next_offset batch_total error_detail
 
             while true; do
               response_file=$(mktemp)
@@ -43,9 +43,10 @@ jobs:
               has_more=$(python3 -c "import json,sys; print(str(json.load(open(sys.argv[1])).get('batch', {}).get('hasMore') is True).lower())" "$response_file" 2>/dev/null)
               next_offset=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('batch', {}).get('nextOffset', ''))" "$response_file" 2>/dev/null)
               batch_total=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('batch', {}).get('total', ''))" "$response_file" 2>/dev/null)
-              rm -f "$response_file"
+              error_detail=$(python3 -c "import json,sys; value=json.load(open(sys.argv[1])).get('error', ''); print(value if isinstance(value, str) else '')" "$response_file" 2>/dev/null)
 
               if [ "$curl_exit" -eq 0 ] && [ "$http_code" -eq 200 ] && [ "$success" = "true" ] && [ "${failed_fixtures:-0}" = "0" ]; then
+                rm -f "$response_file"
                 echo "League $league: batch $((offset + 1))/${batch_total:-0} OK (attempt $attempt)"
                 if [ "$has_more" = "true" ] && [ -n "$next_offset" ] && [ "$next_offset" -gt "$offset" ]; then
                   offset=$next_offset
@@ -56,24 +57,42 @@ jobs:
                 return 0
               fi
 
+              # A credential/quota/provider error is shared by every league.
+              # Retrying it 43 times only burns Actions minutes and hides the
+              # actual cause in a very long notification.
+              if [[ "$error_detail" == API-Football* ]]; then
+                echo "API-Football unavailable: $error_detail" | tee -a "$PIPELINE_FAILURE_LOG"
+                rm -f "$response_file"
+                return 2
+              fi
+
               # Reintentar una vez solo errores transitorios de transporte o del
               # proxy. Una respuesta de datos inválida/fixtures fallidos se deja
               # visible como fallo real en vez de ocultarla con reintentos.
               if [ "$attempt" -lt 2 ] && { [ "$curl_exit" -eq 28 ] || [ "$http_code" = "502" ] || [ "$http_code" = "503" ] || [ "$http_code" = "504" ]; }; then
                 echo "League $league batch $((offset + 1)) transient failure (attempt $attempt: curl=$curl_exit, HTTP=$http_code); retrying once in 12s"
+                rm -f "$response_file"
                 sleep 12
                 attempt=$((attempt + 1))
                 continue
               fi
 
-              echo "League $league batch $((offset + 1)) failed (attempt $attempt, curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, failedFixtures=${failed_fixtures:-invalid})" | tee -a "$PIPELINE_FAILURE_LOG"
+              echo "League $league batch $((offset + 1)) failed (attempt $attempt, curl=$curl_exit, HTTP=$http_code, success=${success:-invalid}, failedFixtures=${failed_fixtures:-invalid}${error_detail:+, error=$error_detail})" | tee -a "$PIPELINE_FAILURE_LOG"
+              rm -f "$response_file"
               return 1
             done
           }
 
           for league in $LEAGUES; do
-            if ! analyze_league "$league"; then
+            if analyze_league "$league"; then
+              :
+            else
+              status=$?
               failures=$((failures + 1))
+              if [ "$status" -eq 2 ]; then
+                echo "Stopped league analysis after a shared API-Football failure."
+                break
+              fi
             fi
             sleep 2
           done
